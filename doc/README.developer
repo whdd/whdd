@@ -1,0 +1,17 @@
+RULES
+- Device manipulations must be isolated from visualization. Devicey code must be shaped into library, and UI part should register its callback functions in the lib.
+
+TODO
+- Device-checking code
+- Curses Console UI
+--- Tests visualization like in MHDD
+- X-Windows UI (Qt?)
+--- Tests visualization with plotting i/o speed (y) by device offset (x)
+
+
+PARTS
+
+LIBDEVCHECK
+Functions (and other stuff) belonging to libdevcheck must have 'dc_' prefix to expose this fact.
+See libdevcheck/libdevcheck.h for API.
+

@@ -1,0 +1,10 @@
+WHDD is a diagnostic and recovery tool for block devices (primarily HDD).
+
+Functionality:
+- List available block devices (HDD, Flash drives etc.)
+- List SMART parameters
+- Perform tests:
+--- Read
+--- Write zeros
+- Visualize results of tests
+- Low-level device copying
