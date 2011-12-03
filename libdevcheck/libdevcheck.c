@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <assert.h>
 #include <ctype.h>
@@ -17,6 +18,7 @@ void dc_finish(DC_Ctx *ctx) {
 }
 
 static void dev_list_build(DC_DevList *dc_devlist);
+static void dev_list_fill_info(DC_DevList *list);
 
 DC_DevList *dc_dev_list(DC_Ctx *dc_ctx) {
     DC_DevList *list = calloc(1, sizeof(*list));
@@ -24,6 +26,7 @@ DC_DevList *dc_dev_list(DC_Ctx *dc_ctx) {
     list->arr = NULL;
     list->arr_size = 0;
     dev_list_build(list);
+    dev_list_fill_info(list);
     return list;
 }
 
@@ -92,3 +95,32 @@ static void dev_list_build(DC_DevList *dc_devlist) {
 	}
 	fclose(procpt);
 }
+
+static void dev_modelname_fill(DC_Dev *dev);
+
+static void dev_list_fill_info(DC_DevList *list) {
+    DC_Dev *dev = list->arr;
+    while (dev) {
+        dev_modelname_fill(dev);
+        dev = dev->next;
+    }
+}
+
+static void dev_modelname_fill(DC_Dev *dev) {
+        // fill model name, if exists
+        char *model_file_name;
+        asprintf(&model_file_name,
+                "/sys/block/%s/device/model", dev->dev_fs_name);
+        assert(model_file_name);
+
+        FILE *model_file = fopen(model_file_name, "r");
+        free(model_file_name);
+        if (!model_file) return;
+        char model[256];
+        int r;
+        r = fscanf(model_file, "%256[^\n]", model);
+        if (r != 1) { printf("outrageous error at scanning model name\n"); return; }
+        dev->model_str = strdup(model);
+        assert(dev->model_str);
+}
+
