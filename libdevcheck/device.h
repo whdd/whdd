@@ -11,4 +11,6 @@ struct dc_dev {
 };
 typedef struct dc_dev DC_Dev;
 
+char *dc_dev_smartctl_text(DC_Dev *dev, char *options);
+
 #endif // DEVICE_H

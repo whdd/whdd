@@ -4,7 +4,7 @@ set -e
 CFLAGS='-g -ggdb -O0 -Wall -Wextra'
 LDFLAGS=''
 
-OBJECTS='libdevcheck'
+OBJECTS='libdevcheck device utils'
 
 for x in $OBJECTS
 do
