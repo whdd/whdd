@@ -87,6 +87,8 @@ static void dev_list_build(DC_DevList *dc_devlist) {
             assert(dc_dev);
             dc_dev->dev_fs_name = strdup(ptname);
             assert(dc_dev->dev_fs_name);
+            asprintf(&dc_dev->dev_path, "/dev/%s", ptname);
+            assert(dc_dev->dev_path);
             dc_dev->capacity = sz * 1024;
             dc_dev->next = dc_devlist->arr;
             dc_devlist->arr = dc_dev;
