@@ -1,9 +1,12 @@
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 #include "libdevcheck.h"
 
 DC_Ctx *dc_ctx;
+
+static int readtest_cb(DC_Dev *dev, void *priv, DC_TestReport *report);
 
 int main() {
     int r;
@@ -49,6 +52,7 @@ int main() {
     // print actions list
     printf("\nChoose action #:\n"
             "1) Show SMART attributes\n"
+            "2) Perform read test\n"
           );
     int chosen_action_ind;
     r = scanf("%d", &chosen_action_ind);
@@ -56,13 +60,32 @@ int main() {
         printf("Wrong input for action index\n");
         return 1;
     }
-    if (chosen_action_ind == 1) {
+    switch (chosen_action_ind) {
+    case 1:
+        ;
         char *text;
         text = dc_dev_smartctl_text(chosen_dev, "-A -i");
         if (text)
             printf("%s\n", text);
         free(text);
+        break;
+    case 2:
+        dc_dev_readtest(chosen_dev, readtest_cb, NULL);
+        break;
     }
 
     return 0;
 }
+
+static int readtest_cb(DC_Dev *dev, void *priv, DC_TestReport *report) {
+    if (report->blk_index == 0) {
+        printf("Performing read-test of '%s' with block size of %"PRIu64" bytes\n",
+                dev->dev_fs_name, report->blk_size);
+    }
+    printf("Block #%"PRIu64" (total %"PRIu64") read in %"PRIu64" mcs. Errno %d\n",
+            report->blk_index, report->blks_total, report->blk_access_time,
+            report->blk_access_errno);
+    fflush(stdout);
+    return 0;
+}
+

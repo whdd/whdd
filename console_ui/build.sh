@@ -2,7 +2,7 @@
 set -e
 
 CFLAGS='-g -ggdb -O0 -Wall -Wextra -I../libdevcheck'
-LDFLAGS=''
+LDFLAGS='-lrt'
 
 OBJECTS='main'
 
