@@ -7,6 +7,7 @@
 DC_Ctx *dc_ctx;
 
 static int readtest_cb(DC_Dev *dev, void *priv, DC_TestReport *report);
+static int zerofilltest_cb(DC_Dev *dev, void *priv, DC_TestReport *report);
 
 int main() {
     int r;
@@ -53,6 +54,7 @@ int main() {
     printf("\nChoose action #:\n"
             "1) Show SMART attributes\n"
             "2) Perform read test\n"
+            "3) Perform 'write zeros' test\n"
           );
     int chosen_action_ind;
     r = scanf("%d", &chosen_action_ind);
@@ -72,6 +74,12 @@ int main() {
     case 2:
         dc_dev_readtest(chosen_dev, readtest_cb, NULL);
         break;
+    case 3:
+        dc_dev_zerofilltest(chosen_dev, zerofilltest_cb, NULL);
+        break;
+    default:
+        printf("Wrong action index\n");
+        break;
     }
 
     return 0;
@@ -83,6 +91,18 @@ static int readtest_cb(DC_Dev *dev, void *priv, DC_TestReport *report) {
                 dev->dev_fs_name, report->blk_size);
     }
     printf("Block #%"PRIu64" (total %"PRIu64") read in %"PRIu64" mcs. Errno %d\n",
+            report->blk_index, report->blks_total, report->blk_access_time,
+            report->blk_access_errno);
+    fflush(stdout);
+    return 0;
+}
+
+static int zerofilltest_cb(DC_Dev *dev, void *priv, DC_TestReport *report) {
+    if (report->blk_index == 0) {
+        printf("Performing 'write zeros' test of '%s' with block size of %"PRIu64" bytes\n",
+                dev->dev_fs_name, report->blk_size);
+    }
+    printf("Block #%"PRIu64" (total %"PRIu64") written in %"PRIu64" mcs. Errno %d\n",
             report->blk_index, report->blks_total, report->blk_access_time,
             report->blk_access_errno);
     fflush(stdout);

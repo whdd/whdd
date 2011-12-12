@@ -26,4 +26,6 @@ typedef struct dc_test_report DC_TestReport;
 typedef int (*TestCB)(DC_Dev *dev, void *priv, DC_TestReport *report);
 
 int dc_dev_readtest(DC_Dev *dev, TestCB callback, void *priv);
+int dc_dev_zerofilltest(DC_Dev *dev, TestCB callback, void *priv);
+
 #endif // DEVICE_H
