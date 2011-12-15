@@ -77,6 +77,12 @@ int main() {
         dc_dev_readtest(chosen_dev, readtest_cb, NULL);
         break;
     case 3:
+        printf("This will destroy all data on device %s (%s). Are you sure? (y/n)\n",
+                chosen_dev->dev_fs_name, chosen_dev->model_str);
+        char ans = 'n';
+        r = scanf("\n%c", &ans);
+        if (ans != 'y')
+            break;
         show_legend();
         dc_dev_zerofilltest(chosen_dev, zerofilltest_cb, NULL);
         break;
