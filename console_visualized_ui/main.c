@@ -184,9 +184,9 @@ static int action_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name
     sigaddset(&set, SIGINT);
     sigaddset(&set, SIGHUP);
     sigaddset(&set, SIGTERM);
-    r = pthread_sigmask(SIG_BLOCK, &set, NULL); /* new created threads will inherit this set */
+    r = sigprocmask(SIG_BLOCK, &set, NULL);
     if (r) {
-        printf("p_sigmask failed: %d\n", r);
+        printf("sigprocmask failed: %d\n", r);
         goto fail;
     }
 
@@ -204,6 +204,12 @@ static int action_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name
     printf("waiting for detached action loop to join\n");
     r = pthread_join(tid, NULL);
     assert(!r);
+
+    r = sigprocmask(SIG_UNBLOCK, &set, NULL);
+    if (r) {
+        printf("sigprocmask failed: %d\n", r);
+        goto fail;
+    }
 
     dc_action_close(actctx);
     return 0;
