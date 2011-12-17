@@ -16,6 +16,7 @@ static int zerofill_cb(DC_ActionCtx *ctx, void *callback_priv);
 DC_Ctx *dc_ctx;
 
 int main() {
+    printf(WHDD_ABOUT);
     int r;
     // init libdevcheck
     dc_ctx = dc_init();

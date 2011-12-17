@@ -1,6 +1,18 @@
 #ifndef LIBDEVCHECK_H
 #define LIBDEVCHECK_H
 
+#include "version.h"
+#define WHDD_ABOUT "WHDD - disk drives diagnostic tool\n" \
+    "Revision " WHDD_VERSION "\n" \
+    "License: GNU GPL\n" \
+    "Sources: https://github.com/krieger-od/whdd\n" \
+    "Author: Andrey 'Krieger' Utkin <andrey.krieger.utkin@gmail.com>\n" \
+    "Sponsor:\n" \
+        "\tVitaliy 'Rozik' Roziznaniy <rozik@homei.net.ua>\n" \
+        "\thttp://rozik.od.ua\n" \
+        "\thttp://hdd.od.ua\n" \
+    "Heil comrad Stalin!\n"
+
 #include "objects_def.h"
 #include "device.h"
 #include "action.h"

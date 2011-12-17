@@ -1,6 +1,8 @@
 #!/bin/sh
 set -e
 
+./version.sh > version.h
+
 CFLAGS='-g -ggdb -O0 -Wall -Wextra'
 LDFLAGS=''
 

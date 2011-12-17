@@ -22,7 +22,7 @@ DC_Ctx *dc_ctx;
 int main() {
     int r;
     setlocale(LC_ALL, "");
-
+    wprintf(L"%s", WHDD_ABOUT);
     // init libdevcheck
     dc_ctx = dc_init();
     assert(dc_ctx);
