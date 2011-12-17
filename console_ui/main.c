@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
+#include <errno.h>
 #include "libdevcheck.h"
 #include "device.h"
 #include "action.h"
@@ -132,7 +133,7 @@ static int action_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name
         ActionDetachedLoopCB callback, void *callback_priv
         ) {
     int r;
-    int sig;
+    siginfo_t siginfo;
     sigset_t set;
     pthread_t tid;
     DC_Action *act = dc_find_action(dc_ctx, act_name);
@@ -161,12 +162,21 @@ static int action_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name
         goto fail;
     }
 
-    r = sigwait(&set, &sig);
-    assert(!r);
+    struct timespec finish_check_interval = { .tv_sec = 1, .tv_nsec = 0 };
+    while (!actctx->finished) {
+        r = sigtimedwait(&set, &siginfo, &finish_check_interval);
+        if (r > 0) { // got signal `r`
+            actctx->interrupt = 1;
+            break;
+        } else { // "fail"
+            if ((errno == EAGAIN) || // timed out
+                    (errno == EINTR)) // interrupted by non-catched signal
+                continue;
+            else
+                printf("sigtimedwait fail, errno %d\n", errno);
+        }
+    }
 
-    printf("got signal %d, interrupting action %s\n", sig, act_name);
-    actctx->interrupt = 1;
-    printf("waiting for detached action loop to join\n");
     r = pthread_join(tid, NULL);
     assert(!r);
 

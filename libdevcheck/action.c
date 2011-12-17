@@ -65,16 +65,22 @@ void dc_action_close(DC_ActionCtx *ctx) {
 
 int dc_action_perform_loop(DC_ActionCtx *ctx, ActionDetachedLoopCB callback, void *callback_priv) {
     int r;
+    int ret = 0;
     int perform_ret;
     while (!ctx->interrupt) {
         perform_ret = dc_action_perform(ctx);
         r = callback(ctx, callback_priv);
-        if (perform_ret)
-            return perform_ret;
-        if (r)
-            return r;
+        if (perform_ret) {
+            ret = perform_ret;
+            break;
+        }
+        if (r) {
+            ret = r;
+            break;
+        }
     }
-    return 0;
+    ctx->finished = 1;
+    return ret;
 }
 
 int dc_action_perform_loop_detached(DC_ActionCtx *ctx, ActionDetachedLoopCB callback,
