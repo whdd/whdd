@@ -21,6 +21,7 @@ int main() {
     int devs_num = dc_dev_list_size(devlist);
     if (devs_num == 0) { printf("No devices found\n"); return 0; }
 
+    while (1) {
     // print actions list
     printf("\nChoose action #:\n"
             "0) Exit\n"
@@ -93,6 +94,7 @@ int main() {
         printf("Wrong action index\n");
         break;
     }
+    } // while(1)
 
     return 0;
 }
