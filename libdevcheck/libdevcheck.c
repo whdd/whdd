@@ -5,11 +5,20 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "libdevcheck_priv.h"
 #include "libdevcheck.h"
+#include "action.h"
 
 DC_Ctx *dc_init(void) {
     DC_Ctx *ctx = calloc(1, sizeof(*ctx));
+    if (!ctx)
+        return NULL;
+
+#define ACTION_REGISTER(x) { \
+        extern DC_Action x; \
+        dc_action_register(ctx, &x); }
+    ACTION_REGISTER(readtest);
+    ACTION_REGISTER(zerofill);
+#undef ACTION_REGISTER
     return ctx;
 }
 

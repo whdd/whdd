@@ -2,12 +2,17 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 #include "libdevcheck.h"
+#include "device.h"
+#include "action.h"
+
+static int action_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name,
+        ActionDetachedLoopCB callback, void *callback_priv);
+static int readtest_cb(DC_ActionCtx *ctx, void *callback_priv);
+static int zerofill_cb(DC_ActionCtx *ctx, void *callback_priv);
 
 DC_Ctx *dc_ctx;
-
-static int readtest_cb(DC_Dev *dev, void *priv, DC_TestReport *report);
-static int zerofilltest_cb(DC_Dev *dev, void *priv, DC_TestReport *report);
 
 int main() {
     int r;
@@ -79,7 +84,7 @@ int main() {
         free(text);
         break;
     case 2:
-        dc_dev_readtest(chosen_dev, readtest_cb, NULL);
+        action_find_start_perform_until_interrupt(chosen_dev, "readtest", readtest_cb, NULL);
         break;
     case 3:
         printf("This will destroy all data on device %s (%s). Are you sure? (y/n)\n",
@@ -88,7 +93,7 @@ int main() {
         r = scanf("\n%c", &ans);
         if (ans != 'y')
             break;
-        dc_dev_zerofilltest(chosen_dev, zerofilltest_cb, NULL);
+        action_find_start_perform_until_interrupt(chosen_dev, "zerofill", zerofill_cb, NULL);
         break;
     default:
         printf("Wrong action index\n");
@@ -99,27 +104,77 @@ int main() {
     return 0;
 }
 
-static int readtest_cb(DC_Dev *dev, void *priv, DC_TestReport *report) {
-    if (report->blk_index == 0) {
+static int readtest_cb(DC_ActionCtx *ctx, void *callback_priv) {
+    if (ctx->performs_executed == 1) {
         printf("Performing read-test of '%s' with block size of %"PRIu64" bytes\n",
-                dev->dev_fs_name, report->blk_size);
+                ctx->dev->dev_fs_name, ctx->blk_size);
     }
     printf("Block #%"PRIu64" (total %"PRIu64") read in %"PRIu64" mcs. Errno %d\n",
-            report->blk_index, report->blks_total, report->blk_access_time,
-            report->blk_access_errno);
+            ctx->blk_index, ctx->blks_total, ctx->report.blk_access_time,
+            ctx->report.blk_access_errno);
     fflush(stdout);
     return 0;
 }
 
-static int zerofilltest_cb(DC_Dev *dev, void *priv, DC_TestReport *report) {
-    if (report->blk_index == 0) {
+static int zerofill_cb(DC_ActionCtx *ctx, void *callback_priv) {
+    if (ctx->performs_executed == 1) {
         printf("Performing 'write zeros' test of '%s' with block size of %"PRIu64" bytes\n",
-                dev->dev_fs_name, report->blk_size);
+                ctx->dev->dev_fs_name, ctx->blk_size);
     }
     printf("Block #%"PRIu64" (total %"PRIu64") written in %"PRIu64" mcs. Errno %d\n",
-            report->blk_index, report->blks_total, report->blk_access_time,
-            report->blk_access_errno);
+            ctx->blk_index, ctx->blks_total, ctx->report.blk_access_time,
+            ctx->report.blk_access_errno);
     fflush(stdout);
     return 0;
+}
+
+static int action_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name,
+        ActionDetachedLoopCB callback, void *callback_priv
+        ) {
+    int r;
+    int sig;
+    sigset_t set;
+    pthread_t tid;
+    DC_Action *act = dc_find_action(dc_ctx, act_name);
+    assert(act);
+    DC_ActionCtx *actctx;
+    r = dc_action_open(act, dev, &actctx);
+    if (r) {
+        printf("Action init fail\n");
+        return 1;
+    }
+
+    sigemptyset(&set);
+    sigaddset(&set, SIGQUIT);
+    sigaddset(&set, SIGINT);
+    sigaddset(&set, SIGHUP);
+    sigaddset(&set, SIGTERM);
+    r = pthread_sigmask(SIG_BLOCK, &set, NULL); /* new created threads will inherit this set */
+    if (r) {
+        printf("p_sigmask failed: %d\n", r);
+        goto fail;
+    }
+
+    r = dc_action_perform_loop_detached(actctx, callback, callback_priv, &tid);
+    if (r) {
+        printf("dc_action_perform_loop_detached fail\n");
+        goto fail;
+    }
+
+    r = sigwait(&set, &sig);
+    assert(!r);
+
+    printf("got signal %d, interrupting action %s\n", sig, act_name);
+    actctx->interrupt = 1;
+    printf("waiting for detached action loop to join\n");
+    r = pthread_join(tid, NULL);
+    assert(!r);
+
+    dc_action_close(actctx);
+    return 0;
+
+fail:
+    dc_action_close(actctx);
+    return 1;
 }
 
