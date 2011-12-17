@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-CFLAGS='-g -ggdb -O0 -Wall -Wextra -I../libdevcheck'
+CFLAGS='-g -ggdb -O0 -Wall -Wextra -I../libdevcheck -std=gnu99'
 LDFLAGS='-lrt -pthread'
 
 OBJECTS='main'
