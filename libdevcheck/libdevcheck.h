@@ -11,7 +11,7 @@
         "\tVitaliy 'Rozik' Roziznaniy <rozik@homei.net.ua>\n" \
         "\thttp://rozik.od.ua\n" \
         "\thttp://hdd.od.ua\n" \
-    "Heil comrad Stalin!\n"
+    "Heil comrade Stalin!\n"
 
 #include "objects_def.h"
 #include "device.h"
