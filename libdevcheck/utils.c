@@ -9,7 +9,7 @@ char *cmd_output(char *command_line) {
     FILE *pipe;
     pipe = popen(command_line, "r");
     if (!pipe) {
-        printf("Failed to exec '%s'\n", command_line);
+        fprintf(stderr, "Failed to exec '%s'\n", command_line);
         return NULL;
     }
 

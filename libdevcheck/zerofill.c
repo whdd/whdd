@@ -33,7 +33,7 @@ static int Open(DC_ActionCtx *ctx) {
 
     priv->fd = open(ctx->dev->dev_path, O_WRONLY | O_SYNC | O_DIRECT | O_LARGEFILE | O_NOATIME);
     if (priv->fd == -1) {
-        printf("open %s fail\n", ctx->dev->dev_path);
+        fprintf(stderr, "open %s fail\n", ctx->dev->dev_path);
         goto fail_open;
     }
 

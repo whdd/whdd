@@ -130,7 +130,7 @@ static void dev_modelname_fill(DC_Dev *dev) {
         char model[256];
         int r;
         r = fscanf(model_file, "%256[^\n]", model);
-        if (r != 1) { printf("outrageous error at scanning model name\n"); return; }
+        if (r != 1) { fprintf(stderr, "outrageous error at scanning model name\n"); return; }
         dev->model_str = strdup(model);
         assert(dev->model_str);
 }
