@@ -7,7 +7,7 @@
     "License: GNU GPL\n" \
     "Sources: https://github.com/krieger-od/whdd\n" \
     "Author: Andrey 'Krieger' Utkin <andrey.krieger.utkin@gmail.com>\n" \
-    "Sponsor:\n" \
+    "Directed by:\n" \
         "\tVitaliy 'Rozik' Roziznaniy <rozik@homei.net.ua>\n" \
         "\thttp://rozik.od.ua\n" \
         "\thttp://hdd.od.ua\n" \
