@@ -50,6 +50,13 @@ static int Perform(DC_ActionCtx *ctx) {
     ZeroFillPriv *priv = ctx->priv;
     write_ret = write(priv->fd, priv->buf, ctx->blk_size);
     ctx->blk_index++;
+    if (write_ret != ctx->blk_size) {
+        assert(write_ret == -1); // short write should not happen as long as done in O_DIRECT
+        int errno_store;
+        errno_store = errno;
+        lseek(priv->fd, ctx->blk_size * ctx->blk_index, SEEK_SET);
+        errno = errno_store; // dc_action_perform() stores errno value to context
+    }
     return 0;
 }
 

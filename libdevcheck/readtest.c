@@ -48,6 +48,21 @@ static int Perform(DC_ActionCtx *ctx) {
     ReadPriv *priv = ctx->priv;
     read_ret = read(priv->fd, priv->buf, ctx->blk_size);
     ctx->blk_index++;
+    if (read_ret != ctx->blk_size) {
+        int errno_store;
+        assert(read_ret == -1); // short read mustn't happen as long as we operate in O_DIRECT
+        /* Set read position appropriately for the case it somehow reads non-full block
+         *
+         * From "man 2 read":
+         * On error, -1 is returned, and errno is set appropriately. In this case it is
+         * left unspecified whether the file position (if any) changes.
+         *
+         * So we set read position as appropriate
+         */
+        errno_store = errno;
+        lseek(priv->fd, ctx->blk_size * ctx->blk_index, SEEK_SET);
+        errno = errno_store; // dc_action_perform() stores errno value to context
+    }
     return 0;
 }
 
