@@ -34,24 +34,7 @@ int main() {
     if (devs_num == 0) { wprintf(L"No devices found\n"); return 0; }
 
     while (1) {
-    // print actions list
-    wprintf(L"\nChoose action #:\n"
-            "0) Exit\n"
-            "1) Show SMART attributes\n"
-            "2) Perform read test\n"
-            "3) Perform 'write zeros' test\n"
-          );
-    int chosen_action_ind;
-    r = scanf("%d", &chosen_action_ind);
-    if (r != 1) {
-        wprintf(L"Wrong input for action index\n");
-        return 1;
-    }
-    if (chosen_action_ind == 0) {
-        wprintf(L"Exiting due to chosen action\n");
-        return 0;
-    }
-
+    wprintf(L"\n\n");
     int i;
     for (i = 0; i < devs_num; i++) {
         DC_Dev *dev = dc_dev_list_get_entry(devlist, i);
@@ -79,6 +62,24 @@ int main() {
     if (!chosen_dev) {
         wprintf(L"No device with index %d\n", chosen_dev_ind);
         return 1;
+    }
+
+    // print actions list
+    wprintf(L"\nChoose action #:\n"
+            "0) Exit\n"
+            "1) Show SMART attributes\n"
+            "2) Perform read test\n"
+            "3) Perform 'write zeros' test\n"
+          );
+    int chosen_action_ind;
+    r = scanf("%d", &chosen_action_ind);
+    if (r != 1) {
+        wprintf(L"Wrong input for action index\n");
+        return 1;
+    }
+    if (chosen_action_ind == 0) {
+        wprintf(L"Exiting due to chosen action\n");
+        return 0;
     }
 
     switch (chosen_action_ind) {
