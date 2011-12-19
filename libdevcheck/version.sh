@@ -7,9 +7,9 @@ tag=`git tag --contains $revision`
 
 if [[ $tag != '' ]]
 then
-    version="$tag-$revision"
+    version="$tag-g$revision"
 else
-    version=$revision
+    version=g$revision
 fi
 
 NEW_VERSION="#define WHDD_VERSION \"$version\""
