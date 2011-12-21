@@ -16,6 +16,7 @@ void init_my_colors(void) {
     init_pair(MY_COLOR_GREEN, COLOR_GREEN, COLOR_BLACK);
     init_pair(MY_COLOR_RED, COLOR_RED, COLOR_BLACK);
     init_pair(MY_COLOR_PINK, COLOR_MAGENTA, COLOR_BLACK);
+    init_pair(MY_COLOR_WHITE_ON_BLUE, COLOR_WHITE, COLOR_BLUE);
 }
 
 vis_t choose_vis(uint64_t access_time) {
@@ -27,30 +28,30 @@ vis_t choose_vis(uint64_t access_time) {
 }
 
 
-void print_vis(vis_t vis) {
+void print_vis(WINDOW *win, vis_t vis) {
     if (vis.attrs)
-        attron(A_BOLD);
+        wattron(win, A_BOLD);
     else
-        attroff(A_BOLD);
-    attron(COLOR_PAIR(vis.color_pair));
-    printw("%lc", vis.vis);
-    refresh();
+        wattroff(win, A_BOLD);
+    wattron(win, COLOR_PAIR(vis.color_pair));
+    wprintw(win, "%lc", vis.vis);
+    wrefresh(win);
 }
 
-void show_legend(void) {
-    printw("Legend:\n");
+void show_legend(WINDOW *win) {
+    wprintw(win, "Legend:\n");
     unsigned int i;
     for (i = 0; i < sizeof(bs_vis)/sizeof(*bs_vis); i++) {
-        print_vis(bs_vis[i]);
-        attrset(A_NORMAL);
-        printw(" access time < %"PRIu64" ms\n", bs_vis[i].access_time / 1000);
+        print_vis(win, bs_vis[i]);
+        wattrset(win, A_NORMAL);
+        wprintw(win, " < %"PRIu64" ms\n", bs_vis[i].access_time / 1000);
     }
-    print_vis(exceed_vis);
-    attrset(A_NORMAL);
-    printw(" access time exceeds any of above\n");
-    print_vis(error_vis);
-    attrset(A_NORMAL);
-    printw(" access error\n");
-    refresh();
+    print_vis(win,exceed_vis);
+    wattrset(win, A_NORMAL);
+    wprintw(win, " more\n");
+    print_vis(win, error_vis);
+    wattrset(win, A_NORMAL);
+    wprintw(win, " access error\n");
+    wrefresh(win);
 }
 

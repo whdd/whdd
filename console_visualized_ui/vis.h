@@ -9,6 +9,9 @@
 #define MY_COLOR_GREEN 2
 #define MY_COLOR_RED 3
 #define MY_COLOR_PINK 4
+#define MY_COLOR_WHITE_ON_BLUE 5
+
+#define LEGEND_WIDTH 20
 
 typedef struct vis_t {
     uint64_t access_time; // in mcs
@@ -23,7 +26,7 @@ extern vis_t error_vis;
 
 void init_my_colors(void);
 vis_t choose_vis(uint64_t access_time);
-void print_vis(vis_t vis);
-void show_legend(void);
+void print_vis(WINDOW *win, vis_t vis);
+void show_legend(WINDOW *win);
 
 #endif // VIS_H

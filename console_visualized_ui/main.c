@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
@@ -12,6 +13,7 @@
 #include "device.h"
 #include "action.h"
 #include "vis.h"
+#include "ncurses_convenience.h"
 
 #define ACT_EXIT 0
 #define ACT_ATTRS 1
@@ -29,7 +31,6 @@ static int render_test_zerofill(DC_Dev *dev);
 static int action_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name,
                 ActionDetachedLoopCB callback, void *callback_priv);
 static int readtest_cb(DC_ActionCtx *ctx, void *callback_priv);
-static int zerofill_cb(DC_ActionCtx *ctx, void *callback_priv);
 
 DC_Ctx *dc_ctx;
 
@@ -80,7 +81,6 @@ int main() {
         }
     } // while(1)
 
-    global_fini();
     return 0;
 }
 
@@ -90,17 +90,25 @@ static int global_init(void) {
     initscr();
     start_color();
     init_my_colors();
+    noecho();
     setscrreg(0, 0);
     scrollok(stdscr, TRUE);
-    printw("%s", WHDD_ABOUT);
+    keypad(stdscr, TRUE);
+
+    WINDOW *footer = subwin(stdscr, 1, COLS, LINES-1, 0);
+    wbkgd(footer, COLOR_PAIR(MY_COLOR_WHITE_ON_BLUE));
+    wprintw(footer, " WHDD rev. " WHDD_VERSION);
+
     refresh();
     // init libdevcheck
     dc_ctx = dc_init();
     assert(dc_ctx);
+    assert(atexit(global_fini) == 0);
     return 0;
 }
 
 static void global_fini(void) {
+    clear();
     endwin();
 }
 
@@ -109,49 +117,52 @@ static int menu_choose_device(DC_DevList *devlist) {
     int devs_num = dc_dev_list_size(devlist);
     if (devs_num == 0) { printw("No devices found\n"); return -1; }
 
-    printw("\n\n");
+    ITEM **items = calloc(devs_num + 1, sizeof(ITEM*));
+    assert(items);
+    items[devs_num] = NULL;
+
     int i;
     for (i = 0; i < devs_num; i++) {
         DC_Dev *dev = dc_dev_list_get_entry(devlist, i);
-        printw(
+        char *dev_descr;
+        r = asprintf(&dev_descr,
                 "#%d:" // index
                 " %s" // /dev/name
                 " %s" // model name
                 // TODO human-readable size
                 " %"PRIu64" bytes" // size
-                "\n"
                 ,i
                 ,dev->dev_fs_name
                 ,dev->model_str
                 ,dev->capacity
               );
+        assert(r != -1);
+        items[i] = new_item(dev_descr, "");
+        assert(items[i]);
     }
-    printw("Choose device by #:\n");
-    refresh();
-    int chosen_dev_ind;
-    r = scanw("%d", &chosen_dev_ind);
-    if (r != 1) {
-        printw("Wrong input for device index\n");
-        return -1;
-    }
+
+    int chosen_dev_ind = menu_helper(items, "Choose device");
+    i = 0;
+    while (items[i]) { free_item(items[i]); i++; }
+    free(items);
     return chosen_dev_ind;
 }
 
 static int menu_choose_action(DC_Dev *dev) {
-    int r;
-    printw("\nChoose action #:\n"
-            "0) Exit\n"
-            "1) Show SMART attributes\n"
-            "2) Perform read test\n"
-            "3) Perform 'write zeros' test\n"
-          );
-    refresh();
-    int chosen_action_ind;
-    r = scanw("%d", &chosen_action_ind);
-    if (r != 1) {
-        printw("Wrong input for action index\n");
-        return -1;
-    }
+    ITEM *items[5];
+    items[0] = new_item("Exit", "");
+    assert(items[0]);
+    items[1] = new_item("Show SMART attributes", "");
+    assert(items[1]);
+    items[2] = new_item("Perform read test", "");
+    assert(items[2]);
+    items[3] = new_item("Perform 'write zeros' test", "");
+    assert(items[3]);
+    items[4] = NULL;
+
+    int chosen_action_ind = menu_helper(items, "Choose action");
+    int i = 0;
+    while (items[i]) { free_item(items[i]); i++; }
     return chosen_action_ind;
 }
 
@@ -165,48 +176,59 @@ static void show_smart_attrs(DC_Dev *dev) {
 }
 
 static int render_test_read(DC_Dev *dev) {
-    show_legend();
-    sleep(1);
-    action_find_start_perform_until_interrupt(dev, "readtest", readtest_cb, NULL);
+    WINDOW *legend = derwin(stdscr, LINES-2, LEGEND_WIDTH, 1, COLS-LEGEND_WIDTH); // leave 1st and last lines untouched
+    show_legend(legend);
+    // TODO print info about device
+    wrefresh(legend);
+    WINDOW *vis = derwin(stdscr, LINES-2, COLS-LEGEND_WIDTH-1, 1, 0); // leave 1st and last lines untouched
+    scrollok(vis, TRUE);
+    wrefresh(vis);
+
+    action_find_start_perform_until_interrupt(dev, "readtest", readtest_cb, (void*)vis);
+
+    wclear(vis);
+    wclear(legend);
+    delwin(vis);
+    delwin(legend);
     return 0;
 }
 
 static int render_test_zerofill(DC_Dev *dev) {
     int r;
-    printw("This will destroy all data on device %s (%s). Are you sure? (y/n)\n",
+    /* TODO
+    char *ask;
+    r = asprintf(&ask, "This will destroy all data on device %s (%s). Are you sure?",
             dev->dev_fs_name, dev->model_str);
-    refresh();
-    char ans = 'n';
-    r = scanf("\n%c", &ans);
-    if (ans != 'y')
-        return 1;
-    show_legend();
-    sleep(1);
-    action_find_start_perform_until_interrupt(dev, "zerofill", zerofill_cb, NULL);
+    assert(r != -1);
+    r = yesno_helper(ask);
+    free(ask);
+    if (!r)
+        return 0;
+    */
+
+    WINDOW *legend = derwin(stdscr, LINES-2, LEGEND_WIDTH, 1, COLS-LEGEND_WIDTH); // leave 1st and last lines untouched
+    show_legend(legend);
+    // TODO print info about device
+    wrefresh(legend);
+    WINDOW *vis = derwin(stdscr, LINES-2, COLS-LEGEND_WIDTH-1, 1, 0); // leave 1st and last lines untouched
+    scrollok(vis, TRUE);
+    wrefresh(vis);
+
+    action_find_start_perform_until_interrupt(dev, "zerofill", readtest_cb, (void*)vis);
+
+    wclear(vis);
+    wclear(legend);
+    delwin(vis);
+    delwin(legend);
     return 0;
 }
 
 static int readtest_cb(DC_ActionCtx *ctx, void *callback_priv) {
-    if (ctx->performs_executed == 1) {
-        printw("Performing read-test of '%s' with block size of %"PRIu64" bytes\n",
-                ctx->dev->dev_fs_name, ctx->blk_size);
-    }
     if (ctx->report.blk_access_errno)
-        print_vis(error_vis);
+        print_vis((WINDOW*)callback_priv, error_vis);
     else
-        print_vis(choose_vis(ctx->report.blk_access_time));
-    return 0;
-}
-
-static int zerofill_cb(DC_ActionCtx *ctx, void *callback_priv) {
-    if (ctx->performs_executed == 0) {
-        printw("Performing 'write zeros' test of '%s' with block size of %"PRIu64" bytes\n",
-                ctx->dev->dev_fs_name, ctx->blk_size);
-    }
-    if (ctx->report.blk_access_errno)
-        print_vis(error_vis);
-    else
-        print_vis(choose_vis(ctx->report.blk_access_time));
+        print_vis((WINDOW*)callback_priv, choose_vis(ctx->report.blk_access_time));
+    // TODO update avg speed, stats on access time
     return 0;
 }
 

@@ -2,9 +2,9 @@
 set -e
 
 CFLAGS='-g -ggdb -O0 -Wall -Wextra -I../libdevcheck -std=gnu99'
-LDFLAGS='-lrt -pthread -lncursesw'
+LDFLAGS='-lrt -pthread -lncursesw -lmenuw'
 
-OBJECTS='main vis'
+OBJECTS='main vis ncurses_convenience'
 
 for x in $OBJECTS
 do
