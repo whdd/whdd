@@ -2,7 +2,7 @@
 set -e
 
 CFLAGS='-g -ggdb -O0 -Wall -Wextra -I../libdevcheck -std=gnu99'
-LDFLAGS='-lrt -pthread -lncursesw -lmenuw'
+LDFLAGS='-lrt -pthread -lncursesw -lmenuw -ldialog'
 
 OBJECTS='main vis ncurses_convenience'
 

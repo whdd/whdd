@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <curses.h>
+#include <dialog.h>
 #include "libdevcheck.h"
 #include "device.h"
 #include "action.h"
@@ -88,6 +89,8 @@ static int global_init(void) {
     // TODO check all retcodes
     setlocale(LC_ALL, "");
     initscr();
+    init_dialog(stdin, stdout);
+
     start_color();
     init_my_colors();
     noecho();
@@ -195,16 +198,15 @@ static int render_test_read(DC_Dev *dev) {
 
 static int render_test_zerofill(DC_Dev *dev) {
     int r;
-    /* TODO
     char *ask;
     r = asprintf(&ask, "This will destroy all data on device %s (%s). Are you sure?",
             dev->dev_fs_name, dev->model_str);
     assert(r != -1);
-    r = yesno_helper(ask);
+    r = dialog_yesno("Confirmation", ask, 0, 0);
+    // Yes = 0 (FALSE), No = 1, Escape = -1
     free(ask);
-    if (!r)
+    if (/* No */ r)
         return 0;
-    */
 
     WINDOW *legend = derwin(stdscr, LINES-2, LEGEND_WIDTH, 1, COLS-LEGEND_WIDTH); // leave 1st and last lines untouched
     show_legend(legend);
