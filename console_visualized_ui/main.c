@@ -182,21 +182,51 @@ static void show_smart_attrs(DC_Dev *dev) {
     refresh();
 }
 
+typedef struct rwtest_render_priv {
+    WINDOW *legend; // not for updating, just to free afterwards
+    WINDOW *vis; // window to print vis-char for each block
+    //WINDOW *access_time_stats;
+    WINDOW *avg_speed;
+    //WINDOW *cur_speed;
+    WINDOW *eta;
+    //WINDOW *progress;
+} rwtest_render_priv_t;
+
+static rwtest_render_priv_t *rwtest_render_priv_prepare(void) {
+    rwtest_render_priv_t *this = calloc(1, sizeof(*this));
+    if (!this)
+        return NULL;
+    this->legend = derwin(stdscr, LINES-3, LEGEND_WIDTH, 2, COLS-LEGEND_WIDTH); // leave 1st and last lines untouched
+    assert(this->legend);
+    show_legend(this->legend);
+    wrefresh(this->legend);
+    this->vis = derwin(stdscr, LINES-2, COLS-LEGEND_WIDTH-1, 1, 0); // leave 1st and last lines untouched
+    assert(this->vis);
+    scrollok(this->vis, TRUE);
+    wrefresh(this->vis);
+
+    this->avg_speed = derwin(stdscr, 1, LEGEND_WIDTH, 1, COLS-LEGEND_WIDTH);
+    assert(this->avg_speed);
+
+    this->eta = derwin(stdscr, 1, LEGEND_WIDTH, 0, COLS-LEGEND_WIDTH);
+    assert(this->eta);
+
+    return this;
+}
+
+void rwtest_render_priv_destroy(rwtest_render_priv_t *this) {
+    delwin(this->legend);
+    delwin(this->vis);
+    delwin(this->avg_speed);
+    delwin(this->eta);
+    free(this);
+    clear_body();
+}
+
 static int render_test_read(DC_Dev *dev) {
-    WINDOW *legend = derwin(stdscr, LINES-2, LEGEND_WIDTH, 1, COLS-LEGEND_WIDTH); // leave 1st and last lines untouched
-    show_legend(legend);
-    // TODO print info about device
-    wrefresh(legend);
-    WINDOW *vis = derwin(stdscr, LINES-2, COLS-LEGEND_WIDTH-1, 1, 0); // leave 1st and last lines untouched
-    scrollok(vis, TRUE);
-    wrefresh(vis);
-
-    action_find_start_perform_until_interrupt(dev, "readtest", readtest_cb, (void*)vis);
-
-    wclear(vis);
-    wclear(legend);
-    delwin(vis);
-    delwin(legend);
+    rwtest_render_priv_t *windows = rwtest_render_priv_prepare();
+    action_find_start_perform_until_interrupt(dev, "readtest", readtest_cb, (void*)windows);
+    rwtest_render_priv_destroy(windows);
     return 0;
 }
 
@@ -212,28 +242,18 @@ static int render_test_zerofill(DC_Dev *dev) {
     if (/* No */ r)
         return 0;
 
-    WINDOW *legend = derwin(stdscr, LINES-2, LEGEND_WIDTH, 1, COLS-LEGEND_WIDTH); // leave 1st and last lines untouched
-    show_legend(legend);
-    // TODO print info about device
-    wrefresh(legend);
-    WINDOW *vis = derwin(stdscr, LINES-2, COLS-LEGEND_WIDTH-1, 1, 0); // leave 1st and last lines untouched
-    scrollok(vis, TRUE);
-    wrefresh(vis);
-
-    action_find_start_perform_until_interrupt(dev, "zerofill", readtest_cb, (void*)vis);
-
-    wclear(vis);
-    wclear(legend);
-    delwin(vis);
-    delwin(legend);
+    rwtest_render_priv_t *windows = rwtest_render_priv_prepare();
+    action_find_start_perform_until_interrupt(dev, "zerofill", readtest_cb, (void*)windows);
+    rwtest_render_priv_destroy(windows);
     return 0;
 }
 
 static int readtest_cb(DC_ActionCtx *ctx, void *callback_priv) {
+    rwtest_render_priv_t *windows = callback_priv;
     if (ctx->report.blk_access_errno)
-        print_vis((WINDOW*)callback_priv, error_vis);
+        print_vis(windows->vis, error_vis);
     else
-        print_vis((WINDOW*)callback_priv, choose_vis(ctx->report.blk_access_time));
+        print_vis(windows->vis, choose_vis(ctx->report.blk_access_time));
     // TODO update avg speed, stats on access time
     return 0;
 }
