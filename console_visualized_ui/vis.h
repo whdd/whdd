@@ -8,7 +8,6 @@
 #define MY_COLOR_GRAY 1
 #define MY_COLOR_GREEN 2
 #define MY_COLOR_RED 3
-#define MY_COLOR_PINK 4
 #define MY_COLOR_WHITE_ON_BLUE 5
 
 #define LEGEND_WIDTH 20

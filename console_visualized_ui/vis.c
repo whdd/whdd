@@ -3,19 +3,18 @@
 
 vis_t bs_vis[]   = {
                     { 3000,   L'\u2591', 0, MY_COLOR_GRAY }, // gray light shade
-                    { 10000,  L'\u2592', 0, MY_COLOR_GRAY }, // gray medium shade
-                    { 50000,  L'\u2593', 0, MY_COLOR_GRAY }, // gray dark shade
+                    { 10000,  L'\u2593', 0, MY_COLOR_GRAY }, // gray medium shade
+                    { 50000,  L'\u2588', 0, MY_COLOR_GRAY }, // gray dark shade
                     { 150000, L'\u2588', 0, MY_COLOR_GREEN }, // green full block
                     { 500000, L'\u2588', 0, MY_COLOR_RED }, // red full block
 };
 vis_t exceed_vis =  { 0,      L'\u2588', 1, MY_COLOR_RED }; // bold red full block
-vis_t error_vis  =  { 0,      L'!',      1, MY_COLOR_PINK }; // pink exclam sign
+vis_t error_vis  =  { 0,      L'x',      1, MY_COLOR_RED };
 
 void init_my_colors(void) {
     init_pair(MY_COLOR_GRAY, COLOR_WHITE, COLOR_BLACK);
     init_pair(MY_COLOR_GREEN, COLOR_GREEN, COLOR_BLACK);
     init_pair(MY_COLOR_RED, COLOR_RED, COLOR_BLACK);
-    init_pair(MY_COLOR_PINK, COLOR_MAGENTA, COLOR_BLACK);
     init_pair(MY_COLOR_WHITE_ON_BLUE, COLOR_WHITE, COLOR_BLUE);
 }
 
