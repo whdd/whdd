@@ -3,6 +3,6 @@
 
 #include <menu.h>
 
-int menu_helper(ITEM **items, char *title);
+void clear_body(void);
 
 #endif // NCURSES_CONVENIENCE_H

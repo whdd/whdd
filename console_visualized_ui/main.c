@@ -15,6 +15,7 @@
 #include "action.h"
 #include "vis.h"
 #include "ncurses_convenience.h"
+#include "dialog_convenience.h"
 
 #define ACT_EXIT 0
 #define ACT_ATTRS 1
@@ -77,8 +78,8 @@ int main() {
             render_test_zerofill(chosen_dev);
             break;
         default:
-            printw("Wrong action index\n");
-            break;
+            dialog_msgbox("Error", "Wrong action index", 0, 0, 1);
+            continue;
         }
     } // while(1)
 
@@ -90,6 +91,7 @@ static int global_init(void) {
     setlocale(LC_ALL, "");
     initscr();
     init_dialog(stdin, stdout);
+    dialog_vars.item_help = 0;
 
     start_color();
     init_my_colors();
@@ -118,63 +120,65 @@ static void global_fini(void) {
 static int menu_choose_device(DC_DevList *devlist) {
     int r;
     int devs_num = dc_dev_list_size(devlist);
-    if (devs_num == 0) { printw("No devices found\n"); return -1; }
+    if (devs_num == 0) {
+        dialog_msgbox("Info", "No devices found", 0, 0, 1);
+        return -1;
+    }
 
-    ITEM **items = calloc(devs_num + 1, sizeof(ITEM*));
+    char **items = calloc( 2 * devs_num, sizeof(char*));
     assert(items);
-    items[devs_num] = NULL;
 
     int i;
     for (i = 0; i < devs_num; i++) {
         DC_Dev *dev = dc_dev_list_get_entry(devlist, i);
         char *dev_descr;
         r = asprintf(&dev_descr,
-                "#%d:" // index
-                " %s" // /dev/name
-                " %s" // model name
+                "%s" // model name
                 // TODO human-readable size
                 " %"PRIu64" bytes" // size
-                ,i
-                ,dev->dev_fs_name
                 ,dev->model_str
                 ,dev->capacity
               );
         assert(r != -1);
-        items[i] = new_item(dev_descr, "");
-        assert(items[i]);
+        items[2*i] = strdup(dev->dev_fs_name);
+        items[2*i+1] = dev_descr;
     }
 
-    int chosen_dev_ind = menu_helper(items, "Choose device");
-    i = 0;
-    while (items[i]) { free_item(items[i]); i++; }
+    clear_body();
+    int chosen_dev_ind = my_dialog_menu("Choose device", "", 0, 0, 0, devs_num, items);
+    for (i = 0; i < devs_num; i++) {
+        free(items[2*i]);
+        free(items[2*i+1]);
+    }
     free(items);
+
     return chosen_dev_ind;
 }
 
 static int menu_choose_action(DC_Dev *dev) {
-    ITEM *items[5];
-    items[0] = new_item("Exit", "");
-    assert(items[0]);
-    items[1] = new_item("Show SMART attributes", "");
-    assert(items[1]);
-    items[2] = new_item("Perform read test", "");
-    assert(items[2]);
-    items[3] = new_item("Perform 'write zeros' test", "");
-    assert(items[3]);
-    items[4] = NULL;
+    char *items[4 * 2];
+    items[0] = strdup("Exit");
+    items[2] = strdup("Show SMART attributes");
+    items[4] = strdup("Perform read test");
+    items[6] = strdup("Perform 'write zeros' test");
+    int i;
+    // this fuckin libdialog makes me code crappy
+    for (i = 0; i < 4; i++)
+        items[2*i+1] = strdup("");
 
-    int chosen_action_ind = menu_helper(items, "Choose action");
-    int i = 0;
-    while (items[i]) { free_item(items[i]); i++; }
+    clear_body();
+    int chosen_action_ind = my_dialog_menu("Choose action", "", 0, 0, 0, 4, items);
+    for (i = 0; i < 8; i++)
+        free(items[i]);
     return chosen_action_ind;
 }
 
 static void show_smart_attrs(DC_Dev *dev) {
     char *text;
     text = dc_dev_smartctl_text(dev, "-A -i");
+    dialog_msgbox("SMART Attributes", text ? : "Getting attrs failed", LINES-6, 0, 1);
     if (text)
-        printw("%s\n", text);
-    free(text);
+        free(text);
     refresh();
 }
 
@@ -246,7 +250,7 @@ static int action_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name
     DC_ActionCtx *actctx;
     r = dc_action_open(act, dev, &actctx);
     if (r) {
-        printw("Action init fail\n");
+        dialog_msgbox("Error", "Action init fail", 0, 0, 1);
         return 1;
     }
 
