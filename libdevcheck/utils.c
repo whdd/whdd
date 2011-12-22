@@ -32,6 +32,11 @@ char *cmd_output(char *command_line) {
         all_len += r;
     }
 
+    if (all_len == 0) {
+        free(all);
+        return NULL;
+    }
+
     // terminate with zero byte
     new_all = realloc(all, all_len + 1);
     if (!new_all)
