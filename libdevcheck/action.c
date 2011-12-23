@@ -43,9 +43,6 @@ int dc_action_perform(DC_ActionCtx *ctx) {
     int r;
     struct timespec pre, post;
 
-    if (ctx->performs_total && (ctx->performs_executed >= ctx->performs_total))
-        return 1; // TODO retcodes enum
-
     clock_gettime(CLOCK_MONOTONIC_RAW, &pre);
     errno = 0;
     r = ctx->action->perform(ctx);
@@ -68,6 +65,9 @@ int dc_action_perform_loop(DC_ActionCtx *ctx, ActionDetachedLoopCB callback, voi
     int ret = 0;
     int perform_ret;
     while (!ctx->interrupt) {
+        if (ctx->performs_total && (ctx->performs_executed >= ctx->performs_total))
+            break;
+
         perform_ret = dc_action_perform(ctx);
         r = callback(ctx, callback_priv);
         if (perform_ret) {
