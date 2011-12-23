@@ -252,7 +252,8 @@ static int render_test_read(DC_Dev *dev) {
             dev->dev_path, dev->model_str);
     wrefresh(windows->summary);
     r = action_find_start_perform_until_interrupt(dev, "readtest", readtest_cb, (void*)windows, &interrupted);
-    assert(!r);
+    if (r)
+        return r;
     rwtest_render_flush(windows);
     if (interrupted)
         wprintw(windows->summary, "Aborted.\n");
@@ -285,7 +286,8 @@ static int render_test_zerofill(DC_Dev *dev) {
             dev->dev_path, dev->model_str);
     wrefresh(windows->summary);
     r = action_find_start_perform_until_interrupt(dev, "zerofill", readtest_cb, (void*)windows, &interrupted);
-    assert(!r);
+    if (r)
+        return r;
     rwtest_render_flush(windows);
     if (interrupted)
         wprintw(windows->summary, "Aborted.\n");
