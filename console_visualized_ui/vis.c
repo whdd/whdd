@@ -34,20 +34,18 @@ void print_vis(WINDOW *win, vis_t vis) {
         wattroff(win, A_BOLD);
     wattron(win, COLOR_PAIR(vis.color_pair));
     wprintw(win, "%lc", vis.vis);
-    wrefresh(win);
 }
 
 void show_legend(WINDOW *win) {
-    wprintw(win, "Legend:\n");
     unsigned int i;
     for (i = 0; i < sizeof(bs_vis)/sizeof(*bs_vis); i++) {
         print_vis(win, bs_vis[i]);
         wattrset(win, A_NORMAL);
-        wprintw(win, " < %"PRIu64" ms\n", bs_vis[i].access_time / 1000);
+        wprintw(win, " <%"PRIu64"ms\n", bs_vis[i].access_time / 1000);
     }
     print_vis(win,exceed_vis);
     wattrset(win, A_NORMAL);
-    wprintw(win, " more\n");
+    wprintw(win, " >500ms\n");
     print_vis(win, error_vis);
     wattrset(win, A_NORMAL);
     wprintw(win, " access error\n");

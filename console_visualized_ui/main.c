@@ -96,6 +96,7 @@ static int global_init(void) {
     start_color();
     init_my_colors();
     noecho();
+    cbreak();
     setscrreg(0, 0);
     scrollok(stdscr, TRUE);
     keypad(stdscr, TRUE);
@@ -190,13 +191,15 @@ typedef struct rwtest_render_priv {
     //WINDOW *cur_speed;
     WINDOW *eta;
     //WINDOW *progress;
+
+    struct timespec start_time;
 } rwtest_render_priv_t;
 
 static rwtest_render_priv_t *rwtest_render_priv_prepare(void) {
     rwtest_render_priv_t *this = calloc(1, sizeof(*this));
     if (!this)
         return NULL;
-    this->legend = derwin(stdscr, LINES-3, LEGEND_WIDTH, 2, COLS-LEGEND_WIDTH); // leave 1st and last lines untouched
+    this->legend = derwin(stdscr, LINES-4, LEGEND_WIDTH, 3, COLS-LEGEND_WIDTH); // leave 1st and last lines untouched
     assert(this->legend);
     show_legend(this->legend);
     wrefresh(this->legend);
@@ -205,13 +208,18 @@ static rwtest_render_priv_t *rwtest_render_priv_prepare(void) {
     scrollok(this->vis, TRUE);
     wrefresh(this->vis);
 
-    this->avg_speed = derwin(stdscr, 1, LEGEND_WIDTH, 1, COLS-LEGEND_WIDTH);
+    this->avg_speed = derwin(stdscr, 1, LEGEND_WIDTH, 2, COLS-LEGEND_WIDTH);
     assert(this->avg_speed);
 
-    this->eta = derwin(stdscr, 1, LEGEND_WIDTH, 0, COLS-LEGEND_WIDTH);
+    this->eta = derwin(stdscr, 1, LEGEND_WIDTH, 1, COLS-LEGEND_WIDTH);
     assert(this->eta);
 
     return this;
+}
+void rwtest_render_flush(rwtest_render_priv_t *this) {
+    wrefresh(this->vis);
+    wrefresh(this->avg_speed);
+    wrefresh(this->eta);
 }
 
 void rwtest_render_priv_destroy(rwtest_render_priv_t *this) {
@@ -226,6 +234,9 @@ void rwtest_render_priv_destroy(rwtest_render_priv_t *this) {
 static int render_test_read(DC_Dev *dev) {
     rwtest_render_priv_t *windows = rwtest_render_priv_prepare();
     action_find_start_perform_until_interrupt(dev, "readtest", readtest_cb, (void*)windows);
+    rwtest_render_flush(windows);
+    beep();
+    getch();
     rwtest_render_priv_destroy(windows);
     return 0;
 }
@@ -244,17 +255,59 @@ static int render_test_zerofill(DC_Dev *dev) {
 
     rwtest_render_priv_t *windows = rwtest_render_priv_prepare();
     action_find_start_perform_until_interrupt(dev, "zerofill", readtest_cb, (void*)windows);
+    rwtest_render_flush(windows);
+    beep();
+    getch();
     rwtest_render_priv_destroy(windows);
     return 0;
 }
 
 static int readtest_cb(DC_ActionCtx *ctx, void *callback_priv) {
-    rwtest_render_priv_t *windows = callback_priv;
+    int r;
+    rwtest_render_priv_t *priv = callback_priv;
+
+    if (ctx->performs_executed == 1) {
+        r = clock_gettime(CLOCK_MONOTONIC_RAW, &priv->start_time);
+        assert(!r);
+    } else {
+        if ((ctx->performs_executed % 1000) == 0) {
+            struct timespec now;
+            r = clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+            assert(!r);
+            uint64_t bytes_processed = ctx->performs_executed * ctx->blk_size;
+            uint64_t time_elapsed = now.tv_sec - priv->start_time.tv_sec;
+            if (time_elapsed > 0) {
+                uint64_t avg_processing_speed = bytes_processed / time_elapsed; // Byte/s
+                // capacity / speed = total_time
+                // total_time = elapsed + eta
+                // eta = total_time - elapsed
+                // eta = capacity / speed  -  elapsed
+                uint64_t eta = ctx->dev->capacity / avg_processing_speed - time_elapsed;
+
+                wclear(priv->avg_speed);
+                wprintw(priv->avg_speed, "AVG [% 7"PRIu64" kb/s]", avg_processing_speed / 1024);
+                wrefresh(priv->avg_speed);
+
+                unsigned int minute, second;
+                second = eta % 60;
+                minute = eta / 60;
+                wclear(priv->eta);
+                wprintw(priv->eta, "EST: %10u:%02u", minute, second);
+                wrefresh(priv->eta);
+            }
+        }
+    }
+
     if (ctx->report.blk_access_errno)
-        print_vis(windows->vis, error_vis);
+        print_vis(priv->vis, error_vis);
     else
-        print_vis(windows->vis, choose_vis(ctx->report.blk_access_time));
-    // TODO update avg speed, stats on access time
+        print_vis(priv->vis, choose_vis(ctx->report.blk_access_time));
+
+    if (
+            ((ctx->performs_executed % 10) == 0) ||
+            (ctx->performs_total == ctx->performs_executed)
+       )
+        wrefresh(priv->vis);
     return 0;
 }
 
