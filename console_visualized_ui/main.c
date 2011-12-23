@@ -31,7 +31,7 @@ static int render_test_read(DC_Dev *dev);
 static int render_test_zerofill(DC_Dev *dev);
 
 static int action_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name,
-                ActionDetachedLoopCB callback, void *callback_priv);
+                ActionDetachedLoopCB callback, void *callback_priv, int *interrupted);
 static int readtest_cb(DC_ActionCtx *ctx, void *callback_priv);
 
 DC_Ctx *dc_ctx;
@@ -237,6 +237,8 @@ void rwtest_render_priv_destroy(rwtest_render_priv_t *this) {
 }
 
 static int render_test_read(DC_Dev *dev) {
+    int r;
+    int interrupted;
     rwtest_render_priv_t *windows = rwtest_render_priv_prepare();
     wprintw(windows->summary,
             "Read test of drive\n"
@@ -244,8 +246,11 @@ static int render_test_read(DC_Dev *dev) {
             "Ctrl+C to abort\n",
             dev->dev_path, dev->model_str);
     wrefresh(windows->summary);
-    action_find_start_perform_until_interrupt(dev, "readtest", readtest_cb, (void*)windows);
+    r = action_find_start_perform_until_interrupt(dev, "readtest", readtest_cb, (void*)windows, &interrupted);
+    assert(!r);
     rwtest_render_flush(windows);
+    if (interrupted)
+        wprintw(windows->summary, "Aborted.\n");
     wprintw(windows->summary, "Press any key");
     wrefresh(windows->summary);
     beep();
@@ -256,6 +261,7 @@ static int render_test_read(DC_Dev *dev) {
 
 static int render_test_zerofill(DC_Dev *dev) {
     int r;
+    int interrupted;
     char *ask;
     r = asprintf(&ask, "This will destroy all data on device %s (%s). Are you sure?",
             dev->dev_fs_name, dev->model_str);
@@ -273,8 +279,11 @@ static int render_test_zerofill(DC_Dev *dev) {
             "Ctrl+C to abort\n",
             dev->dev_path, dev->model_str);
     wrefresh(windows->summary);
-    action_find_start_perform_until_interrupt(dev, "zerofill", readtest_cb, (void*)windows);
+    r = action_find_start_perform_until_interrupt(dev, "zerofill", readtest_cb, (void*)windows, &interrupted);
+    assert(!r);
     rwtest_render_flush(windows);
+    if (interrupted)
+        wprintw(windows->summary, "Aborted.\n");
     wprintw(windows->summary, "Press any key");
     wrefresh(windows->summary);
     beep();
@@ -336,7 +345,7 @@ static int readtest_cb(DC_ActionCtx *ctx, void *callback_priv) {
 }
 
 static int action_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name,
-        ActionDetachedLoopCB callback, void *callback_priv
+        ActionDetachedLoopCB callback, void *callback_priv, int *interrupted
         ) {
     int r;
     siginfo_t siginfo;
@@ -345,6 +354,7 @@ static int action_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name
     DC_Action *act = dc_find_action(dc_ctx, act_name);
     assert(act);
     DC_ActionCtx *actctx;
+    *interrupted = 0;
     r = dc_action_open(act, dev, &actctx);
     if (r) {
         dialog_msgbox("Error", "Action init fail", 0, 0, 1);
@@ -373,6 +383,7 @@ static int action_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name
         r = sigtimedwait(&set, &siginfo, &finish_check_interval);
         if (r > 0) { // got signal `r`
             actctx->interrupt = 1;
+            *interrupted = 1;
             break;
         } else { // "fail"
             if ((errno == EAGAIN) || // timed out
