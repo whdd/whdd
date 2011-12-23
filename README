@@ -21,4 +21,6 @@ Program is designed for adding more complex tests or recovery procedures,
 and different front-ends.
 
 To compile, just run ./build.sh and get 'whdd' executable binary in sources root dir.
-
+Consider using with some nice .dialogrc, at last my Gentoo's libdialog defaults are ugly.
+The one shipped in console_visualized_ui/recommended_.dialogrc is fine.
+Place it in ~/.dialogrc, or /etc/dialogrc, or set its path with 'export DIALOGRC=...'
