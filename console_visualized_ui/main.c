@@ -324,11 +324,14 @@ static int readtest_cb(DC_ActionCtx *ctx, void *callback_priv) {
     else
         print_vis(priv->vis, choose_vis(ctx->report.blk_access_time));
 
-    if (
-            ((ctx->performs_executed % 10) == 0) ||
-            (ctx->performs_total == ctx->performs_executed)
-       )
+    if ((ctx->performs_executed % 10) == 0) {
         wrefresh(priv->vis);
+    }
+
+    if (ctx->performs_total == ctx->performs_executed) {
+        wprintw(priv->summary, "Completed.\n");
+        wrefresh(priv->summary);
+    }
     return 0;
 }
 
