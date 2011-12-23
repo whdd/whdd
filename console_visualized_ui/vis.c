@@ -48,7 +48,7 @@ void show_legend(WINDOW *win) {
     wprintw(win, " >500ms\n");
     print_vis(win, error_vis);
     wattrset(win, A_NORMAL);
-    wprintw(win, " access error\n");
+    wprintw(win, " ERR\n");
     wrefresh(win);
 }
 

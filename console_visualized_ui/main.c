@@ -186,7 +186,7 @@ static void show_smart_attrs(DC_Dev *dev) {
 typedef struct rwtest_render_priv {
     WINDOW *legend; // not for updating, just to free afterwards
     WINDOW *vis; // window to print vis-char for each block
-    //WINDOW *access_time_stats;
+    WINDOW *access_time_stats;
     WINDOW *avg_speed;
     //WINDOW *cur_speed;
     WINDOW *eta;
@@ -194,14 +194,17 @@ typedef struct rwtest_render_priv {
     WINDOW *summary;
 
     struct timespec start_time;
+    uint64_t access_time_stats_accum[7];
 } rwtest_render_priv_t;
 
 static rwtest_render_priv_t *rwtest_render_priv_prepare(void) {
     rwtest_render_priv_t *this = calloc(1, sizeof(*this));
     if (!this)
         return NULL;
-    this->legend = derwin(stdscr, 7, LEGEND_WIDTH, 3, COLS-LEGEND_WIDTH); // leave 1st and last lines untouched
+    this->legend = derwin(stdscr, 7, LEGEND_WIDTH/2, 3, COLS-LEGEND_WIDTH); // leave 1st and last lines untouched
     assert(this->legend);
+    this->access_time_stats = derwin(stdscr, 7, LEGEND_WIDTH/2, 3, COLS-LEGEND_WIDTH/2);
+    assert(this->access_time_stats);
     show_legend(this->legend);
     wrefresh(this->legend);
     this->vis = derwin(stdscr, LINES-2, COLS-LEGEND_WIDTH-1, 1, 0); // leave 1st and last lines untouched
@@ -224,10 +227,12 @@ void rwtest_render_flush(rwtest_render_priv_t *this) {
     wrefresh(this->vis);
     wrefresh(this->avg_speed);
     wrefresh(this->eta);
+    wrefresh(this->access_time_stats);
 }
 
 void rwtest_render_priv_destroy(rwtest_render_priv_t *this) {
     delwin(this->legend);
+    delwin(this->access_time_stats);
     delwin(this->vis);
     delwin(this->avg_speed);
     delwin(this->eta);
@@ -329,12 +334,31 @@ static int readtest_cb(DC_ActionCtx *ctx, void *callback_priv) {
     }
 
     if (ctx->report.blk_access_errno)
+    {
         print_vis(priv->vis, error_vis);
+        priv->access_time_stats_accum[6]++;
+    }
     else
+    {
         print_vis(priv->vis, choose_vis(ctx->report.blk_access_time));
+        unsigned int i;
+        for (i = 0; i < 5; i++)
+            if (ctx->report.blk_access_time < bs_vis[i].access_time) {
+                priv->access_time_stats_accum[i]++;
+                break;
+            }
+        if (i == 5)
+            priv->access_time_stats_accum[5]++; // of exceed
+    }
 
     if ((ctx->performs_executed % 10) == 0) {
         wrefresh(priv->vis);
+
+        wclear(priv->access_time_stats);
+        unsigned int i;
+        for (i = 0; i < 7; i++)
+            wprintw(priv->access_time_stats, "%d\n", priv->access_time_stats_accum[i]);
+        wrefresh(priv->access_time_stats);
     }
 
     if (ctx->performs_total == ctx->performs_executed) {
