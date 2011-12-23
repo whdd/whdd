@@ -177,7 +177,7 @@ static int menu_choose_action(DC_Dev *dev) {
 static void show_smart_attrs(DC_Dev *dev) {
     char *text;
     text = dc_dev_smartctl_text(dev, "-A -i");
-    dialog_msgbox("SMART Attributes", text ? : "Getting attrs failed", LINES-6, 0, 1);
+    dialog_msgbox("SMART Attributes", text ? : "Getting attrs failed", LINES-6, COLS, 1);
     if (text)
         free(text);
     refresh();
