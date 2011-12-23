@@ -191,6 +191,7 @@ typedef struct rwtest_render_priv {
     //WINDOW *cur_speed;
     WINDOW *eta;
     //WINDOW *progress;
+    WINDOW *summary;
 
     struct timespec start_time;
 } rwtest_render_priv_t;
@@ -199,7 +200,7 @@ static rwtest_render_priv_t *rwtest_render_priv_prepare(void) {
     rwtest_render_priv_t *this = calloc(1, sizeof(*this));
     if (!this)
         return NULL;
-    this->legend = derwin(stdscr, LINES-4, LEGEND_WIDTH, 3, COLS-LEGEND_WIDTH); // leave 1st and last lines untouched
+    this->legend = derwin(stdscr, 7, LEGEND_WIDTH, 3, COLS-LEGEND_WIDTH); // leave 1st and last lines untouched
     assert(this->legend);
     show_legend(this->legend);
     wrefresh(this->legend);
@@ -212,6 +213,9 @@ static rwtest_render_priv_t *rwtest_render_priv_prepare(void) {
     assert(this->avg_speed);
 
     this->eta = derwin(stdscr, 1, LEGEND_WIDTH, 1, COLS-LEGEND_WIDTH);
+    assert(this->eta);
+
+    this->summary = derwin(stdscr, 10, LEGEND_WIDTH, 10, COLS-LEGEND_WIDTH);
     assert(this->eta);
 
     return this;
@@ -227,14 +231,23 @@ void rwtest_render_priv_destroy(rwtest_render_priv_t *this) {
     delwin(this->vis);
     delwin(this->avg_speed);
     delwin(this->eta);
+    delwin(this->summary);
     free(this);
     clear_body();
 }
 
 static int render_test_read(DC_Dev *dev) {
     rwtest_render_priv_t *windows = rwtest_render_priv_prepare();
+    wprintw(windows->summary,
+            "Read test of drive\n"
+            "%s (%s)\n"
+            "Ctrl+C to abort\n",
+            dev->dev_path, dev->model_str);
+    wrefresh(windows->summary);
     action_find_start_perform_until_interrupt(dev, "readtest", readtest_cb, (void*)windows);
     rwtest_render_flush(windows);
+    wprintw(windows->summary, "Press any key");
+    wrefresh(windows->summary);
     beep();
     getch();
     rwtest_render_priv_destroy(windows);
@@ -254,8 +267,16 @@ static int render_test_zerofill(DC_Dev *dev) {
         return 0;
 
     rwtest_render_priv_t *windows = rwtest_render_priv_prepare();
+    wprintw(windows->summary,
+            "Write test of drive\n"
+            "%s (%s)\n"
+            "Ctrl+C to abort\n",
+            dev->dev_path, dev->model_str);
+    wrefresh(windows->summary);
     action_find_start_perform_until_interrupt(dev, "zerofill", readtest_cb, (void*)windows);
     rwtest_render_flush(windows);
+    wprintw(windows->summary, "Press any key");
+    wrefresh(windows->summary);
     beep();
     getch();
     rwtest_render_priv_destroy(windows);
