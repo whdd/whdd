@@ -5,10 +5,11 @@
 #include <wchar.h>
 #include <curses.h>
 
-#define MY_COLOR_GRAY 1
-#define MY_COLOR_GREEN 2
-#define MY_COLOR_RED 3
-#define MY_COLOR_WHITE_ON_BLUE 5
+// start numbers from 40 because libdialog uses up to 40 items starting from 1
+#define MY_COLOR_GRAY 41
+#define MY_COLOR_GREEN 42
+#define MY_COLOR_RED 43
+#define MY_COLOR_WHITE_ON_BLUE 44
 
 #define LEGEND_WIDTH 20
 

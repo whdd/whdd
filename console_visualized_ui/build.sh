@@ -12,4 +12,4 @@ do
     OBJFILES="$OBJFILES ${x}.o"
 done
 
-gcc $OBJFILES ../libdevcheck/libdevcheck.a /usr/lib/libdialog.a -o console_visualized_ui $LDFLAGS
+gcc $OBJFILES ../libdevcheck/libdevcheck.a ../contrib/x86/libdialog.a -o console_visualized_ui $LDFLAGS

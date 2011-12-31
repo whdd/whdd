@@ -6,13 +6,7 @@
 #define ItemHelp(i)    items[LLEN(i) + 2]
 
 int
-dlg_dummy_menutext(DIALOG_LISTITEM * items, int current, char *newtext)
-{
-    (void) items;
-    (void) current;
-    (void) newtext;
-    return DLG_EXIT_ERROR;
-}
+dlg_dummy_menutext(DIALOG_LISTITEM * items, int current, char *newtext);
 
 int
 my_dialog_menu(const char *title,
@@ -52,6 +46,7 @@ my_dialog_menu(const char *title,
 
     dlg_free_columns(&listitems[0].text, sizeof(DIALOG_LISTITEM), item_no);
     free(listitems);
+    attrset(0); // restore fg, bg, attrs
     if (result) // dialog cancelled
         return -1;
     else // entry selected
