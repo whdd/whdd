@@ -157,14 +157,14 @@ static int menu_choose_device(DC_DevList *devlist) {
 
 static int menu_choose_action(DC_Dev *dev) {
     char *items[4 * 2];
-    items[0] = strdup("Exit");
-    items[2] = strdup("Show SMART attributes");
-    items[4] = strdup("Perform read test");
-    items[6] = strdup("Perform 'write zeros' test");
+    items[1] = strdup("Exit");
+    items[3] = strdup("Show SMART attributes");
+    items[5] = strdup("Perform read test");
+    items[7] = strdup("Perform 'write zeros' test");
     int i;
     // this fuckin libdialog makes me code crappy
     for (i = 0; i < 4; i++)
-        items[2*i+1] = strdup("");
+        items[2*i] = strdup("");
 
     clear_body();
     int chosen_action_ind = my_dialog_menu("Choose action", "", 0, 0, 0, 4, items);
