@@ -321,14 +321,14 @@ static int readtest_cb(DC_ActionCtx *ctx, void *callback_priv) {
                 // eta = capacity / speed  -  elapsed
                 uint64_t eta = ctx->dev->capacity / avg_processing_speed - time_elapsed;
 
-                wclear(priv->avg_speed);
+                werase(priv->avg_speed);
                 wprintw(priv->avg_speed, "AVG [% 7"PRIu64" kb/s]", avg_processing_speed / 1024);
                 wrefresh(priv->avg_speed);
 
                 unsigned int minute, second;
                 second = eta % 60;
                 minute = eta / 60;
-                wclear(priv->eta);
+                werase(priv->eta);
                 wprintw(priv->eta, "EST: %10u:%02u", minute, second);
                 wrefresh(priv->eta);
             }
@@ -356,7 +356,7 @@ static int readtest_cb(DC_ActionCtx *ctx, void *callback_priv) {
     if ((ctx->performs_executed % 10) == 0) {
         wrefresh(priv->vis);
 
-        wclear(priv->access_time_stats);
+        werase(priv->access_time_stats);
         unsigned int i;
         for (i = 0; i < 7; i++)
             wprintw(priv->access_time_stats, "%d\n", priv->access_time_stats_accum[i]);
