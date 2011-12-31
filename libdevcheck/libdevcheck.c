@@ -8,10 +8,21 @@
 #include "libdevcheck.h"
 #include "action.h"
 
+clockid_t DC_BEST_CLOCK;
+
 DC_Ctx *dc_init(void) {
     DC_Ctx *ctx = calloc(1, sizeof(*ctx));
     if (!ctx)
         return NULL;
+
+    /* determine best available clock */
+    int r;
+    struct timespec dummy;
+    DC_BEST_CLOCK = CLOCK_MONOTONIC_RAW;
+    r = clock_gettime(DC_BEST_CLOCK, &dummy);
+    if (r) {
+        DC_BEST_CLOCK = CLOCK_MONOTONIC;
+    }
 
 #define ACTION_REGISTER(x) { \
         extern DC_Action x; \

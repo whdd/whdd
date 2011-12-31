@@ -17,6 +17,8 @@
 #include "device.h"
 #include "action.h"
 
+extern clockid_t DC_BEST_CLOCK;
+
 struct dc_ctx {
     DC_Action *action_list;
 };

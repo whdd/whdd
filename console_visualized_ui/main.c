@@ -302,12 +302,12 @@ static int readtest_cb(DC_ActionCtx *ctx, void *callback_priv) {
     rwtest_render_priv_t *priv = callback_priv;
 
     if (ctx->performs_executed == 1) {
-        r = clock_gettime(CLOCK_MONOTONIC_RAW, &priv->start_time);
+        r = clock_gettime(DC_BEST_CLOCK, &priv->start_time);
         assert(!r);
     } else {
         if ((ctx->performs_executed % 1000) == 0) {
             struct timespec now;
-            r = clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+            r = clock_gettime(DC_BEST_CLOCK, &now);
             assert(!r);
             uint64_t bytes_processed = ctx->performs_executed * ctx->blk_size;
             uint64_t time_elapsed = now.tv_sec - priv->start_time.tv_sec;
