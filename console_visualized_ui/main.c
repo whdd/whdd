@@ -104,7 +104,7 @@ static int global_init(void) {
     wbkgd(footer, COLOR_PAIR(MY_COLOR_WHITE_ON_BLUE));
     wprintw(footer, " WHDD rev. " WHDD_VERSION);
 
-    refresh();
+    wrefresh(footer);
     // init libdevcheck
     dc_ctx = dc_init();
     assert(dc_ctx);
@@ -205,7 +205,6 @@ static rwtest_render_priv_t *rwtest_render_priv_prepare(void) {
     this->access_time_stats = derwin(stdscr, 7, LEGEND_WIDTH/2, 3, COLS-LEGEND_WIDTH/2);
     assert(this->access_time_stats);
     show_legend(this->legend);
-    wrefresh(this->legend);
     this->vis = derwin(stdscr, LINES-2, COLS-LEGEND_WIDTH-1, 1, 0); // leave 1st and last lines untouched
     assert(this->vis);
     scrollok(this->vis, TRUE);
@@ -223,10 +222,10 @@ static rwtest_render_priv_t *rwtest_render_priv_prepare(void) {
     return this;
 }
 void rwtest_render_flush(rwtest_render_priv_t *this) {
-    wrefresh(this->vis);
-    wrefresh(this->avg_speed);
-    wrefresh(this->eta);
-    wrefresh(this->access_time_stats);
+    wnoutrefresh(this->vis);
+    wnoutrefresh(this->avg_speed);
+    wnoutrefresh(this->eta);
+    wnoutrefresh(this->access_time_stats);
 }
 
 void rwtest_render_priv_destroy(rwtest_render_priv_t *this) {
@@ -322,14 +321,15 @@ static int readtest_cb(DC_ActionCtx *ctx, void *callback_priv) {
 
                 werase(priv->avg_speed);
                 wprintw(priv->avg_speed, "AVG [% 7"PRIu64" kb/s]", avg_processing_speed / 1024);
-                wrefresh(priv->avg_speed);
+                wnoutrefresh(priv->avg_speed);
 
                 unsigned int minute, second;
                 second = eta % 60;
                 minute = eta / 60;
                 werase(priv->eta);
                 wprintw(priv->eta, "EST: %10u:%02u", minute, second);
-                wrefresh(priv->eta);
+                wnoutrefresh(priv->eta);
+                // doupdate() is below, in if (... % 10)
             }
         }
     }
@@ -353,13 +353,14 @@ static int readtest_cb(DC_ActionCtx *ctx, void *callback_priv) {
     }
 
     if ((ctx->performs_executed % 10) == 0) {
-        wrefresh(priv->vis);
+        wnoutrefresh(priv->vis);
 
         werase(priv->access_time_stats);
         unsigned int i;
         for (i = 0; i < 7; i++)
             wprintw(priv->access_time_stats, "%d\n", priv->access_time_stats_accum[i]);
-        wrefresh(priv->access_time_stats);
+        wnoutrefresh(priv->access_time_stats);
+        doupdate();
     }
 
     if (ctx->performs_total == ctx->performs_executed) {
