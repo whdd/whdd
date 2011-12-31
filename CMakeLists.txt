@@ -1,0 +1,22 @@
+cmake_minimum_required (VERSION 2.6)
+
+project (whdd)
+
+find_library (RT rt)
+if (RT STREQUAL "RT-NOTFOUND")
+    message (SEND_ERROR "-lrt not found!")
+endif (RT STREQUAL "RT-NOTFOUND")
+
+find_library (NCURSESW ncursesw)
+if (NCURSESW STREQUAL "NCURSESW-NOTFOUND")
+    message (SEND_ERROR "-lncursesw not found!")
+endif (NCURSESW STREQUAL "NCURSESW-NOTFOUND")
+
+find_library (MENUW menuw)
+if (MENUW STREQUAL "MENUW-NOTFOUND")
+    message (SEND_ERROR "-lmenuw not found!")
+endif (MENUW STREQUAL "MENUW-NOTFOUND")
+
+add_subdirectory (libdevcheck)
+add_subdirectory (console_ui)
+add_subdirectory (console_visualized_ui)
