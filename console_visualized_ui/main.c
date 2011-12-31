@@ -97,8 +97,7 @@ static int global_init(void) {
     init_my_colors();
     noecho();
     cbreak();
-    setscrreg(0, 0);
-    scrollok(stdscr, TRUE);
+    scrollok(stdscr, FALSE);
     keypad(stdscr, TRUE);
 
     WINDOW *footer = subwin(stdscr, 1, COLS, LINES-1, 0);
