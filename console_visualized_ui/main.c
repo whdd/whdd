@@ -383,7 +383,7 @@ static int action_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name
     *interrupted = 0;
     r = dc_action_open(act, dev, &actctx);
     if (r) {
-        dialog_msgbox("Error", "Action init fail", 0, 0, 1);
+        dialog_msgbox("Error", "Action init fail. Please check privileges, possibly switch to root.", 0, 0, 1);
         return 1;
     }
 
