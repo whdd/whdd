@@ -6,7 +6,13 @@
 #define ItemHelp(i)    items[LLEN(i) + 2]
 
 int
-dlg_dummy_menutext(DIALOG_LISTITEM * items, int current, char *newtext);
+my_dlg_dummy_menutext(DIALOG_LISTITEM * items, int current, char *newtext)
+{
+    (void) items;
+    (void) current;
+    (void) newtext;
+    return DLG_EXIT_ERROR;
+}
 
 int
 my_dialog_menu(const char *title,
@@ -42,7 +48,7 @@ my_dialog_menu(const char *title,
 		      item_no,
 		      listitems,
 		      &choice,
-		      dlg_dummy_menutext);
+		      my_dlg_dummy_menutext);
 
     dlg_free_columns(&listitems[0].text, sizeof(DIALOG_LISTITEM), item_no);
     free(listitems);
