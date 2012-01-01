@@ -1,6 +1,6 @@
 #!/bin/sh
 set -e
-cmake CMakeLists.txt && make
+cmake . && make
 echo '
 To install, type
 

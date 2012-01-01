@@ -21,6 +21,7 @@ Program is designed for adding more complex tests or recovery procedures,
 and different front-ends.
 
 To install, run:
-cmake CMakeLists.txt && make && make install
+cmake . && make && make install
+ (or ./build.sh && make install)
 
 Use whdd-curses, or whdd-cli executables.
