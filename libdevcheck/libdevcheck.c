@@ -7,6 +7,7 @@
 
 #include "libdevcheck.h"
 #include "action.h"
+#include "config.h"
 
 clockid_t DC_BEST_CLOCK;
 
@@ -15,6 +16,7 @@ DC_Ctx *dc_init(void) {
     if (!ctx)
         return NULL;
 
+#ifdef HAVE_CLOCK_MONOTONIC_RAW
     /* determine best available clock */
     int r;
     struct timespec dummy;
@@ -23,6 +25,9 @@ DC_Ctx *dc_init(void) {
     if (r) {
         DC_BEST_CLOCK = CLOCK_MONOTONIC;
     }
+#else
+    DC_BEST_CLOCK = CLOCK_MONOTONIC;
+#endif
 
 #define ACTION_REGISTER(x) { \
         extern DC_Action x; \

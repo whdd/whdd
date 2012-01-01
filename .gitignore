@@ -8,3 +8,4 @@ Makefile
 whdd-cli
 whdd-curses
 version.h
+config.h
