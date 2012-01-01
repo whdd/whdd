@@ -17,6 +17,11 @@ if (MENUW STREQUAL "MENUW-NOTFOUND")
     message (SEND_ERROR "-lmenuw not found!")
 endif (MENUW STREQUAL "MENUW-NOTFOUND")
 
+find_library (DIALOG dialog)
+if (DIALOG STREQUAL "DIALOG-NOTFOUND")
+    message (SEND_ERROR "-ldialog not found!")
+endif (DIALOG STREQUAL "DIALOG-NOTFOUND")
+
 add_subdirectory (libdevcheck)
 add_subdirectory (console_ui)
 add_subdirectory (console_visualized_ui)
