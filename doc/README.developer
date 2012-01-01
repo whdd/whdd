@@ -1,3 +1,6 @@
+NOTES
+Gentoo ebuild (thanks to Maxim Koltsov <maksbotan@gentoo.org>): http://git.overlays.gentoo.org/gitweb/?p=dev/maksbotan.git;a=blob_plain;f=sys-apps/whdd/whdd-9999.ebuild;hb=HEAD
+
 RULES
 - Device manipulations must be isolated from visualization. Devicey code must be shaped into library, and UI part should register its callback functions in the lib.
 
@@ -7,6 +10,7 @@ TODO
 - Replace asserts with checks and error code returning. It's not a server app, but anyway.
 - Low-level device copying
 - Device copying with different strategies (e.g. direct until failures, then revert from end of space)
+- Loose device operations from visualization (separate the threads, use "reports (events) queue" for UI render)
 
 
 PARTS
@@ -14,4 +18,13 @@ PARTS
 LIBDEVCHECK
 Functions (and other stuff) belonging to libdevcheck must have 'dc_' prefix to expose this fact.
 See libdevcheck/libdevcheck.h for API.
+Built as static lib, because the purposed way of usage is to have only one utility 'whdd-curses', so lets have a single binary installed.
 
+CONSOLE_UI (whdd-cli)
+Trivial frontend to libdevcheck. Main purpose is demo for new frontends, and testing of features of libdevcheck.
+
+CONSOLE_VISUALIZED_UI (whdd-curses)
+Terminal frontend to libdevcheck, purposed for main usage. Reasonably mimic to MHDD.
+
+GUI
+To be done.
