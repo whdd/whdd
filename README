@@ -20,4 +20,7 @@ Functionality:
 Program is designed for adding more complex tests or recovery procedures,
 and different front-ends.
 
-To compile, just run ./build.sh and get 'whdd' executable binary in sources root dir.
+To install, run:
+cmake CMakeLists.txt && make && make install
+
+Use whdd-curses, or whdd-cli executables.
