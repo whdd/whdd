@@ -13,9 +13,8 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
 			ARGS describe --always
 			OUTPUT_VARIABLE WHDD_REVISION)
 	endif(GIT_FOUND)
+	set(WHDD_VERSION "${WHDD_VERSION}-${WHDD_REVISION}")
 endif(EXISTS "${CMAKE_SOURCE_DIR}/.git")
-
-set(WHDD_VERSION "${WHDD_VERSION}-${WHDD_REVISION}")
 
 set(CONSOLE_UI_DIR console_ui)
 set(CONSOLE_UI_SRCS
@@ -74,3 +73,15 @@ else()
 	message(FATAL_ERROR "Dialog or menuw library not found!")
 endif(DIALOG_FOUND AND MENUW_LIBRARY)
 install(TARGETS whdd-cli whdd-curses DESTINATION sbin)
+
+# Packaging stuff
+# 'make package_source' to make tarball
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "WHDD is a diagnostic and recovery tool for block devices.")
+set(CPACK_PACKAGE_VENDOR "Andrey 'Krieger' Utkin <andrey.krieger.utkin@gmail.com>")
+set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README")
+set(CPACK_PACKAGE_VERSION ${WHDD_VERSION})
+#set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/COPYING")
+set(CPACK_SOURCE_PACKAGE_FILE_NAME
+	"${CMAKE_PROJECT_NAME}-${CPACK_PACKAGE_VERSION}")
+set(CPACK_SOURCE_GENERATOR TBZ2)
+include(CPack)
