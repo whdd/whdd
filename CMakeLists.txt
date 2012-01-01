@@ -2,11 +2,6 @@ cmake_minimum_required (VERSION 2.6)
 
 project (whdd)
 
-find_library (RT rt)
-if (RT STREQUAL "RT-NOTFOUND")
-    message (SEND_ERROR "-lrt not found!")
-endif (RT STREQUAL "RT-NOTFOUND")
-
 find_library (NCURSESW ncursesw)
 if (NCURSESW STREQUAL "NCURSESW-NOTFOUND")
     message (SEND_ERROR "-lncursesw not found!")

@@ -5,7 +5,7 @@ add_dependencies (whdd-curses devcheck)
 include_directories ( ${PROJECT_SOURCE_DIR}/libdevcheck
     ${PROJECT_BINARY_DIR}/libdevcheck)
 target_link_libraries (whdd-curses
-    ${RT} ${NCURSESW} ${MENUW} ${DIALOG} m pthread
+    ${NCURSESW} ${MENUW} ${DIALOG} m pthread rt
     ${PROJECT_BINARY_DIR}/libdevcheck/libdevcheck.a)
 set_property (TARGET whdd-curses PROPERTY COMPILE_FLAGS -std=c99)
 
