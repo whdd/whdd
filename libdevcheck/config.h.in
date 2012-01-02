@@ -1,2 +1,2 @@
-
 #cmakedefine HAVE_CLOCK_MONOTONIC_RAW
+#define WHDD_VERSION "@WHDD_VERSION@"
