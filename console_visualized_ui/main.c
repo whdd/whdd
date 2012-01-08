@@ -22,6 +22,8 @@
 #define ACT_READ 2
 #define ACT_ZEROFILL 3
 
+#define REPORTS_BURST 10
+
 static int global_init(void);
 static void global_fini(void);
 static int menu_choose_device(DC_DevList *devlist);
@@ -182,6 +184,12 @@ static void show_smart_attrs(DC_Dev *dev) {
     refresh();
 }
 
+typedef struct blk_report {
+    int access_errno;
+    unsigned int access_time;
+    struct blk_report *next;
+} blk_report_t;
+
 typedef struct rwtest_render_priv {
     WINDOW *legend; // not for updating, just to free afterwards
     WINDOW *vis; // window to print vis-char for each block
@@ -194,9 +202,19 @@ typedef struct rwtest_render_priv {
 
     struct timespec start_time;
     uint64_t access_time_stats_accum[7];
+    uint64_t avg_processing_speed;
+    uint64_t eta_time; // estimated time
+
+    pthread_t render_thread;
+    int order_hangup; // if interrupted or completed, render remainings and end render thread
+    blk_report_t *reports;
+    blk_report_t *reports_tail;
+    unsigned int n_reports;
+    pthread_mutex_t reports_lock;
 } rwtest_render_priv_t;
 
 static rwtest_render_priv_t *rwtest_render_priv_prepare(void) {
+    int r;
     rwtest_render_priv_t *this = calloc(1, sizeof(*this));
     if (!this)
         return NULL;
@@ -217,15 +235,107 @@ static rwtest_render_priv_t *rwtest_render_priv_prepare(void) {
     assert(this->eta);
 
     this->summary = derwin(stdscr, 10, LEGEND_WIDTH, 10, COLS-LEGEND_WIDTH);
-    assert(this->eta);
+    assert(this->eta); // FIXME copy&paste
+
+    r = pthread_mutex_init(&this->reports_lock, NULL);
+    assert(!r);
 
     return this;
 }
-void rwtest_render_flush(rwtest_render_priv_t *this) {
+
+static void rwtest_render_update_vis(rwtest_render_priv_t *this, blk_report_t *rep);
+static void rwtest_render_update_stats(rwtest_render_priv_t *this);
+
+static void *rwtest_render_thread_proc(void *arg) {
+    rwtest_render_priv_t *this = arg;
+    unsigned int reports_to_process;
+    // TODO block signals in this thread
+    while (1) {
+        unsigned int reports_on_this_lap = 0;
+        blk_report_t *cur_rep;
+        blk_report_t *next;
+
+        if (!this->order_hangup) {
+            reports_to_process = REPORTS_BURST;
+            if (this->n_reports < reports_to_process + 1) {
+                usleep(10*1000);
+                continue;
+            }
+        } else {
+            if (this->n_reports == 0)
+                break;
+            reports_to_process = this->n_reports;
+        }
+
+        cur_rep = this->reports;
+        while (reports_on_this_lap++ < reports_to_process) {
+            // if processed REPORTS_BURST blocks, redraw view
+            // free processed reports and go next lap
+            rwtest_render_update_vis(this, cur_rep);
+
+            next = cur_rep->next;
+            free(cur_rep);
+            cur_rep = next;
+        }
+        this->reports = next;
+        pthread_mutex_lock(&this->reports_lock);
+        this->n_reports -= reports_to_process;
+        pthread_mutex_unlock(&this->reports_lock);
+
+        rwtest_render_update_stats(this);
+
+        doupdate();
+    }
+    return NULL;
+}
+
+static void rwtest_render_update_vis(rwtest_render_priv_t *this, blk_report_t *rep) {
+    if (rep->access_errno)
+    {
+        print_vis(this->vis, error_vis);
+        this->access_time_stats_accum[6]++;
+    }
+    else
+    {
+        print_vis(this->vis, choose_vis(rep->access_time));
+        unsigned int i;
+        for (i = 0; i < 5; i++)
+            if (rep->access_time < bs_vis[i].access_time) {
+                this->access_time_stats_accum[i]++;
+                break;
+            }
+        if (i == 5)
+            this->access_time_stats_accum[5]++; // of exceed
+    }
     wnoutrefresh(this->vis);
-    wnoutrefresh(this->avg_speed);
-    wnoutrefresh(this->eta);
+}
+
+static void rwtest_render_update_stats(rwtest_render_priv_t *this) {
+    werase(this->access_time_stats);
+    unsigned int i;
+    for (i = 0; i < 7; i++)
+        wprintw(this->access_time_stats, "%d\n", this->access_time_stats_accum[i]);
     wnoutrefresh(this->access_time_stats);
+
+    werase(this->avg_speed);
+    wprintw(this->avg_speed, "AVG [% 7"PRIu64" kb/s]", this->avg_processing_speed / 1024);
+    wnoutrefresh(this->avg_speed);
+
+    unsigned int minute, second;
+    second = this->eta_time % 60;
+    minute = this->eta_time / 60;
+    werase(this->eta);
+    wprintw(this->eta, "EST: %10u:%02u", minute, second);
+    wnoutrefresh(this->eta);
+}
+
+static int rwtest_render_thread_start(rwtest_render_priv_t *this) {
+    return pthread_create(&this->render_thread, NULL, rwtest_render_thread_proc, this);
+}
+
+static int rwtest_render_thread_join(rwtest_render_priv_t *this) {
+    this->order_hangup = 1;
+    return pthread_join(this->render_thread, NULL);
 }
 
 void rwtest_render_priv_destroy(rwtest_render_priv_t *this) {
@@ -235,6 +345,7 @@ void rwtest_render_priv_destroy(rwtest_render_priv_t *this) {
     delwin(this->avg_speed);
     delwin(this->eta);
     delwin(this->summary);
+    pthread_mutex_destroy(&this->reports_lock);
     free(this);
     clear_body();
 }
@@ -249,12 +360,17 @@ static int render_test_read(DC_Dev *dev) {
             "Ctrl+C to abort\n",
             dev->dev_path, dev->model_str);
     wrefresh(windows->summary);
+    r = rwtest_render_thread_start(windows);
+    if (r)
+        return r; // FIXME leak
     r = action_find_start_perform_until_interrupt(dev, "readtest", readtest_cb, (void*)windows, &interrupted);
     if (r)
         return r;
-    rwtest_render_flush(windows);
+    rwtest_render_thread_join(windows);
     if (interrupted)
         wprintw(windows->summary, "Aborted.\n");
+    else
+        wprintw(windows->summary, "Completed.\n");
     wprintw(windows->summary, "Press any key");
     wrefresh(windows->summary);
     beep();
@@ -283,12 +399,17 @@ static int render_test_zerofill(DC_Dev *dev) {
             "Ctrl+C to abort\n",
             dev->dev_path, dev->model_str);
     wrefresh(windows->summary);
+    r = rwtest_render_thread_start(windows);
+    if (r)
+        return r; // FIXME leak
     r = action_find_start_perform_until_interrupt(dev, "zerofill", readtest_cb, (void*)windows, &interrupted);
     if (r)
         return r;
-    rwtest_render_flush(windows);
+    rwtest_render_thread_join(windows);
     if (interrupted)
         wprintw(windows->summary, "Aborted.\n");
+    else
+        wprintw(windows->summary, "Completed.\n");
     wprintw(windows->summary, "Press any key");
     wrefresh(windows->summary);
     beep();
@@ -312,61 +433,32 @@ static int readtest_cb(DC_ActionCtx *ctx, void *callback_priv) {
             uint64_t bytes_processed = ctx->performs_executed * ctx->blk_size;
             uint64_t time_elapsed = now.tv_sec - priv->start_time.tv_sec;
             if (time_elapsed > 0) {
-                uint64_t avg_processing_speed = bytes_processed / time_elapsed; // Byte/s
+                priv->avg_processing_speed = bytes_processed / time_elapsed; // Byte/s
                 // capacity / speed = total_time
                 // total_time = elapsed + eta
                 // eta = total_time - elapsed
                 // eta = capacity / speed  -  elapsed
-                uint64_t eta = ctx->dev->capacity / avg_processing_speed - time_elapsed;
+                priv->eta_time = ctx->dev->capacity / priv->avg_processing_speed - time_elapsed;
 
-                werase(priv->avg_speed);
-                wprintw(priv->avg_speed, "AVG [% 7"PRIu64" kb/s]", avg_processing_speed / 1024);
-                wnoutrefresh(priv->avg_speed);
-
-                unsigned int minute, second;
-                second = eta % 60;
-                minute = eta / 60;
-                werase(priv->eta);
-                wprintw(priv->eta, "EST: %10u:%02u", minute, second);
-                wnoutrefresh(priv->eta);
-                // doupdate() is below, in if (... % 10)
             }
         }
     }
 
-    if (ctx->report.blk_access_errno)
-    {
-        print_vis(priv->vis, error_vis);
-        priv->access_time_stats_accum[6]++;
-    }
-    else
-    {
-        print_vis(priv->vis, choose_vis(ctx->report.blk_access_time));
-        unsigned int i;
-        for (i = 0; i < 5; i++)
-            if (ctx->report.blk_access_time < bs_vis[i].access_time) {
-                priv->access_time_stats_accum[i]++;
-                break;
-            }
-        if (i == 5)
-            priv->access_time_stats_accum[5]++; // of exceed
-    }
+    // enqueue block report
+    blk_report_t *rep = calloc(1, sizeof(*rep));
+    assert(rep);
+    rep->access_errno = ctx->report.blk_access_errno;
+    rep->access_time = ctx->report.blk_access_time;
 
-    if ((ctx->performs_executed % 10) == 0) {
-        wnoutrefresh(priv->vis);
+    if (!priv->reports)
+        priv->reports = rep;
+    if (priv->reports_tail)
+        priv->reports_tail->next = rep;
+    priv->reports_tail = rep;
+    pthread_mutex_lock(&priv->reports_lock);
+    priv->n_reports++;
+    pthread_mutex_unlock(&priv->reports_lock);
 
-        werase(priv->access_time_stats);
-        unsigned int i;
-        for (i = 0; i < 7; i++)
-            wprintw(priv->access_time_stats, "%d\n", priv->access_time_stats_accum[i]);
-        wnoutrefresh(priv->access_time_stats);
-        doupdate();
-    }
-
-    if (ctx->performs_total == ctx->performs_executed) {
-        wprintw(priv->summary, "Completed.\n");
-        wrefresh(priv->summary);
-    }
     return 0;
 }
 
