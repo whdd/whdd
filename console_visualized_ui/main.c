@@ -199,11 +199,14 @@ typedef struct rwtest_render_priv {
     WINDOW *eta;
     //WINDOW *progress;
     WINDOW *summary;
+    WINDOW *w_end_lba;
+    WINDOW *w_cur_lba;
 
     struct timespec start_time;
     uint64_t access_time_stats_accum[7];
     uint64_t avg_processing_speed;
     uint64_t eta_time; // estimated time
+    uint64_t cur_lba;
 
     pthread_t render_thread;
     int order_hangup; // if interrupted or completed, render remainings and end render thread
@@ -218,12 +221,12 @@ static rwtest_render_priv_t *rwtest_render_priv_prepare(void) {
     rwtest_render_priv_t *this = calloc(1, sizeof(*this));
     if (!this)
         return NULL;
-    this->legend = derwin(stdscr, 7, LEGEND_WIDTH/2, 3, COLS-LEGEND_WIDTH); // leave 1st and last lines untouched
+    this->legend = derwin(stdscr, 7, LEGEND_WIDTH/2, 4, COLS-LEGEND_WIDTH); // leave 1st and last lines untouched
     assert(this->legend);
-    this->access_time_stats = derwin(stdscr, 7, LEGEND_WIDTH/2, 3, COLS-LEGEND_WIDTH/2);
+    this->access_time_stats = derwin(stdscr, 7, LEGEND_WIDTH/2, 4, COLS-LEGEND_WIDTH/2);
     assert(this->access_time_stats);
     show_legend(this->legend);
-    this->vis = derwin(stdscr, LINES-2, COLS-LEGEND_WIDTH-1, 1, 0); // leave 1st and last lines untouched
+    this->vis = derwin(stdscr, LINES-3, COLS-LEGEND_WIDTH-1, 2, 0); // leave 1st and last lines untouched
     assert(this->vis);
     scrollok(this->vis, TRUE);
     wrefresh(this->vis);
@@ -234,8 +237,14 @@ static rwtest_render_priv_t *rwtest_render_priv_prepare(void) {
     this->eta = derwin(stdscr, 1, LEGEND_WIDTH, 1, COLS-LEGEND_WIDTH);
     assert(this->eta);
 
-    this->summary = derwin(stdscr, 10, LEGEND_WIDTH, 10, COLS-LEGEND_WIDTH);
+    this->summary = derwin(stdscr, 10, LEGEND_WIDTH, 11, COLS-LEGEND_WIDTH);
     assert(this->summary);
+
+    this->w_end_lba = derwin(stdscr, 1, 20, 1, COLS-61);
+    assert(this->w_end_lba);
+
+    this->w_cur_lba = derwin(stdscr, 1, 20, 1, COLS-41);
+    assert(this->w_cur_lba);
 
     r = pthread_mutex_init(&this->reports_lock, NULL);
     assert(!r);
@@ -327,6 +336,10 @@ static void rwtest_render_update_stats(rwtest_render_priv_t *this) {
     werase(this->eta);
     wprintw(this->eta, "EST: %10u:%02u", minute, second);
     wnoutrefresh(this->eta);
+
+    werase(this->w_cur_lba);
+    wprintw(this->w_cur_lba, "[%18"PRId64"]", this->cur_lba);
+    wnoutrefresh(this->w_cur_lba);
 }
 
 static int rwtest_render_thread_start(rwtest_render_priv_t *this) {
@@ -345,6 +358,8 @@ void rwtest_render_priv_destroy(rwtest_render_priv_t *this) {
     delwin(this->avg_speed);
     delwin(this->eta);
     delwin(this->summary);
+    delwin(this->w_end_lba);
+    delwin(this->w_cur_lba);
     pthread_mutex_destroy(&this->reports_lock);
     free(this);
     clear_body();
@@ -354,6 +369,8 @@ static int render_test_read(DC_Dev *dev) {
     int r;
     int interrupted;
     rwtest_render_priv_t *windows = rwtest_render_priv_prepare();
+    wprintw(windows->w_end_lba, "[%18"PRId64"]", dev->capacity / 512);
+    wnoutrefresh(windows->w_end_lba);
     wprintw(windows->summary,
             "Read test of drive\n"
             "%s (%s)\n"
@@ -393,6 +410,8 @@ static int render_test_zerofill(DC_Dev *dev) {
         return 0;
 
     rwtest_render_priv_t *windows = rwtest_render_priv_prepare();
+    wprintw(windows->w_end_lba, "[%18"PRId64"]", dev->capacity / 512);
+    wnoutrefresh(windows->w_end_lba);
     wprintw(windows->summary,
             "Write test of drive\n"
             "%s (%s)\n"
@@ -431,6 +450,7 @@ static int readtest_cb(DC_ActionCtx *ctx, void *callback_priv) {
             r = clock_gettime(DC_BEST_CLOCK, &now);
             assert(!r);
             uint64_t bytes_processed = ctx->performs_executed * ctx->blk_size;
+            priv->cur_lba = bytes_processed / 512;
             uint64_t time_elapsed = now.tv_sec - priv->start_time.tv_sec;
             if (time_elapsed > 0) {
                 priv->avg_processing_speed = bytes_processed / time_elapsed; // Byte/s
