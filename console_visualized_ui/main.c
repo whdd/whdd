@@ -441,6 +441,9 @@ static int readtest_cb(DC_ActionCtx *ctx, void *callback_priv) {
     int r;
     rwtest_render_priv_t *priv = callback_priv;
 
+    uint64_t bytes_processed = ctx->performs_executed * ctx->blk_size;
+    priv->cur_lba = bytes_processed / 512;
+
     if (ctx->performs_executed == 1) {
         r = clock_gettime(DC_BEST_CLOCK, &priv->start_time);
         assert(!r);
@@ -449,8 +452,6 @@ static int readtest_cb(DC_ActionCtx *ctx, void *callback_priv) {
             struct timespec now;
             r = clock_gettime(DC_BEST_CLOCK, &now);
             assert(!r);
-            uint64_t bytes_processed = ctx->performs_executed * ctx->blk_size;
-            priv->cur_lba = bytes_processed / 512;
             uint64_t time_elapsed = now.tv_sec - priv->start_time.tv_sec;
             if (time_elapsed > 0) {
                 priv->avg_processing_speed = bytes_processed / time_elapsed; // Byte/s
