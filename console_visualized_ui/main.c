@@ -35,6 +35,7 @@ static int render_test_zerofill(DC_Dev *dev);
 static int action_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name,
                 ActionDetachedLoopCB callback, void *callback_priv, int *interrupted);
 static int readtest_cb(DC_ActionCtx *ctx, void *callback_priv);
+static char *commaprint(uint64_t n, char *retbuf, size_t bufsize);
 
 DC_Ctx *dc_ctx;
 
@@ -338,7 +339,9 @@ static void rwtest_render_update_stats(rwtest_render_priv_t *this) {
     wnoutrefresh(this->eta);
 
     werase(this->w_cur_lba);
-    wprintw(this->w_cur_lba, "[%18"PRId64"]", this->cur_lba);
+    char comma_lba_buf[30], *comma_lba_p;
+    comma_lba_p = commaprint(this->cur_lba, comma_lba_buf, sizeof(comma_lba_buf));
+    wprintw(this->w_cur_lba, "[%18s]", comma_lba_p);
     wnoutrefresh(this->w_cur_lba);
 }
 
@@ -369,7 +372,9 @@ static int render_test_read(DC_Dev *dev) {
     int r;
     int interrupted;
     rwtest_render_priv_t *windows = rwtest_render_priv_prepare();
-    wprintw(windows->w_end_lba, "[%18"PRId64"]", dev->capacity / 512);
+    char comma_lba_buf[30], *comma_lba_p;
+    comma_lba_p = commaprint(dev->capacity / 512, comma_lba_buf, sizeof(comma_lba_buf));
+    wprintw(windows->w_end_lba, "[%18s]", comma_lba_p);
     wnoutrefresh(windows->w_end_lba);
     wprintw(windows->summary,
             "Read test of drive\n"
@@ -410,7 +415,9 @@ static int render_test_zerofill(DC_Dev *dev) {
         return 0;
 
     rwtest_render_priv_t *windows = rwtest_render_priv_prepare();
-    wprintw(windows->w_end_lba, "[%18"PRId64"]", dev->capacity / 512);
+    char comma_lba_buf[30], *comma_lba_p;
+    comma_lba_p = commaprint(dev->capacity / 512, comma_lba_buf, sizeof(comma_lba_buf));
+    wprintw(windows->w_end_lba, "[%18s]", comma_lba_p);
     wnoutrefresh(windows->w_end_lba);
     wprintw(windows->summary,
             "Write test of drive\n"
@@ -548,5 +555,22 @@ static int action_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name
 fail:
     dc_action_close(actctx);
     return 1;
+}
+
+static char *commaprint(uint64_t n, char *retbuf, size_t bufsize) {
+    static int comma = ',';
+    char *p = &retbuf[bufsize-1];
+    int i = 0;
+
+    *p = '\0';
+    do {
+        if(i%3 == 0 && i != 0)
+            *--p = comma;
+        *--p = '0' + n % 10;
+        n /= 10;
+        i++;
+    } while(n != 0);
+
+    return p;
 }
 
