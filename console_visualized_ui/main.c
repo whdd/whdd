@@ -235,7 +235,7 @@ static rwtest_render_priv_t *rwtest_render_priv_prepare(void) {
     assert(this->eta);
 
     this->summary = derwin(stdscr, 10, LEGEND_WIDTH, 10, COLS-LEGEND_WIDTH);
-    assert(this->eta); // FIXME copy&paste
+    assert(this->summary);
 
     r = pthread_mutex_init(&this->reports_lock, NULL);
     assert(!r);
