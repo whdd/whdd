@@ -241,10 +241,10 @@ static rwtest_render_priv_t *rwtest_render_priv_prepare(void) {
     this->summary = derwin(stdscr, 10, LEGEND_WIDTH, 11, COLS-LEGEND_WIDTH);
     assert(this->summary);
 
-    this->w_end_lba = derwin(stdscr, 1, 20, 1, COLS-61);
+    this->w_end_lba = derwin(stdscr, 1, 20, 1, COLS-41);
     assert(this->w_end_lba);
 
-    this->w_cur_lba = derwin(stdscr, 1, 20, 1, COLS-41);
+    this->w_cur_lba = derwin(stdscr, 1, 20, 1, COLS-61);
     assert(this->w_cur_lba);
 
     r = pthread_mutex_init(&this->reports_lock, NULL);
@@ -342,7 +342,7 @@ static void rwtest_render_update_stats(rwtest_render_priv_t *this) {
     werase(this->w_cur_lba);
     char comma_lba_buf[30], *comma_lba_p;
     comma_lba_p = commaprint(this->cur_lba, comma_lba_buf, sizeof(comma_lba_buf));
-    wprintw(this->w_cur_lba, "[%18s]", comma_lba_p);
+    wprintw(this->w_cur_lba, "LBA: %14s", comma_lba_p);
     wnoutrefresh(this->w_cur_lba);
 }
 
@@ -375,7 +375,7 @@ static int render_test_read(DC_Dev *dev) {
     rwtest_render_priv_t *windows = rwtest_render_priv_prepare();
     char comma_lba_buf[30], *comma_lba_p;
     comma_lba_p = commaprint(dev->capacity / 512, comma_lba_buf, sizeof(comma_lba_buf));
-    wprintw(windows->w_end_lba, "[%18s]", comma_lba_p);
+    wprintw(windows->w_end_lba, "/ %s", comma_lba_p);
     wnoutrefresh(windows->w_end_lba);
     wprintw(windows->summary,
             "Read test of drive\n"
@@ -418,7 +418,7 @@ static int render_test_zerofill(DC_Dev *dev) {
     rwtest_render_priv_t *windows = rwtest_render_priv_prepare();
     char comma_lba_buf[30], *comma_lba_p;
     comma_lba_p = commaprint(dev->capacity / 512, comma_lba_buf, sizeof(comma_lba_buf));
-    wprintw(windows->w_end_lba, "[%18s]", comma_lba_p);
+    wprintw(windows->w_end_lba, "/ %s", comma_lba_p);
     wnoutrefresh(windows->w_end_lba);
     wprintw(windows->summary,
             "Write test of drive\n"
