@@ -186,9 +186,9 @@ static void show_smart_attrs(DC_Dev *dev) {
 }
 
 typedef struct blk_report {
+    uint64_t seqno;
     int access_errno;
     unsigned int access_time;
-    struct blk_report *next;
 } blk_report_t;
 
 typedef struct rwtest_render_priv {
@@ -211,14 +211,14 @@ typedef struct rwtest_render_priv {
 
     pthread_t render_thread;
     int order_hangup; // if interrupted or completed, render remainings and end render thread
-    blk_report_t *reports;
-    blk_report_t *reports_tail;
-    unsigned int n_reports;
-    pthread_mutex_t reports_lock;
+
+    // lockless ringbuffer
+    blk_report_t reports[100*1000];
+    uint64_t next_report_seqno_write;
+    uint64_t next_report_seqno_read;
 } rwtest_render_priv_t;
 
 static rwtest_render_priv_t *rwtest_render_priv_prepare(void) {
-    int r;
     rwtest_render_priv_t *this = calloc(1, sizeof(*this));
     if (!this)
         return NULL;
@@ -247,8 +247,10 @@ static rwtest_render_priv_t *rwtest_render_priv_prepare(void) {
     this->w_cur_lba = derwin(stdscr, 1, 20, 1, COLS-61);
     assert(this->w_cur_lba);
 
-    r = pthread_mutex_init(&this->reports_lock, NULL);
-    assert(!r);
+    memset(&this->reports, 1, sizeof(this->reports)); // to fully alloc all pages, unsure if this is necessary, but just int case
+    memset(&this->reports, 0, sizeof(this->reports));
+
+    this->reports[0].seqno = 1; // anything but zero
 
     return this;
 }
@@ -256,42 +258,71 @@ static rwtest_render_priv_t *rwtest_render_priv_prepare(void) {
 static void rwtest_render_update_vis(rwtest_render_priv_t *this, blk_report_t *rep);
 static void rwtest_render_update_stats(rwtest_render_priv_t *this);
 
+static blk_report_t *blk_rep_get_next_for_write(rwtest_render_priv_t *this) {
+    blk_report_t *rep = &this->reports[
+        (this->next_report_seqno_write) % (sizeof(this->reports) / sizeof(this->reports[0]))
+        ];
+    //fprintf(stderr, "giving %p for write\n", rep);
+    return rep;
+}
+
+static void blk_rep_write_finalize(rwtest_render_priv_t *this, blk_report_t *rep) {
+    rep->seqno = this->next_report_seqno_write;
+    this->next_report_seqno_write++;
+    //fprintf(stderr, "mark %p with seqno %"PRIu64", go to next\n", rep, rep->seqno);
+}
+
+static blk_report_t *blk_rep_get_nth_unread(rwtest_render_priv_t *this, int n) {
+    blk_report_t *rep = &this->reports[
+        (this->next_report_seqno_read + n) % (sizeof(this->reports) / sizeof(this->reports[0]))
+        ];
+    return rep;
+}
+
+static int blk_rep_is_n_avail(rwtest_render_priv_t *this, int n) {
+    blk_report_t *nth_ahead = blk_rep_get_nth_unread(this, n);
+    //fprintf(stderr, "checking if %p (%dth ahead) finalized as %"PRIu64"\n",
+    //        nth_ahead, n, this->next_report_seqno_read + n);
+    //fprintf(stderr, "its seqno is %"PRIu64"\n", nth_ahead->seqno);
+    if (nth_ahead->seqno == this->next_report_seqno_read + n)
+        return 1;
+    else
+        return 0;
+}
+
+static blk_report_t *blk_rep_read(rwtest_render_priv_t *this) {
+    if ( ! blk_rep_is_n_avail(this, 1))
+        return NULL;
+    blk_report_t *rep = blk_rep_get_nth_unread(this, 1);
+    this->next_report_seqno_read++;
+    return rep;
+}
+
 static void *rwtest_render_thread_proc(void *arg) {
     rwtest_render_priv_t *this = arg;
-    unsigned int reports_to_process;
     // TODO block signals in this thread
     while (1) {
         unsigned int reports_on_this_lap = 0;
         blk_report_t *cur_rep;
-        blk_report_t *next;
 
         if (!this->order_hangup) {
-            reports_to_process = REPORTS_BURST;
-            if (this->n_reports < reports_to_process + 1) {
+            if ( ! blk_rep_is_n_avail(this, REPORTS_BURST)) {
+                //fprintf(stderr, "REPORT_BURST pkts not avail for read yet\n");
                 usleep(10*1000);
-                continue;
+                continue; // no REPORTS_BURST pkts queued yet
             }
         } else {
-            if (this->n_reports == 0)
+            if ( ! blk_rep_is_n_avail(this, 1))
                 break;
-            reports_to_process = this->n_reports;
         }
 
-        cur_rep = this->reports;
-        while (reports_on_this_lap++ < reports_to_process) {
+        while ((reports_on_this_lap++ < REPORTS_BURST) &&
+                (cur_rep = blk_rep_read(this))
+                ) {
             // if processed REPORTS_BURST blocks, redraw view
             // free processed reports and go next lap
             rwtest_render_update_vis(this, cur_rep);
-
-            next = cur_rep->next;
-            free(cur_rep);
-            cur_rep = next;
         }
-        this->reports = next;
-        pthread_mutex_lock(&this->reports_lock);
-        this->n_reports -= reports_to_process;
-        pthread_mutex_unlock(&this->reports_lock);
-
         rwtest_render_update_stats(this);
 
         wnoutrefresh(this->vis);
@@ -364,7 +395,6 @@ void rwtest_render_priv_destroy(rwtest_render_priv_t *this) {
     delwin(this->summary);
     delwin(this->w_end_lba);
     delwin(this->w_cur_lba);
-    pthread_mutex_destroy(&this->reports_lock);
     free(this);
     clear_body();
 }
@@ -474,19 +504,12 @@ static int readtest_cb(DC_ActionCtx *ctx, void *callback_priv) {
     }
 
     // enqueue block report
-    blk_report_t *rep = calloc(1, sizeof(*rep));
+    blk_report_t *rep = blk_rep_get_next_for_write(priv);
     assert(rep);
     rep->access_errno = ctx->report.blk_access_errno;
     rep->access_time = ctx->report.blk_access_time;
-
-    if (!priv->reports)
-        priv->reports = rep;
-    if (priv->reports_tail)
-        priv->reports_tail->next = rep;
-    priv->reports_tail = rep;
-    pthread_mutex_lock(&priv->reports_lock);
-    priv->n_reports++;
-    pthread_mutex_unlock(&priv->reports_lock);
+    blk_rep_write_finalize(priv, rep);
+    //fprintf(stderr, "finalized %"PRIu64"\n", priv->next_report_seqno_write-1);
 
     return 0;
 }
