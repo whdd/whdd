@@ -3,7 +3,7 @@ project(whdd)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
 
-set(WHDD_VERSION "1.0rc4")
+set(WHDD_VERSION "1.0rc5")
 
 # If we in git repository, add git revision too
 if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
