@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
+#include <sched.h>
 
 #include "libdevcheck.h"
 #include "action.h"
@@ -12,13 +13,13 @@
 clockid_t DC_BEST_CLOCK;
 
 DC_Ctx *dc_init(void) {
+    int r;
     DC_Ctx *ctx = calloc(1, sizeof(*ctx));
     if (!ctx)
         return NULL;
 
 #ifdef HAVE_CLOCK_MONOTONIC_RAW
     /* determine best available clock */
-    int r;
     struct timespec dummy;
     DC_BEST_CLOCK = CLOCK_MONOTONIC_RAW;
     r = clock_gettime(DC_BEST_CLOCK, &dummy);
@@ -28,6 +29,14 @@ DC_Ctx *dc_init(void) {
 #else
     DC_BEST_CLOCK = CLOCK_MONOTONIC;
 #endif
+
+    struct sched_param sched_param;
+    // prio = max - 1, to leave max prio for performer thread
+    sched_param.sched_priority = sched_get_priority_min(SCHED_FIFO);
+    r = sched_setscheduler(0, SCHED_FIFO, &sched_param);
+    if (r) {
+        fprintf(stderr, "sched_setscheduler fail, ret %d\n", r);
+    }
 
 #define ACTION_REGISTER(x) { \
         extern DC_Action x; \

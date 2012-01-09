@@ -93,6 +93,7 @@ int dc_action_perform_loop_detached(DC_ActionCtx *ctx, ActionDetachedLoopCB call
     };
     void *thread_proc(void *packed_args) {
         struct args_pack *args = packed_args;
+        dc_raise_thread_prio();
         dc_action_perform_loop(args->ctx, args->callback, args->callback_priv);
         free(args);
         return NULL;

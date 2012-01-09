@@ -51,3 +51,12 @@ fail_buf_form:
     return NULL;
 }
 
+void dc_raise_thread_prio(void) {
+    int r;
+    struct sched_param sched_param;
+    sched_param.sched_priority = sched_get_priority_max(SCHED_FIFO);
+    r = pthread_setschedparam(pthread_self(), SCHED_FIFO, &sched_param);
+    if (r) {
+        fprintf(stderr, "pthread_setschedparam fail, ret %d\n", r);
+    }
+}
