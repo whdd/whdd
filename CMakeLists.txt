@@ -5,6 +5,10 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
 
 set(WHDD_VERSION "1.0rc5")
 
+set(CMAKE_C_FLAGS "-pthread -Wall -Wextra")
+set(CMAKE_C_FLAGS_RELEASE "-O3")
+set(CMAKE_C_FLAGS_DEBUG "-pthread -Wall -Wextra -O0 -g -ggdb")
+
 # If we in git repository, add git revision too
 if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
 	find_package(Git)
