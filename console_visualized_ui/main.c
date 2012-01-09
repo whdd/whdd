@@ -22,7 +22,7 @@
 #define ACT_READ 2
 #define ACT_ZEROFILL 3
 
-#define REPORTS_BURST 10
+#define REPORTS_BURST 20
 
 static int global_init(void);
 static void global_fini(void);
@@ -327,6 +327,7 @@ static void *rwtest_render_thread_proc(void *arg) {
 
         wnoutrefresh(this->vis);
         doupdate();
+        sched_yield();
     }
     return NULL;
 }
@@ -510,6 +511,9 @@ static int readtest_cb(DC_ActionCtx *ctx, void *callback_priv) {
     rep->access_time = ctx->report.blk_access_time;
     blk_rep_write_finalize(priv, rep);
     //fprintf(stderr, "finalized %"PRIu64"\n", priv->next_report_seqno_write-1);
+
+    if ((ctx->performs_executed % REPORTS_BURST) == 0)
+        sched_yield();
 
     return 0;
 }
