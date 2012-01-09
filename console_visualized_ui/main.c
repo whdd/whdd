@@ -329,14 +329,14 @@ static void rwtest_render_update_stats(rwtest_render_priv_t *this) {
     wnoutrefresh(this->access_time_stats);
 
     werase(this->avg_speed);
-    wprintw(this->avg_speed, "AVG [% 7"PRIu64" kb/s]", this->avg_processing_speed / 1024);
+    wprintw(this->avg_speed, "SPEED %7"PRIu64" kb/s", this->avg_processing_speed / 1024);
     wnoutrefresh(this->avg_speed);
 
     unsigned int minute, second;
     second = this->eta_time % 60;
     minute = this->eta_time / 60;
     werase(this->eta);
-    wprintw(this->eta, "EST: %10u:%02u", minute, second);
+    wprintw(this->eta, "ETA %11u:%02u", minute, second);
     wnoutrefresh(this->eta);
 
     werase(this->w_cur_lba);
