@@ -5,6 +5,8 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/ioctl.h>
+#include <sys/mount.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
@@ -34,6 +36,8 @@ static int Open(DC_ActionCtx *ctx) {
         fprintf(stderr, "open %s fail\n", ctx->dev->dev_path);
         goto fail_open;
     }
+    r = ioctl(priv->fd, BLKFLSBUF, NULL); // flush cache
+    assert(!r);
 
     return 0;
 
@@ -63,6 +67,11 @@ static int Perform(DC_ActionCtx *ctx) {
         lseek(priv->fd, ctx->blk_size * ctx->blk_index, SEEK_SET);
         errno = errno_store; // dc_action_perform() stores errno value to context
     }
+    /* trick from hdparm */
+    /* access all sectors of buf to ensure the read fully completed */
+    unsigned i;
+    for (i = 0; i < ctx->blk_size; i += 512)
+        ((char*)priv->buf)[i] &= 1;
     return 0;
 }
 
