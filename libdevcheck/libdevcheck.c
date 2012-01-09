@@ -24,6 +24,7 @@ DC_Ctx *dc_init(void) {
     DC_BEST_CLOCK = CLOCK_MONOTONIC_RAW;
     r = clock_gettime(DC_BEST_CLOCK, &dummy);
     if (r) {
+        fprintf(stderr, "CLOCK_MONOTONIC_RAW unavailable, using CLOCK_MONOTONIC\n");
         DC_BEST_CLOCK = CLOCK_MONOTONIC;
     }
 #else
