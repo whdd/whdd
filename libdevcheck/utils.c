@@ -3,13 +3,14 @@
 #include <string.h>
 
 #include "utils.h"
+#include "log.h"
 
 char *cmd_output(char *command_line) {
     int r;
     FILE *pipe;
     pipe = popen(command_line, "r");
     if (!pipe) {
-        fprintf(stderr, "Failed to exec '%s'\n", command_line);
+        dc_log(DC_LOG_FATAL, "Failed to exec '%s'\n", command_line);
         return NULL;
     }
 
@@ -57,6 +58,6 @@ void dc_raise_thread_prio(void) {
     sched_param.sched_priority = sched_get_priority_max(SCHED_FIFO);
     r = pthread_setschedparam(pthread_self(), SCHED_FIFO, &sched_param);
     if (r) {
-        fprintf(stderr, "pthread_setschedparam fail, ret %d\n", r);
+        dc_log(DC_LOG_ERROR, "pthread_setschedparam fail, ret %d\n", r);
     }
 }

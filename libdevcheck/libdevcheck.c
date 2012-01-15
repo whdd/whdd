@@ -30,7 +30,7 @@ int dc_init(void) {
     DC_BEST_CLOCK = CLOCK_MONOTONIC_RAW;
     r = clock_gettime(DC_BEST_CLOCK, &dummy);
     if (r) {
-        fprintf(stderr, "CLOCK_MONOTONIC_RAW unavailable, using CLOCK_MONOTONIC\n");
+        dc_log(DC_LOG_WARNING, "CLOCK_MONOTONIC_RAW unavailable, using CLOCK_MONOTONIC\n");
         DC_BEST_CLOCK = CLOCK_MONOTONIC;
     }
 #else
@@ -42,7 +42,7 @@ int dc_init(void) {
     sched_param.sched_priority = sched_get_priority_min(SCHED_FIFO);
     r = sched_setscheduler(0, SCHED_FIFO, &sched_param);
     if (r) {
-        fprintf(stderr, "sched_setscheduler fail, ret %d\n", r);
+        dc_log(DC_LOG_WARNING, "sched_setscheduler fail, ret %d\n", r);
     }
 
 #define ACTION_REGISTER(x) { \
@@ -116,7 +116,7 @@ static void dev_list_build(DC_DevList *dc_devlist) {
 
 	procpt = fopen("/proc/partitions", "r");
 	if (procpt == NULL) {
-		fprintf(stderr, "cannot open /proc/partitions\n");
+		dc_log(DC_LOG_FATAL, "cannot open /proc/partitions\n");
 		return;
 	}
 
@@ -163,7 +163,7 @@ static void dev_modelname_fill(DC_Dev *dev) {
         char model[256];
         int r;
         r = fscanf(model_file, "%256[^\n]", model);
-        if (r != 1) { fprintf(stderr, "outrageous error at scanning model name\n"); return; }
+        if (r != 1) { dc_log(DC_LOG_ERROR, "outrageous error at scanning model name\n"); return; }
         dev->model_str = strdup(model);
         assert(dev->model_str);
 }
