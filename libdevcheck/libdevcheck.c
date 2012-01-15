@@ -21,6 +21,9 @@ int dc_init(void) {
         return 1;
     dc_ctx_global = ctx;
 
+    dc_log_set_callback(dc_log_default_func);
+    dc_log_set_level(DC_LOG_INFO);
+
 #ifdef HAVE_CLOCK_MONOTONIC_RAW
     /* determine best available clock */
     struct timespec dummy;

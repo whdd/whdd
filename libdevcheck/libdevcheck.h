@@ -16,12 +16,15 @@
 #include "objects_def.h"
 #include "device.h"
 #include "action.h"
+#include "log.h"
 
 extern clockid_t DC_BEST_CLOCK;
 
 // this should not be accessed from applications, for internal usage only
 struct dc_ctx {
     DC_Action *action_list;
+    enum DC_LogLevel log_level;
+    void (*log_func)(enum DC_LogLevel level, const char* fmt, va_list vl);
 };
 
 extern DC_Ctx *dc_ctx_global;

@@ -41,6 +41,7 @@ set(LIBDEVCHECK_SRCS
 	${LIBDEVCHECK_DIR}/readtest.c
 	${LIBDEVCHECK_DIR}/utils.c
 	${LIBDEVCHECK_DIR}/zerofill.c
+	${LIBDEVCHECK_DIR}/log.c
 )
 
 include_directories(
