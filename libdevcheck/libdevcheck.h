@@ -19,9 +19,12 @@
 
 extern clockid_t DC_BEST_CLOCK;
 
+// this should not be accessed from applications, for internal usage only
 struct dc_ctx {
     DC_Action *action_list;
 };
+
+extern DC_Ctx *dc_ctx_global;
 
 struct dc_dev_list {
     DC_Dev *arr;
@@ -34,13 +37,13 @@ struct dc_dev_list {
  * Call this once at app beginning
  * And store returned pointer for further use of lib.
  */
-DC_Ctx *dc_init(void);
-void dc_finish(DC_Ctx *ctx);
+int dc_init(void);
+void dc_finish(void);
 
 /**
  * Return array of testable block devices
  */
-DC_DevList *dc_dev_list(DC_Ctx *dc_ctx);
+DC_DevList *dc_dev_list(void);
 void dc_dev_list_free(DC_DevList *list);
 int dc_dev_list_size(DC_DevList *list);
 DC_Dev *dc_dev_list_get_entry(DC_DevList *list, int index);

@@ -12,11 +12,14 @@
 
 clockid_t DC_BEST_CLOCK;
 
-DC_Ctx *dc_init(void) {
+DC_Ctx *dc_ctx_global = NULL;
+
+int dc_init(void) {
     int r;
     DC_Ctx *ctx = calloc(1, sizeof(*ctx));
     if (!ctx)
-        return NULL;
+        return 1;
+    dc_ctx_global = ctx;
 
 #ifdef HAVE_CLOCK_MONOTONIC_RAW
     /* determine best available clock */
@@ -41,21 +44,22 @@ DC_Ctx *dc_init(void) {
 
 #define ACTION_REGISTER(x) { \
         extern DC_Action x; \
-        dc_action_register(ctx, &x); }
+        dc_action_register(&x); }
     ACTION_REGISTER(readtest);
     ACTION_REGISTER(zerofill);
 #undef ACTION_REGISTER
-    return ctx;
+    return 0;
 }
 
-void dc_finish(DC_Ctx *ctx) {
-    free(ctx);
+void dc_finish(void) {
+    free(dc_ctx_global);
+    dc_ctx_global = NULL;
 }
 
 static void dev_list_build(DC_DevList *dc_devlist);
 static void dev_list_fill_info(DC_DevList *list);
 
-DC_DevList *dc_dev_list(DC_Ctx *dc_ctx) {
+DC_DevList *dc_dev_list(void) {
     DC_DevList *list = calloc(1, sizeof(*list));
     assert(list);
     list->arr = NULL;

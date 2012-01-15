@@ -13,16 +13,14 @@ static int action_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name
 static int readtest_cb(DC_ActionCtx *ctx, void *callback_priv);
 static int zerofill_cb(DC_ActionCtx *ctx, void *callback_priv);
 
-DC_Ctx *dc_ctx;
-
 int main() {
     printf(WHDD_ABOUT);
     int r;
     // init libdevcheck
-    dc_ctx = dc_init();
-    assert(dc_ctx);
+    r = dc_init();
+    assert(!r);
     // get list of devices
-    DC_DevList *devlist = dc_dev_list(dc_ctx);
+    DC_DevList *devlist = dc_dev_list();
     assert(devlist);
     // show list of devices
     int devs_num = dc_dev_list_size(devlist);
@@ -137,7 +135,7 @@ static int action_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name
     siginfo_t siginfo;
     sigset_t set;
     pthread_t tid;
-    DC_Action *act = dc_find_action(dc_ctx, act_name);
+    DC_Action *act = dc_find_action(act_name);
     assert(act);
     DC_ActionCtx *actctx;
     r = dc_action_open(act, dev, &actctx);

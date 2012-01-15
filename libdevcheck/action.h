@@ -15,8 +15,8 @@ struct dc_action {
     struct dc_action *next;
 };
 
-int dc_action_register(DC_Ctx *ctx, DC_Action *action);
-DC_Action *dc_find_action(DC_Ctx *ctx, char *name);
+int dc_action_register(DC_Action *action);
+DC_Action *dc_find_action(char *name);
 
 struct dc_action_ctx {
     void* priv; // for action private context

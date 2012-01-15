@@ -37,8 +37,6 @@ static int action_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name
 static int readtest_cb(DC_ActionCtx *ctx, void *callback_priv);
 static char *commaprint(uint64_t n, char *retbuf, size_t bufsize);
 
-DC_Ctx *dc_ctx;
-
 int main() {
     int r;
     r = global_init();
@@ -47,7 +45,7 @@ int main() {
         return r;
     }
     // get list of devices
-    DC_DevList *devlist = dc_dev_list(dc_ctx);
+    DC_DevList *devlist = dc_dev_list();
     assert(devlist);
 
     while (1) {
@@ -90,6 +88,7 @@ int main() {
 }
 
 static int global_init(void) {
+    int r;
     // TODO check all retcodes
     setlocale(LC_ALL, "");
     initscr();
@@ -109,8 +108,8 @@ static int global_init(void) {
 
     wrefresh(footer);
     // init libdevcheck
-    dc_ctx = dc_init();
-    assert(dc_ctx);
+    r = dc_init();
+    assert(!r);
     assert(atexit(global_fini) == 0);
     return 0;
 }
@@ -525,7 +524,7 @@ static int action_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name
     siginfo_t siginfo;
     sigset_t set;
     pthread_t tid;
-    DC_Action *act = dc_find_action(dc_ctx, act_name);
+    DC_Action *act = dc_find_action(act_name);
     assert(act);
     DC_ActionCtx *actctx;
     *interrupted = 0;

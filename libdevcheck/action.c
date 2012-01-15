@@ -3,14 +3,14 @@
 #include <errno.h>
 #include "action.h"
 
-int dc_action_register(DC_Ctx *ctx, DC_Action *action) {
-    action->next = ctx->action_list;
-    ctx->action_list = action;
+int dc_action_register(DC_Action *action) {
+    action->next = dc_ctx_global->action_list;
+    dc_ctx_global->action_list = action;
     return 0;
 }
 
-DC_Action *dc_find_action(DC_Ctx *ctx, char *name) {
-    DC_Action *iter = ctx->action_list;
+DC_Action *dc_find_action(char *name) {
+    DC_Action *iter = dc_ctx_global->action_list;
     while (iter) {
         if (!strcmp(iter->name, name))
             break;
