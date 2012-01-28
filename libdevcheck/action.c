@@ -43,11 +43,13 @@ int dc_action_perform(DC_ActionCtx *ctx) {
     int r;
     struct timespec pre, post;
 
-    clock_gettime(DC_BEST_CLOCK, &pre);
+    r = clock_gettime(DC_BEST_CLOCK, &pre);
+    assert(!r);
     errno = 0;
     r = ctx->action->perform(ctx);
     ctx->report.blk_access_errno = errno;
-    clock_gettime(DC_BEST_CLOCK, &post);
+    r = clock_gettime(DC_BEST_CLOCK, &post);
+    assert(!r);
     ctx->report.blk_access_time = (post.tv_sec - pre.tv_sec) * 1000000 +
         (post.tv_nsec - pre.tv_nsec) / 1000;
     ctx->performs_executed++;
