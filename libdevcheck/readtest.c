@@ -50,6 +50,10 @@ fail_buf:
 static int Perform(DC_ActionCtx *ctx) {
     ssize_t read_ret;
     ReadPriv *priv = ctx->priv;
+    if (ctx->redo) {
+        ctx->blk_index--;
+        lseek(priv->fd, ctx->blk_size * ctx->blk_index, SEEK_SET);
+    }
     read_ret = read(priv->fd, priv->buf, ctx->blk_size);
     ctx->blk_index++;
     if (read_ret != ctx->blk_size) {

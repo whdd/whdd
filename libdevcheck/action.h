@@ -28,6 +28,7 @@ struct dc_action_ctx {
     uint64_t performs_executed; // how many times .perform() took place. For callbacks handiness
     uint64_t performs_total; // how many times .perform() from start to finish has to be done
     int interrupt; // if 1, then looped processing must stop
+    int redo; // if 1, request action driver to redo last block - it's a bug workaround
     int finished; // if 1, then looped processing has finished
 
     struct dc_test_report {
