@@ -1,14 +1,19 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #include "utils.h"
 #include "log.h"
 
 char *cmd_output(char *command_line) {
     int r;
+    char *avoid_stderr;
+    r = asprintf(&avoid_stderr, "%s 2>/dev/null", command_line);
+    assert(r != -1);
     FILE *pipe;
-    pipe = popen(command_line, "r");
+    pipe = popen(avoid_stderr, "r");
     if (!pipe) {
         dc_log(DC_LOG_FATAL, "Failed to exec '%s'\n", command_line);
         return NULL;
