@@ -36,6 +36,7 @@ static int action_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name
                 ActionDetachedLoopCB callback, void *callback_priv, int *interrupted);
 static int readtest_cb(DC_ActionCtx *ctx, void *callback_priv);
 static char *commaprint(uint64_t n, char *retbuf, size_t bufsize);
+void log_cb(enum DC_LogLevel level, const char* fmt, va_list vl);
 
 int main() {
     int r;
@@ -110,6 +111,7 @@ static int global_init(void) {
     // init libdevcheck
     r = dc_init();
     assert(!r);
+    dc_log_set_callback(log_cb);
     assert(atexit(global_fini) == 0);
     return 0;
 }
@@ -201,6 +203,7 @@ typedef struct rwtest_render_priv {
     WINDOW *summary;
     WINDOW *w_end_lba;
     WINDOW *w_cur_lba;
+    WINDOW *w_log;
 
     struct timespec start_time;
     uint64_t access_time_stats_accum[7];
@@ -217,6 +220,8 @@ typedef struct rwtest_render_priv {
     uint64_t next_report_seqno_read;
 } rwtest_render_priv_t;
 
+rwtest_render_priv_t *render_ctx_global = NULL;
+
 static rwtest_render_priv_t *rwtest_render_priv_prepare(void) {
     rwtest_render_priv_t *this = calloc(1, sizeof(*this));
     if (!this)
@@ -226,7 +231,7 @@ static rwtest_render_priv_t *rwtest_render_priv_prepare(void) {
     this->access_time_stats = derwin(stdscr, 7, LEGEND_WIDTH/2, 4, COLS-LEGEND_WIDTH/2);
     assert(this->access_time_stats);
     show_legend(this->legend);
-    this->vis = derwin(stdscr, LINES-3, COLS-LEGEND_WIDTH-1, 2, 0); // leave 1st and last lines untouched
+    this->vis = derwin(stdscr, LINES-5, COLS-LEGEND_WIDTH-1, 2, 0); // leave 1st and last lines untouched
     assert(this->vis);
     scrollok(this->vis, TRUE);
     wrefresh(this->vis);
@@ -245,6 +250,10 @@ static rwtest_render_priv_t *rwtest_render_priv_prepare(void) {
 
     this->w_cur_lba = derwin(stdscr, 1, 20, 1, COLS-61);
     assert(this->w_cur_lba);
+
+    this->w_log = derwin(stdscr, 2, COLS, LINES-3, 0);
+    assert(this->w_log);
+    scrollok(this->w_log, TRUE);
 
     memset(&this->reports, 1, sizeof(this->reports)); // to fully alloc all pages, unsure if this is necessary, but just int case
     memset(&this->reports, 0, sizeof(this->reports));
@@ -395,6 +404,7 @@ void rwtest_render_priv_destroy(rwtest_render_priv_t *this) {
     delwin(this->summary);
     delwin(this->w_end_lba);
     delwin(this->w_cur_lba);
+    delwin(this->w_log);
     free(this);
     clear_body();
 }
@@ -413,6 +423,7 @@ static int render_test_read(DC_Dev *dev) {
             "Ctrl+C to abort\n",
             dev->dev_path, dev->model_str);
     wrefresh(windows->summary);
+    render_ctx_global = windows;
     r = rwtest_render_thread_start(windows);
     if (r)
         return r; // FIXME leak
@@ -599,5 +610,17 @@ static char *commaprint(uint64_t n, char *retbuf, size_t bufsize) {
     } while(n != 0);
 
     return p;
+}
+
+void log_cb(enum DC_LogLevel level, const char* fmt, va_list vl) {
+    char *msg = dc_log_default_form_string(level, fmt, vl);
+    assert(msg);
+    if (render_ctx_global) {
+        wprintw(render_ctx_global->w_log, "%s", msg);
+        wrefresh(render_ctx_global->w_log);
+    } else {
+        dialog_msgbox("Internal message", msg, 0, 0, 1);
+    }
+    free(msg);
 }
 
