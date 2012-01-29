@@ -337,6 +337,9 @@ static void *rwtest_render_thread_proc(void *arg) {
         doupdate();
         sched_yield();
     }
+    rwtest_render_update_stats(this);
+    wnoutrefresh(this->vis);
+    doupdate();
     return NULL;
 }
 
