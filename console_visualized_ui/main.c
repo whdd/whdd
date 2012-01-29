@@ -371,16 +371,20 @@ static void rwtest_render_update_stats(rwtest_render_priv_t *this) {
         wprintw(this->access_time_stats, "%d\n", this->access_time_stats_accum[i]);
     wnoutrefresh(this->access_time_stats);
 
+    if (this->avg_processing_speed != 0) {
     werase(this->avg_speed);
     wprintw(this->avg_speed, "SPEED %7"PRIu64" kb/s", this->avg_processing_speed / 1024);
     wnoutrefresh(this->avg_speed);
+    }
 
+    if (this->eta_time != 0) {
     unsigned int minute, second;
     second = this->eta_time % 60;
     minute = this->eta_time / 60;
     werase(this->eta);
     wprintw(this->eta, "ETA %11u:%02u", minute, second);
     wnoutrefresh(this->eta);
+    }
 
     werase(this->w_cur_lba);
     char comma_lba_buf[30], *comma_lba_p;
