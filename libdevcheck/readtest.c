@@ -25,6 +25,8 @@ static int Open(DC_ActionCtx *ctx) {
     ReadPriv *priv = ctx->priv;
     ctx->blk_size = BLK_SIZE;
     ctx->blks_total = ctx->dev->capacity / ctx->blk_size;
+    if (ctx->dev->capacity % ctx->blk_size)
+        ctx->blks_total++;
     ctx->performs_total = ctx->blks_total;
 
     r = posix_memalign(&priv->buf, sysconf(_SC_PAGESIZE), ctx->blk_size);
@@ -58,7 +60,6 @@ static int Perform(DC_ActionCtx *ctx) {
     ctx->blk_index++;
     if (read_ret != ctx->blk_size) {
         int errno_store;
-        assert(read_ret == -1); // short read mustn't happen as long as we operate in O_DIRECT
         /* Set read position appropriately for the case it somehow reads non-full block
          *
          * From "man 2 read":

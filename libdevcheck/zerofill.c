@@ -26,6 +26,8 @@ static int Open(DC_ActionCtx *ctx) {
     ZeroFillPriv *priv = ctx->priv;
     ctx->blk_size = BLK_SIZE;
     ctx->blks_total = ctx->dev->capacity / ctx->blk_size;
+    if (ctx->dev->capacity % ctx->blk_size)
+        ctx->blks_total++;
     ctx->performs_total = ctx->blks_total;
 
     r = posix_memalign(&priv->buf, sysconf(_SC_PAGESIZE), ctx->blk_size);
@@ -59,7 +61,6 @@ static int Perform(DC_ActionCtx *ctx) {
     write_ret = write(priv->fd, priv->buf, ctx->blk_size);
     ctx->blk_index++;
     if (write_ret != ctx->blk_size) {
-        assert(write_ret == -1); // short write should not happen as long as done in O_DIRECT
         int errno_store;
         errno_store = errno;
         lseek(priv->fd, ctx->blk_size * ctx->blk_index, SEEK_SET);
