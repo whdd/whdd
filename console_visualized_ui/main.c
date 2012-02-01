@@ -498,6 +498,8 @@ static int readtest_cb(DC_ActionCtx *ctx, void *callback_priv) {
     rwtest_render_priv_t *priv = callback_priv;
 
     uint64_t bytes_processed = ctx->performs_executed * ctx->blk_size;
+    if (bytes_processed > ctx->dev->capacity)
+        bytes_processed = ctx->dev->capacity;
     priv->cur_lba = bytes_processed / 512;
 
     if (ctx->performs_executed == 1) {
