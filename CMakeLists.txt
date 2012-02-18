@@ -3,7 +3,7 @@ project(whdd)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
 
-set(WHDD_VERSION "1.0rc5")
+set(WHDD_VERSION "1.0")
 
 set(CMAKE_C_FLAGS "-pthread -Wall -Wextra")
 set(CMAKE_C_FLAGS_RELEASE "-O3")
