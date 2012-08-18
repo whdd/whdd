@@ -5,9 +5,9 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
 
 set(WHDD_VERSION "1.0")
 
-set(CMAKE_C_FLAGS "-pthread -Wall -Wextra")
-set(CMAKE_C_FLAGS_RELEASE "-O3")
-set(CMAKE_C_FLAGS_DEBUG "-pthread -Wall -Wextra -O0 -g -ggdb")
+set(CMAKE_C_FLAGS "-pthread -Wall -Wextra ${CFLAGS}")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS}")
+set(CMAKE_C_FLAGS_DEBUG "-O0 -g -ggdb ${CMAKE_C_FLAGS}")
 
 # If we in git repository, add git revision too
 if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
