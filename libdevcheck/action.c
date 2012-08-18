@@ -44,8 +44,6 @@ int dc_action_perform(DC_ActionCtx *ctx) {
     int r;
     struct timespec pre, post;
 
-    ctx->redo = 0;
-redo:
     r = clock_gettime(DC_BEST_CLOCK, &pre);
     assert(!r);
     errno = 0;
@@ -55,15 +53,6 @@ redo:
     assert(!r);
     ctx->report.blk_access_time = (post.tv_sec - pre.tv_sec) * 1000000 +
         (post.tv_nsec - pre.tv_nsec) / 1000;
-    /* check for suspiciously long access time
-     * on some configurations there's bug on timing */
-    if (!ctx->redo /* first time here */ &&
-            ctx->report.blk_access_time > 1000*1000 /* 1s */ ) {
-        dc_log(DC_LOG_ERROR, "kernel bug: block #%"PRIu64" access time %"PRIu64" mcs. Rechecking.\n",
-                ctx->blk_index, ctx->report.blk_access_time);
-        ctx->redo = 1;
-        goto redo;
-    }
     ctx->performs_executed++;
     return r;
 }

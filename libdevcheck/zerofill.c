@@ -54,10 +54,6 @@ fail_buf:
 static int Perform(DC_ActionCtx *ctx) {
     ssize_t write_ret;
     ZeroFillPriv *priv = ctx->priv;
-    if (ctx->redo) {
-        ctx->blk_index--;
-        lseek(priv->fd, ctx->blk_size * ctx->blk_index, SEEK_SET);
-    }
     write_ret = write(priv->fd, priv->buf, ctx->blk_size);
     ctx->blk_index++;
     if (write_ret != ctx->blk_size) {
