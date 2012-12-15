@@ -71,9 +71,10 @@ target_link_libraries(whdd-cli rt pthread)
 
 find_package(DIALOG REQUIRED)
 find_library(MENUW_LIBRARY menuw)
-if(DIALOG_FOUND AND MENUW_LIBRARY)
+find_library(NCURSESW_LIBRARY ncursesw)
+if(DIALOG_FOUND AND MENUW_LIBRARY AND NCURSESW_LIBRARY)
 	target_link_libraries(whdd-curses 
-		${DIALOG_LIBRARIES} ${MENUW_LIBRARY} rt pthread)
+		${DIALOG_LIBRARIES} ${MENUW_LIBRARY} ${NCURSESW_LIBRARY} rt pthread)
 else()
 	message(FATAL_ERROR "Dialog or menuw library not found!")
 endif(DIALOG_FOUND AND MENUW_LIBRARY)
