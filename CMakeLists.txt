@@ -77,7 +77,7 @@ if(DIALOG_FOUND AND MENUW_LIBRARY AND NCURSESW_LIBRARY)
 		${DIALOG_LIBRARIES} ${MENUW_LIBRARY} ${NCURSESW_LIBRARY} rt pthread)
 else()
 	message(FATAL_ERROR "Dialog or menuw library not found!")
-endif(DIALOG_FOUND AND MENUW_LIBRARY)
+endif(DIALOG_FOUND AND MENUW_LIBRARY AND NCURSESW_LIBRARY)
 install(TARGETS whdd-cli whdd-curses DESTINATION sbin)
 
 # Packaging stuff
