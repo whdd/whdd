@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <assert.h>
+#include "utils.h"
 #include "action.h"
 
 int dc_action_register(DC_Action *action) {
