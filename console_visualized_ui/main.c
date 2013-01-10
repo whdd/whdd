@@ -112,7 +112,8 @@ static int global_init(void) {
     r = dc_init();
     assert(!r);
     dc_log_set_callback(log_cb);
-    assert(atexit(global_fini) == 0);
+    r = atexit(global_fini);
+    assert(r == 0);
     return 0;
 }
 
