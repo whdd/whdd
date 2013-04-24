@@ -1,22 +1,12 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.8.4)
+include(ExternalProject)
 project(whdd)
 
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
+option(STATIC "Build static binaries" OFF)
 
 set(CMAKE_C_FLAGS "-std=gnu99 -pthread -Wall -Wextra -Wno-missing-field-initializers ${CFLAGS}")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS}")
 set(CMAKE_C_FLAGS_DEBUG "-O0 -g -ggdb ${CMAKE_C_FLAGS}")
-
-# If we in git repository, add git revision too
-if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
-	find_package(Git)
-	if(GIT_FOUND)
-		exec_program(${GIT_EXECUTABLE} ${CMAKE_SOURCE_DIR}
-			ARGS describe --always
-			OUTPUT_VARIABLE WHDD_REVISION)
-	endif(GIT_FOUND)
-	set(WHDD_VERSION "${WHDD_VERSION}-g${WHDD_REVISION}")
-endif(EXISTS "${CMAKE_SOURCE_DIR}/.git")
 
 set(CLI_SRCS
 	cli/main.c
@@ -75,31 +65,65 @@ add_executable(whdd
 	${LIBDEVCHECK_SRCS}
 )
 
-include_directories(${DIALOG_INCLUDE_DIRS})
 add_dependencies(whdd-cli version)
 add_dependencies(whdd version)
 
 target_link_libraries(whdd-cli rt pthread)
+target_link_libraries(whdd rt pthread)
 
-find_package(DIALOG REQUIRED)
-find_library(MENUW_LIBRARY menuw)
-find_library(NCURSESW_LIBRARY ncursesw)
-if(DIALOG_FOUND AND MENUW_LIBRARY AND NCURSESW_LIBRARY)
-	target_link_libraries(whdd
-		${DIALOG_LIBRARIES} ${MENUW_LIBRARY} ${NCURSESW_LIBRARY} rt pthread)
-else()
-	message(FATAL_ERROR "Dialog or menuw library not found!")
-endif(DIALOG_FOUND AND MENUW_LIBRARY AND NCURSESW_LIBRARY)
-install(TARGETS whdd-cli whdd DESTINATION sbin)
+if (${STATIC})
+
+# Set vars containing to deps builds
+  set(NCURSES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/ncurses/install/")
+  set(DIALOG_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/dialog/dialog-prefix/src/dialog/")
+
+# Set include paths
+  include_directories(BEFORE SYSTEM
+    ${NCURSES_DIR}/include/ncursesw
+    ${DIALOG_DIR}
+  )
+
+  add_subdirectory(external/dialog)
+  add_dependencies(whdd dialog)
+
+  add_library(ncurses_lib STATIC IMPORTED)
+  set_property(TARGET ncurses_lib PROPERTY IMPORTED_LOCATION "${NCURSES_DIR}/lib/libncursesw.a")
+  add_library(menu_lib STATIC IMPORTED)
+  set_property(TARGET menu_lib PROPERTY IMPORTED_LOCATION "${NCURSES_DIR}/lib/libmenuw.a")
+  add_library(dialog_lib STATIC IMPORTED)
+  set_property(TARGET dialog_lib PROPERTY IMPORTED_LOCATION "${DIALOG_DIR}/libdialog.a")
+
+  target_link_libraries(whdd dialog_lib)
+  target_link_libraries(whdd menu_lib)
+  target_link_libraries(whdd ncurses_lib)
+  target_link_libraries(whdd dl)
+  target_link_libraries(whdd m)
+
+else (${STATIC})
+
+  set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
+  include_directories(${DIALOG_INCLUDE_DIRS})
+  find_package(DIALOG REQUIRED)
+  find_library(MENUW_LIBRARY menuw)
+  find_library(NCURSESW_LIBRARY ncursesw)
+  if(DIALOG_FOUND AND MENUW_LIBRARY AND NCURSESW_LIBRARY)
+    target_link_libraries(whdd
+      ${DIALOG_LIBRARIES} ${MENUW_LIBRARY} ${NCURSESW_LIBRARY} rt pthread)
+  else()
+    message(FATAL_ERROR "Dialog or menuw library not found!")
+  endif(DIALOG_FOUND AND MENUW_LIBRARY AND NCURSESW_LIBRARY)
+  install(TARGETS whdd-cli whdd DESTINATION sbin)
 
 # Packaging stuff
 # 'make package_source' to make tarball
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "WHDD is a diagnostic and recovery tool for block devices.")
-set(CPACK_PACKAGE_VENDOR "Andrey 'Krieger' Utkin <andrey.krieger.utkin@gmail.com>")
-set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README")
-set(CPACK_PACKAGE_VERSION ${WHDD_VERSION})
+  set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "WHDD is a diagnostic and recovery tool for block devices.")
+  set(CPACK_PACKAGE_VENDOR "Andrey 'Krieger' Utkin <andrey.krieger.utkin@gmail.com>")
+  set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README")
+  set(CPACK_PACKAGE_VERSION ${WHDD_VERSION})
 #set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/COPYING")
-set(CPACK_SOURCE_PACKAGE_FILE_NAME
-	"${CMAKE_PROJECT_NAME}-${CPACK_PACKAGE_VERSION}")
-set(CPACK_SOURCE_GENERATOR TBZ2)
-include(CPack)
+  set(CPACK_SOURCE_PACKAGE_FILE_NAME
+    "${CMAKE_PROJECT_NAME}-${CPACK_PACKAGE_VERSION}")
+  set(CPACK_SOURCE_GENERATOR TBZ2)
+  include(CPack)
+
+endif (${STATIC})
