@@ -150,7 +150,7 @@ static int menu_choose_device(DC_DevList *devlist) {
     }
 
     clear_body();
-    int chosen_dev_ind = my_dialog_menu("Choose device", "", 0, 0, 0, devs_num, items);
+    int chosen_dev_ind = my_dialog_menu("Choose device", "", 0, 0, devs_num * 3, devs_num, items);
     for (i = 0; i < devs_num; i++) {
         free(items[2*i]);
         free(items[2*i+1]);
@@ -172,7 +172,7 @@ static int menu_choose_action(DC_Dev *dev) {
         items[2*i] = strdup("");
 
     clear_body();
-    int chosen_action_ind = my_dialog_menu("Choose action", "", 0, 0, 0, 4, items);
+    int chosen_action_ind = my_dialog_menu("Choose action", "", 0, 0, 4 * 3, 4, items);
     for (i = 0; i < 8; i++)
         free(items[i]);
     return chosen_action_ind;
