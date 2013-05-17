@@ -6,12 +6,8 @@
     "Revision " WHDD_VERSION "\n" \
     "License: GNU GPL\n" \
     "Sources: https://github.com/krieger-od/whdd\n" \
-    "Author: Andrey 'Krieger' Utkin <andrey.krieger.utkin@gmail.com>\n" \
-    "Directed by:\n" \
-        "\tVitaliy 'Rozik' Roziznaniy <rozik@homei.net.ua>\n" \
-        "\thttp://rozik.od.ua\n" \
-        "\thttp://hdd.od.ua\n" \
-    "Heil comrade Stalin!\n"
+    "Author: Andrey 'Krieger' Utkin <andrey.krieger.utkin@gmail.com> http://blog.krieger.pp.ua\n" \
+    "Directed by: Vitaliy 'Rozik' Roziznaniy <rozik@homei.net.ua> http://rozik.od.ua\n"
 
 #include "objects_def.h"
 #include "device.h"

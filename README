@@ -2,12 +2,8 @@ WHDD is a diagnostic and recovery tool for block devices (near to replace MHDD f
 
 License: GNU GPL
 Sources: https://github.com/krieger-od/whdd
-Author: Andrey 'Krieger' Utkin <andrey.krieger.utkin@gmail.com>
-Directed by:
-        Vitaliy 'Rozik' Roziznaniy <rozik@homei.net.ua>
-        http://rozik.od.ua
-        http://hdd.od.ua
-Heil comrade Stalin!
+Author: Andrey 'Krieger' Utkin <andrey.krieger.utkin@gmail.com> http://blog.krieger.pp.ua
+Directed by: Vitaliy 'Rozik' Roziznaniy <rozik@homei.net.ua> http://rozik.od.ua
 
 Functionality:
 - List available block devices (HDD, Flash drives etc.)
