@@ -95,6 +95,7 @@ static void Close(DC_ProcedureCtx *ctx) {
 
 DC_Procedure posix_read = {
     .name = "posix_read",
+    .long_name = "Read from device, using POSIX read() call, in direct mode",
     .open = Open,
     .perform = Perform,
     .close = Close,

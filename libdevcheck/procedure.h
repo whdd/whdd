@@ -5,8 +5,12 @@
 #include "device.h"
 #include <pthread.h>
 
+#define DC_PROC_FLAG_DESCTRUCTIVE 1
+
 struct dc_procedure {
     char *name;
+    char *long_name;
+    int flags;  // For DC_PROC_FLAG_*
     int priv_data_size;
     int (*open)(DC_ProcedureCtx *procedure);
     int (*perform)(DC_ProcedureCtx *ctx);
