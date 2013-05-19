@@ -29,4 +29,8 @@ int procedure_perform_until_interrupt(DC_ProcedureCtx *actctx,
 
 int64_t dc_dev_get_native_capacity(char *dev_fs_path);
 
+// Difference is unit of capacity
+void dc_dev_set_max_capacity(char *dev_fs_path, uint64_t capacity);
+void dc_dev_set_max_lba(char *dev_fs_path, uint64_t lba);
+
 #endif // LIBDEVCHECK_UTILS_H

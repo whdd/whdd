@@ -180,3 +180,25 @@ int64_t dc_dev_get_native_capacity(char *dev_fs_path) {
     fill_scsi_ata_return_descriptor(&scsi_ata_ret, &scsi_command);
     return (scsi_ata_ret.lba + 1) * 512;
 }
+
+void dc_dev_set_max_capacity(char *dev_fs_path, uint64_t capacity) {
+    dc_dev_set_max_lba(dev_fs_path, capacity / 512 - 1);
+}
+
+void dc_dev_set_max_lba(char *dev_fs_path, uint64_t lba) {
+    int ioctl_ret;
+    int fd = open(dev_fs_path, O_RDWR);
+    if (fd == -1)
+        return;
+    AtaCommand ata_command;
+    prepare_ata_command(&ata_command, WIN_SET_MAX_EXT /* 37h */, lba, 1 /* value volatile bit */);
+    ScsiCommand scsi_command;
+    prepare_scsi_command_from_ata(&scsi_command, &ata_command);
+    ioctl_ret = ioctl(fd, SG_IO, &scsi_command);
+    close(fd);
+    if (ioctl_ret)
+        return;
+    ScsiAtaReturnDescriptor scsi_ata_ret;
+    fill_scsi_ata_return_descriptor(&scsi_ata_ret, &scsi_command);
+    // TODO parse response
+}
