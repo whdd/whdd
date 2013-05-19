@@ -9,7 +9,7 @@
 #include "procedure.h"
 #include "utils.h"
 
-static int procedure_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name,
+static int procedure_perform_until_interrupt(DC_ProcedureCtx *actctx,
         ProcedureDetachedLoopCB callback, void *callback_priv);
 static int proc_render_cb(DC_ProcedureCtx *ctx, void *callback_priv);
 
@@ -84,19 +84,30 @@ int main() {
         free(text);
         break;
     case 2:
-        printf("Performing read test ");
-        procedure_find_start_perform_until_interrupt(chosen_dev, "posix_read", proc_render_cb, NULL);
+    case 3: {
+        char *act_name = chosen_procedure_ind == 2 ? "posix_read" : "posix_write_zeros";
+        DC_Procedure *act = dc_find_procedure(act_name);
+        assert(act);
+        printf("Going to perform test %s (%s)\n", act->name, act->long_name);
+        if (act->flags & DC_PROC_FLAG_DESTRUCTIVE) {
+            printf("This will destroy all data on device %s (%s). Are you sure? (y/n)\n",
+                    chosen_dev->dev_fs_name, chosen_dev->model_str);
+            char ans = 'n';
+            r = scanf("\n%c", &ans);
+            if (ans != 'y')
+                break;
+        }
+        DC_ProcedureCtx *actctx;
+        r = dc_procedure_open(act, chosen_dev, &actctx);
+        if (r) {
+            printf("Procedure init fail\n");
+            return 1;
+        }
+        printf("Performing on device %s with block size %"PRId64"\n",
+                chosen_dev->dev_path, actctx->blk_size);
+        procedure_perform_until_interrupt(actctx, proc_render_cb, NULL);
         break;
-    case 3:
-        printf("This will destroy all data on device %s (%s). Are you sure? (y/n)\n",
-                chosen_dev->dev_fs_name, chosen_dev->model_str);
-        char ans = 'n';
-        r = scanf("\n%c", &ans);
-        if (ans != 'y')
-            break;
-        printf("Performing zeros write test ");
-        procedure_find_start_perform_until_interrupt(chosen_dev, "posix_write_zeros", proc_render_cb, NULL);
-        break;
+    }
     default:
         printf("Wrong procedure index\n");
         break;
@@ -120,21 +131,13 @@ static int proc_render_cb(DC_ProcedureCtx *ctx, void *callback_priv) {
     return 0;
 }
 
-static int procedure_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name,
+static int procedure_perform_until_interrupt(DC_ProcedureCtx *actctx,
         ProcedureDetachedLoopCB callback, void *callback_priv
         ) {
     int r;
     siginfo_t siginfo;
     sigset_t set;
     pthread_t tid;
-    DC_Procedure *act = dc_find_procedure(act_name);
-    assert(act);
-    DC_ProcedureCtx *actctx;
-    r = dc_procedure_open(act, dev, &actctx);
-    if (r) {
-        printf("Procedure init fail\n");
-        return 1;
-    }
 
     sigemptyset(&set);
     sigaddset(&set, SIGQUIT);

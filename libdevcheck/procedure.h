@@ -43,7 +43,7 @@ struct dc_procedure_ctx {
     DC_Rational progress;  // updated by procedure on .perform()
     int interrupt; // if set to 1 by frontend, then looped processing must stop
     // TODO interrupt is now meant for loop, think of interrupting blocking perform operation
-    int finished; // if 1, then looped processing has finished  // TODO eliminate, use pthread_join()
+    int finished; // if 1, then looped processing has finished
 
     struct dc_test_report {
         uint64_t blk_access_time; // in mcs
