@@ -11,8 +11,7 @@
 
 static int procedure_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name,
         ProcedureDetachedLoopCB callback, void *callback_priv);
-static int posix_read_cb(DC_ProcedureCtx *ctx, void *callback_priv);
-static int posix_write_zeros_cb(DC_ProcedureCtx *ctx, void *callback_priv);
+static int proc_render_cb(DC_ProcedureCtx *ctx, void *callback_priv);
 
 int main() {
     printf(WHDD_ABOUT);
@@ -85,7 +84,8 @@ int main() {
         free(text);
         break;
     case 2:
-        procedure_find_start_perform_until_interrupt(chosen_dev, "posix_read", posix_read_cb, NULL);
+        printf("Performing read test ");
+        procedure_find_start_perform_until_interrupt(chosen_dev, "posix_read", proc_render_cb, NULL);
         break;
     case 3:
         printf("This will destroy all data on device %s (%s). Are you sure? (y/n)\n",
@@ -94,7 +94,8 @@ int main() {
         r = scanf("\n%c", &ans);
         if (ans != 'y')
             break;
-        procedure_find_start_perform_until_interrupt(chosen_dev, "posix_write_zeros", posix_write_zeros_cb, NULL);
+        printf("Performing zeros write test ");
+        procedure_find_start_perform_until_interrupt(chosen_dev, "posix_write_zeros", proc_render_cb, NULL);
         break;
     default:
         printf("Wrong procedure index\n");
@@ -105,27 +106,12 @@ int main() {
     return 0;
 }
 
-static int posix_read_cb(DC_ProcedureCtx *ctx, void *callback_priv) {
+static int proc_render_cb(DC_ProcedureCtx *ctx, void *callback_priv) {
     if (ctx->progress.num == 1) {  // TODO eliminate such hacks
-        printf("Performing read-test of '%s' with block size of %"PRIu64" bytes\n",
+        printf("on device '%s' with block size of %"PRIu64" bytes\n",
                 ctx->dev->dev_fs_name, ctx->blk_size);
     }
-    printf("LBA #%"PRIu64" read %s in %"PRIu64" mcs. Progress %"PRIu64"/%"PRIu64"\n",
-            ctx->current_lba,
-            ctx->report.blk_status == 0 ? "OK" : "FAILED",
-            ctx->report.blk_access_time,
-            ctx->progress.num, ctx->progress.den);
-    fflush(stdout);
-    return 0;
-}
-
-static int posix_write_zeros_cb(DC_ProcedureCtx *ctx, void *callback_priv) {
-    // TODO eliminate duplication
-    if (ctx->progress.num == 1) {  // TODO eliminate such hacks
-        printf("Performing write-test of '%s' with block size of %"PRIu64" bytes\n",
-                ctx->dev->dev_fs_name, ctx->blk_size);
-    }
-    printf("LBA #%"PRIu64" wrote %s in %"PRIu64" mcs. Progress %"PRIu64"/%"PRIu64"\n",
+    printf("LBA #%"PRIu64" %s in %"PRIu64" mcs. Progress %"PRIu64"/%"PRIu64"\n",
             ctx->current_lba,
             ctx->report.blk_status == 0 ? "OK" : "FAILED",
             ctx->report.blk_access_time,
