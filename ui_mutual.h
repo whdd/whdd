@@ -8,7 +8,8 @@ typedef enum {
     CliAction_eProcRead = 2,
     CliAction_eProcWriteZeros = 3,
     CliAction_eProcVerify = 4,
-    CliAction_eMaxValidIndex = 4,
+    CliAction_eProcHdioVerify = 5,
+    CliAction_eMaxValidIndex = 5,
 } CliAction;
 
 static struct action {
@@ -20,9 +21,10 @@ static struct action {
     { CliAction_eProcRead,       "posix_read" },
     { CliAction_eProcWriteZeros, "posix_write_zeros" },
     { CliAction_eProcVerify,     "sgio_ata_verify_ext" },
+    { CliAction_eProcHdioVerify, "hdio_ata_verify" },
     { CliAction_eInvalid,        "" }
 };
 
-static int n_actions = CliAction_eMaxValidIndex + 1;
+static const int n_actions = CliAction_eMaxValidIndex + 1;
 
 #endif  // UI_MUTUAL_H

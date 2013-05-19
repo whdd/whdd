@@ -58,6 +58,7 @@ int main() {
             case CliAction_eProcRead:
             case CliAction_eProcWriteZeros:
             case CliAction_eProcVerify:
+            case CliAction_eProcHdioVerify:
             {
                 DC_Dev *chosen_dev = request_and_get_device();
                 if (!chosen_dev) {

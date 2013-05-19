@@ -65,6 +65,7 @@ int main() {
         case CliAction_eProcRead:
         case CliAction_eProcWriteZeros:
         case CliAction_eProcVerify:
+        case CliAction_eProcHdioVerify:
         {
             char *act_name = actions[chosen_procedure_ind].name;
             DC_Procedure *act = dc_find_procedure(act_name);
@@ -173,12 +174,9 @@ static int menu_choose_device(DC_DevList *devlist) {
 static int menu_choose_procedure(DC_Dev *dev) {
     // TODO fix this awful mess
     char *items[n_actions * 2];
-    items[1] = actions[0].name;
-    items[3] = actions[1].name;
-    items[5] = actions[2].name;
-    items[7] = actions[3].name;
-    items[9] = actions[4].name;
     int i;
+    for (i = 0; i < n_actions; i++)
+        items[2*i+1] = actions[i].name;
     // this fuckin libdialog makes me code crappy
     for (i = 0; i < n_actions; i++)
         items[2*i] = "";

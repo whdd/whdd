@@ -51,6 +51,7 @@ int dc_init(void) {
     PROCEDURE_REGISTER(posix_read);
     PROCEDURE_REGISTER(posix_write_zeros);
     PROCEDURE_REGISTER(sgio_ata_verify_ext);
+    PROCEDURE_REGISTER(hdio_ata_verify);
 #undef PROCEDURE_REGISTER
     return 0;
 }
