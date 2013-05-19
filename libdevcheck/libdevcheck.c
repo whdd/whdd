@@ -50,6 +50,7 @@ int dc_init(void) {
         dc_procedure_register(&x); }
     PROCEDURE_REGISTER(posix_read);
     PROCEDURE_REGISTER(posix_write_zeros);
+    PROCEDURE_REGISTER(sgio_ata_verify_ext);
 #undef PROCEDURE_REGISTER
     return 0;
 }

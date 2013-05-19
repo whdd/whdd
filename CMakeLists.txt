@@ -42,6 +42,9 @@ set(LIBDEVCHECK_SRCS
 	${LIBDEVCHECK_DIR}/utils.c
 	${LIBDEVCHECK_DIR}/posix_write_zeros.c
 	${LIBDEVCHECK_DIR}/log.c
+	${LIBDEVCHECK_DIR}/sgio_ata_verify_ext.c
+	${LIBDEVCHECK_DIR}/ata.c
+	${LIBDEVCHECK_DIR}/scsi.c
 )
 
 include_directories(
