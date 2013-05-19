@@ -12,6 +12,14 @@ typedef struct scsi_command {
     uint8_t sense_buf[32];  // Output diagnostic info from device
 } ScsiCommand;
 
+typedef struct scsi_ata_return_descriptor {
+    uint8_t descriptor[14];
+    uint8_t error;
+    uint64_t lba;
+} ScsiAtaReturnDescriptor;
+
 void prepare_scsi_command_from_ata(ScsiCommand *scsi_cmd, AtaCommand *ata_cmd);
+
+void fill_scsi_ata_return_descriptor(ScsiAtaReturnDescriptor *scsi_ata_ret, ScsiCommand *scsi_cmd);
 
 #endif  // SCSI_H

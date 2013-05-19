@@ -1,4 +1,5 @@
 #include <string.h>
+#include <assert.h>
 
 #include "scsi.h"
 
@@ -34,4 +35,17 @@ void prepare_scsi_command_from_ata(ScsiCommand *scsi_cmd, AtaCommand *ata_cmd) {
     scsi_cmd->scsi_cmd[12] = ata_cmd->task.io_ports[5];
     scsi_cmd->scsi_cmd[13] = ata_cmd->task.io_ports[6];  // device
     scsi_cmd->scsi_cmd[14] = ata_cmd->task.io_ports[7];  // command
+}
+
+void fill_scsi_ata_return_descriptor(ScsiAtaReturnDescriptor *scsi_ata_ret, ScsiCommand *scsi_cmd) {
+    uint8_t *descr = &scsi_cmd->sense_buf[8];
+    memcpy(scsi_ata_ret->descriptor, descr, sizeof(scsi_ata_ret->descriptor));
+    scsi_ata_ret->error = descr[3];
+    scsi_ata_ret->lba  = 0;
+    scsi_ata_ret->lba |= (uint64_t)descr[7];
+    scsi_ata_ret->lba |= (uint64_t)descr[9]  <<  8;
+    scsi_ata_ret->lba |= (uint64_t)descr[11] << 16;
+    scsi_ata_ret->lba |= (uint64_t)descr[6]  << 24;
+    scsi_ata_ret->lba |= (uint64_t)descr[8]  << 32;
+    scsi_ata_ret->lba |= (uint64_t)descr[10] << 40;
 }

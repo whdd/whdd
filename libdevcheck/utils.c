@@ -5,9 +5,14 @@
 #include <assert.h>
 #include <errno.h>
 #include <signal.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
 
 #include "utils.h"
 #include "log.h"
+#include "scsi.h"
 
 char *cmd_output(char *command_line) {
     int r;
@@ -156,4 +161,22 @@ int procedure_perform_until_interrupt(DC_ProcedureCtx *actctx,
 fail:
     dc_procedure_close(actctx);
     return 1;
+}
+
+int64_t dc_dev_get_native_capacity(char *dev_fs_path) {
+    int ioctl_ret;
+    int fd = open(dev_fs_path, O_RDWR);
+    if (fd == -1)
+        return -1;
+    AtaCommand ata_command;
+    prepare_ata_command(&ata_command, WIN_READ_NATIVE_MAX_EXT /* 27h */, 0, 0);
+    ScsiCommand scsi_command;
+    prepare_scsi_command_from_ata(&scsi_command, &ata_command);
+    ioctl_ret = ioctl(fd, SG_IO, &scsi_command);
+    close(fd);
+    if (ioctl_ret)
+        return -1;
+    ScsiAtaReturnDescriptor scsi_ata_ret;
+    fill_scsi_ata_return_descriptor(&scsi_ata_ret, &scsi_command);
+    return (scsi_ata_ret.lba + 1) * 512;
 }

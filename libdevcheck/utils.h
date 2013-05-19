@@ -27,4 +27,6 @@ char *commaprint(uint64_t n, char *retbuf, size_t bufsize);
 int procedure_perform_until_interrupt(DC_ProcedureCtx *actctx,
         ProcedureDetachedLoopCB callback, void *callback_priv);
 
+int64_t dc_dev_get_native_capacity(char *dev_fs_path);
+
 #endif // LIBDEVCHECK_UTILS_H
