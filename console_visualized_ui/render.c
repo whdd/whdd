@@ -63,28 +63,15 @@ void blk_rep_write_finalize(render_priv_t *this, blk_report_t *rep) {
     //fprintf(stderr, "mark %p with seqno %"PRIu64", go to next\n", rep, rep->seqno);
 }
 
-static blk_report_t *blk_rep_get_nth_unread(render_priv_t *this, int n) {
+static blk_report_t *blk_rep_get_unread(render_priv_t *this) {
     blk_report_t *rep = &this->reports[
-        (this->next_report_seqno_read + n) % (sizeof(this->reports) / sizeof(this->reports[0]))
+        this->next_report_seqno_read % (sizeof(this->reports) / sizeof(this->reports[0]))
         ];
     return rep;
 }
 
-static int blk_rep_is_n_avail(render_priv_t *this, int n) {
-    blk_report_t *nth_ahead = blk_rep_get_nth_unread(this, n);
-    //fprintf(stderr, "checking if %p (%dth ahead) finalized as %"PRIu64"\n",
-    //        nth_ahead, n, this->next_report_seqno_read + n);
-    //fprintf(stderr, "its seqno is %"PRIu64"\n", nth_ahead->seqno);
-    if (nth_ahead->seqno == this->next_report_seqno_read + n)
-        return 1;
-    else
-        return 0;
-}
-
 static blk_report_t *blk_rep_read(render_priv_t *this) {
-    if ( ! blk_rep_is_n_avail(this, 1))
-        return NULL;
-    blk_report_t *rep = blk_rep_get_nth_unread(this, 1);
+    blk_report_t *rep = blk_rep_get_unread(this);
     this->next_report_seqno_read++;
     return rep;
 }
@@ -110,7 +97,7 @@ static void *render_thread_proc(void *arg) {
     // TODO block signals in this thread
     while (!this->order_hangup) {
         render_queued(this);
-        usleep(20000);  // Nearly 50 Hz, nice framerate for action movie
+        usleep(40000);  // 25 Hz should be nice
     }
     render_queued(this);
     return NULL;
