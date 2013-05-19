@@ -3,16 +3,16 @@
 #include <errno.h>
 #include <assert.h>
 #include "utils.h"
-#include "action.h"
+#include "procedure.h"
 
-int dc_action_register(DC_Action *action) {
-    action->next = dc_ctx_global->action_list;
-    dc_ctx_global->action_list = action;
+int dc_procedure_register(DC_Procedure *procedure) {
+    procedure->next = dc_ctx_global->procedure_list;
+    dc_ctx_global->procedure_list = procedure;
     return 0;
 }
 
-DC_Action *dc_find_action(char *name) {
-    DC_Action *iter = dc_ctx_global->action_list;
+DC_Procedure *dc_find_procedure(char *name) {
+    DC_Procedure *iter = dc_ctx_global->procedure_list;
     while (iter) {
         if (!strcmp(iter->name, name))
             break;
@@ -21,19 +21,19 @@ DC_Action *dc_find_action(char *name) {
     return iter;
 }
 
-int dc_action_open(DC_Action *action, DC_Dev *dev, DC_ActionCtx **ctx_arg) {
-    DC_ActionCtx *ctx = calloc(1, sizeof(*ctx));
+int dc_procedure_open(DC_Procedure *procedure, DC_Dev *dev, DC_ProcedureCtx **ctx_arg) {
+    DC_ProcedureCtx *ctx = calloc(1, sizeof(*ctx));
     if (!ctx)
         goto fail_ctx;
 
-    ctx->priv = calloc(1, action->priv_data_size);
+    ctx->priv = calloc(1, procedure->priv_data_size);
     if (!ctx->priv)
         goto fail_priv;
 
     ctx->dev = dev;
-    ctx->action = action;
+    ctx->procedure = procedure;
     *ctx_arg = ctx;
-    return action->open(ctx);
+    return procedure->open(ctx);
 
 fail_priv:
     free(ctx);
@@ -41,14 +41,14 @@ fail_ctx:
     return 1;
 }
 
-int dc_action_perform(DC_ActionCtx *ctx) {
+int dc_procedure_perform(DC_ProcedureCtx *ctx) {
     int r;
     struct timespec pre, post;
 
     r = clock_gettime(DC_BEST_CLOCK, &pre);
     assert(!r);
     errno = 0;
-    r = ctx->action->perform(ctx);
+    r = ctx->procedure->perform(ctx);
     ctx->report.blk_access_errno = errno;
     r = clock_gettime(DC_BEST_CLOCK, &post);
     assert(!r);
@@ -58,13 +58,13 @@ int dc_action_perform(DC_ActionCtx *ctx) {
     return r;
 }
 
-void dc_action_close(DC_ActionCtx *ctx) {
-    ctx->action->close(ctx);
+void dc_procedure_close(DC_ProcedureCtx *ctx) {
+    ctx->procedure->close(ctx);
     free(ctx->priv);
     free(ctx);
 }
 
-int dc_action_perform_loop(DC_ActionCtx *ctx, ActionDetachedLoopCB callback, void *callback_priv) {
+int dc_procedure_perform_loop(DC_ProcedureCtx *ctx, ProcedureDetachedLoopCB callback, void *callback_priv) {
     int r;
     int ret = 0;
     int perform_ret;
@@ -72,7 +72,7 @@ int dc_action_perform_loop(DC_ActionCtx *ctx, ActionDetachedLoopCB callback, voi
         if (ctx->performs_total && (ctx->performs_executed >= ctx->performs_total))
             break;
 
-        perform_ret = dc_action_perform(ctx);
+        perform_ret = dc_procedure_perform(ctx);
         r = callback(ctx, callback_priv);
         if (perform_ret) {
             ret = perform_ret;
@@ -87,18 +87,18 @@ int dc_action_perform_loop(DC_ActionCtx *ctx, ActionDetachedLoopCB callback, voi
     return ret;
 }
 
-int dc_action_perform_loop_detached(DC_ActionCtx *ctx, ActionDetachedLoopCB callback,
+int dc_procedure_perform_loop_detached(DC_ProcedureCtx *ctx, ProcedureDetachedLoopCB callback,
         void *callback_priv, pthread_t *tid
         ) {
     struct args_pack {
-        DC_ActionCtx *ctx;
-        ActionDetachedLoopCB callback;
+        DC_ProcedureCtx *ctx;
+        ProcedureDetachedLoopCB callback;
         void *callback_priv;
     };
     void *thread_proc(void *packed_args) {
         struct args_pack *args = packed_args;
         dc_raise_thread_prio();
-        dc_action_perform_loop(args->ctx, args->callback, args->callback_priv);
+        dc_procedure_perform_loop(args->ctx, args->callback, args->callback_priv);
         free(args);
         return NULL;
     }

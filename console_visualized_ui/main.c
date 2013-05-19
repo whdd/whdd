@@ -12,7 +12,7 @@
 #include <dialog.h>
 #include "libdevcheck.h"
 #include "device.h"
-#include "action.h"
+#include "procedure.h"
 #include "vis.h"
 #include "ncurses_convenience.h"
 #include "dialog_convenience.h"
@@ -27,14 +27,14 @@
 static int global_init(void);
 static void global_fini(void);
 static int menu_choose_device(DC_DevList *devlist);
-static int menu_choose_action(DC_Dev *dev);
+static int menu_choose_procedure(DC_Dev *dev);
 static void show_smart_attrs(DC_Dev *dev);
 static int render_test_read(DC_Dev *dev);
 static int render_test_posix_write_zeros(DC_Dev *dev);
 
-static int action_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name,
-                ActionDetachedLoopCB callback, void *callback_priv, int *interrupted);
-static int posix_read_cb(DC_ActionCtx *ctx, void *callback_priv);
+static int procedure_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name,
+                ProcedureDetachedLoopCB callback, void *callback_priv, int *interrupted);
+static int posix_read_cb(DC_ProcedureCtx *ctx, void *callback_priv);
 static char *commaprint(uint64_t n, char *retbuf, size_t bufsize);
 void log_cb(enum DC_LogLevel level, const char* fmt, va_list vl);
 
@@ -61,13 +61,13 @@ int main() {
             printw("No device with index %d\n", chosen_dev_ind);
             return 1;
         }
-        // draw actions menu
-        int chosen_action_ind;
-        chosen_action_ind = menu_choose_action(chosen_dev);
-        if (chosen_action_ind < 0)
+        // draw procedures menu
+        int chosen_procedure_ind;
+        chosen_procedure_ind = menu_choose_procedure(chosen_dev);
+        if (chosen_procedure_ind < 0)
             break;
 
-        switch (chosen_action_ind) {
+        switch (chosen_procedure_ind) {
         case ACT_EXIT:
             return 0;
         case ACT_ATTRS:
@@ -80,7 +80,7 @@ int main() {
             render_test_posix_write_zeros(chosen_dev);
             break;
         default:
-            dialog_msgbox("Error", "Wrong action index", 0, 0, 1);
+            dialog_msgbox("Error", "Wrong procedure index", 0, 0, 1);
             continue;
         }
     } // while(1)
@@ -160,7 +160,7 @@ static int menu_choose_device(DC_DevList *devlist) {
     return chosen_dev_ind;
 }
 
-static int menu_choose_action(DC_Dev *dev) {
+static int menu_choose_procedure(DC_Dev *dev) {
     char *items[4 * 2];
     items[1] = strdup("Exit");
     items[3] = strdup("Show SMART attributes");
@@ -172,10 +172,10 @@ static int menu_choose_action(DC_Dev *dev) {
         items[2*i] = strdup("");
 
     clear_body();
-    int chosen_action_ind = my_dialog_menu("Choose action", "", 0, 0, 4 * 3, 4, items);
+    int chosen_procedure_ind = my_dialog_menu("Choose procedure", "", 0, 0, 4 * 3, 4, items);
     for (i = 0; i < 8; i++)
         free(items[i]);
-    return chosen_action_ind;
+    return chosen_procedure_ind;
 }
 
 static void show_smart_attrs(DC_Dev *dev) {
@@ -435,7 +435,7 @@ static int render_test_read(DC_Dev *dev) {
     r = rwtest_render_thread_start(windows);
     if (r)
         return r; // FIXME leak
-    r = action_find_start_perform_until_interrupt(dev, "posix_read", posix_read_cb, (void*)windows, &interrupted);
+    r = procedure_find_start_perform_until_interrupt(dev, "posix_read", posix_read_cb, (void*)windows, &interrupted);
     if (r)
         return r;
     rwtest_render_thread_join(windows);
@@ -478,7 +478,7 @@ static int render_test_posix_write_zeros(DC_Dev *dev) {
     r = rwtest_render_thread_start(windows);
     if (r)
         return r; // FIXME leak
-    r = action_find_start_perform_until_interrupt(dev, "posix_write_zeros", posix_read_cb, (void*)windows, &interrupted);
+    r = procedure_find_start_perform_until_interrupt(dev, "posix_write_zeros", posix_read_cb, (void*)windows, &interrupted);
     if (r)
         return r;
     rwtest_render_thread_join(windows);
@@ -494,7 +494,7 @@ static int render_test_posix_write_zeros(DC_Dev *dev) {
     return 0;
 }
 
-static int posix_read_cb(DC_ActionCtx *ctx, void *callback_priv) {
+static int posix_read_cb(DC_ProcedureCtx *ctx, void *callback_priv) {
     int r;
     rwtest_render_priv_t *priv = callback_priv;
 
@@ -538,20 +538,20 @@ static int posix_read_cb(DC_ActionCtx *ctx, void *callback_priv) {
     return 0;
 }
 
-static int action_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name,
-        ActionDetachedLoopCB callback, void *callback_priv, int *interrupted
+static int procedure_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name,
+        ProcedureDetachedLoopCB callback, void *callback_priv, int *interrupted
         ) {
     int r;
     siginfo_t siginfo;
     sigset_t set;
     pthread_t tid;
-    DC_Action *act = dc_find_action(act_name);
+    DC_Procedure *act = dc_find_procedure(act_name);
     assert(act);
-    DC_ActionCtx *actctx;
+    DC_ProcedureCtx *actctx;
     *interrupted = 0;
-    r = dc_action_open(act, dev, &actctx);
+    r = dc_procedure_open(act, dev, &actctx);
     if (r) {
-        dialog_msgbox("Error", "Action init fail. Please check privileges, possibly switch to root.", 0, 0, 1);
+        dialog_msgbox("Error", "Procedure init fail. Please check privileges, possibly switch to root.", 0, 0, 1);
         return 1;
     }
 
@@ -566,9 +566,9 @@ static int action_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name
         goto fail;
     }
 
-    r = dc_action_perform_loop_detached(actctx, callback, callback_priv, &tid);
+    r = dc_procedure_perform_loop_detached(actctx, callback, callback_priv, &tid);
     if (r) {
-        printw("dc_action_perform_loop_detached fail\n");
+        printw("dc_procedure_perform_loop_detached fail\n");
         goto fail;
     }
 
@@ -597,11 +597,11 @@ static int action_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name
         goto fail;
     }
 
-    dc_action_close(actctx);
+    dc_procedure_close(actctx);
     return 0;
 
 fail:
-    dc_action_close(actctx);
+    dc_procedure_close(actctx);
     return 1;
 }
 

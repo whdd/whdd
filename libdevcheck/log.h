@@ -6,7 +6,7 @@
 enum DC_LogLevel {
     DC_LOG_QUIET = -1,
     DC_LOG_PANIC = 0, // going to crash
-    DC_LOG_FATAL, // cannot proceed current action
+    DC_LOG_FATAL, // cannot proceed current procedure
     DC_LOG_ERROR, // sth went wrong, result will not be perfect, but it will be given
     DC_LOG_WARNING, // sth may or may not be wrong
     DC_LOG_INFO, // procedure reports interesting for end user

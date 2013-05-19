@@ -12,7 +12,7 @@
 #include <errno.h>
 #include <assert.h>
 
-#include "action.h"
+#include "procedure.h"
 
 struct posix_write_zeros_priv {
     int fd;
@@ -21,7 +21,7 @@ struct posix_write_zeros_priv {
 typedef struct posix_write_zeros_priv PosixWriteZerosPriv;
 
 #define BLK_SIZE (256 * 512) // FIXME hardcode
-static int Open(DC_ActionCtx *ctx) {
+static int Open(DC_ProcedureCtx *ctx) {
     int r;
     PosixWriteZerosPriv *priv = ctx->priv;
     ctx->blk_size = BLK_SIZE;
@@ -51,7 +51,7 @@ fail_buf:
     return 1;
 }
 
-static int Perform(DC_ActionCtx *ctx) {
+static int Perform(DC_ProcedureCtx *ctx) {
     ssize_t write_ret;
     PosixWriteZerosPriv *priv = ctx->priv;
     write_ret = write(priv->fd, priv->buf, ctx->blk_size);
@@ -60,7 +60,7 @@ static int Perform(DC_ActionCtx *ctx) {
         int errno_store;
         errno_store = errno;
         lseek(priv->fd, ctx->blk_size * ctx->blk_index, SEEK_SET);
-        errno = errno_store; // dc_action_perform() stores errno value to context
+        errno = errno_store; // dc_procedure_perform() stores errno value to context
     }
     /* trick from hdparm */
     /* access all sectors of buf to ensure the read fully completed */
@@ -70,13 +70,13 @@ static int Perform(DC_ActionCtx *ctx) {
     return 0;
 }
 
-static void Close(DC_ActionCtx *ctx) {
+static void Close(DC_ProcedureCtx *ctx) {
     PosixWriteZerosPriv *priv = ctx->priv;
     free(priv->buf);
     close(priv->fd);
 }
 
-DC_Action posix_write_zeros = {
+DC_Procedure posix_write_zeros = {
     .name = "posix_write_zeros",
     .open = Open,
     .perform = Perform,

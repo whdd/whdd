@@ -6,12 +6,12 @@
 #include <errno.h>
 #include "libdevcheck.h"
 #include "device.h"
-#include "action.h"
+#include "procedure.h"
 
-static int action_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name,
-        ActionDetachedLoopCB callback, void *callback_priv);
-static int posix_read_cb(DC_ActionCtx *ctx, void *callback_priv);
-static int posix_write_zeros_cb(DC_ActionCtx *ctx, void *callback_priv);
+static int procedure_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name,
+        ProcedureDetachedLoopCB callback, void *callback_priv);
+static int posix_read_cb(DC_ProcedureCtx *ctx, void *callback_priv);
+static int posix_write_zeros_cb(DC_ProcedureCtx *ctx, void *callback_priv);
 
 int main() {
     printf(WHDD_ABOUT);
@@ -27,21 +27,21 @@ int main() {
     if (devs_num == 0) { printf("No devices found\n"); return 0; }
 
     while (1) {
-    // print actions list
-    printf("\nChoose action #:\n"
+    // print procedures list
+    printf("\nChoose procedure #:\n"
             "0) Exit\n"
             "1) Show SMART attributes\n"
             "2) Perform read test\n"
             "3) Perform 'write zeros' test\n"
           );
-    int chosen_action_ind;
-    r = scanf("%d", &chosen_action_ind);
+    int chosen_procedure_ind;
+    r = scanf("%d", &chosen_procedure_ind);
     if (r != 1) {
-        printf("Wrong input for action index\n");
+        printf("Wrong input for procedure index\n");
         return 1;
     }
-    if (chosen_action_ind == 0) {
-        printf("Exiting due to chosen action\n");
+    if (chosen_procedure_ind == 0) {
+        printf("Exiting due to chosen procedure\n");
         return 0;
     }
 
@@ -74,7 +74,7 @@ int main() {
         return 1;
     }
 
-    switch (chosen_action_ind) {
+    switch (chosen_procedure_ind) {
     case 1:
         ;
         char *text;
@@ -84,7 +84,7 @@ int main() {
         free(text);
         break;
     case 2:
-        action_find_start_perform_until_interrupt(chosen_dev, "posix_read", posix_read_cb, NULL);
+        procedure_find_start_perform_until_interrupt(chosen_dev, "posix_read", posix_read_cb, NULL);
         break;
     case 3:
         printf("This will destroy all data on device %s (%s). Are you sure? (y/n)\n",
@@ -93,10 +93,10 @@ int main() {
         r = scanf("\n%c", &ans);
         if (ans != 'y')
             break;
-        action_find_start_perform_until_interrupt(chosen_dev, "posix_write_zeros", posix_write_zeros_cb, NULL);
+        procedure_find_start_perform_until_interrupt(chosen_dev, "posix_write_zeros", posix_write_zeros_cb, NULL);
         break;
     default:
-        printf("Wrong action index\n");
+        printf("Wrong procedure index\n");
         break;
     }
     } // while(1)
@@ -104,7 +104,7 @@ int main() {
     return 0;
 }
 
-static int posix_read_cb(DC_ActionCtx *ctx, void *callback_priv) {
+static int posix_read_cb(DC_ProcedureCtx *ctx, void *callback_priv) {
     if (ctx->performs_executed == 1) {
         printf("Performing read-test of '%s' with block size of %"PRIu64" bytes\n",
                 ctx->dev->dev_fs_name, ctx->blk_size);
@@ -116,7 +116,7 @@ static int posix_read_cb(DC_ActionCtx *ctx, void *callback_priv) {
     return 0;
 }
 
-static int posix_write_zeros_cb(DC_ActionCtx *ctx, void *callback_priv) {
+static int posix_write_zeros_cb(DC_ProcedureCtx *ctx, void *callback_priv) {
     if (ctx->performs_executed == 1) {
         printf("Performing 'write zeros' test of '%s' with block size of %"PRIu64" bytes\n",
                 ctx->dev->dev_fs_name, ctx->blk_size);
@@ -128,19 +128,19 @@ static int posix_write_zeros_cb(DC_ActionCtx *ctx, void *callback_priv) {
     return 0;
 }
 
-static int action_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name,
-        ActionDetachedLoopCB callback, void *callback_priv
+static int procedure_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name,
+        ProcedureDetachedLoopCB callback, void *callback_priv
         ) {
     int r;
     siginfo_t siginfo;
     sigset_t set;
     pthread_t tid;
-    DC_Action *act = dc_find_action(act_name);
+    DC_Procedure *act = dc_find_procedure(act_name);
     assert(act);
-    DC_ActionCtx *actctx;
-    r = dc_action_open(act, dev, &actctx);
+    DC_ProcedureCtx *actctx;
+    r = dc_procedure_open(act, dev, &actctx);
     if (r) {
-        printf("Action init fail\n");
+        printf("Procedure init fail\n");
         return 1;
     }
 
@@ -155,9 +155,9 @@ static int action_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name
         goto fail;
     }
 
-    r = dc_action_perform_loop_detached(actctx, callback, callback_priv, &tid);
+    r = dc_procedure_perform_loop_detached(actctx, callback, callback_priv, &tid);
     if (r) {
-        printf("dc_action_perform_loop_detached fail\n");
+        printf("dc_procedure_perform_loop_detached fail\n");
         goto fail;
     }
 
@@ -185,11 +185,11 @@ static int action_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name
         goto fail;
     }
 
-    dc_action_close(actctx);
+    dc_procedure_close(actctx);
     return 0;
 
 fail:
-    dc_action_close(actctx);
+    dc_procedure_close(actctx);
     return 1;
 }
 

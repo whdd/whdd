@@ -7,7 +7,7 @@
 #include <sched.h>
 
 #include "libdevcheck.h"
-#include "action.h"
+#include "procedure.h"
 #include "config.h"
 
 clockid_t DC_BEST_CLOCK;
@@ -45,12 +45,12 @@ int dc_init(void) {
         dc_log(DC_LOG_WARNING, "sched_setscheduler fail, ret %d\n", r);
     }
 
-#define ACTION_REGISTER(x) { \
-        extern DC_Action x; \
-        dc_action_register(&x); }
-    ACTION_REGISTER(posix_read);
-    ACTION_REGISTER(posix_write_zeros);
-#undef ACTION_REGISTER
+#define PROCEDURE_REGISTER(x) { \
+        extern DC_Procedure x; \
+        dc_procedure_register(&x); }
+    PROCEDURE_REGISTER(posix_read);
+    PROCEDURE_REGISTER(posix_write_zeros);
+#undef PROCEDURE_REGISTER
     return 0;
 }
 

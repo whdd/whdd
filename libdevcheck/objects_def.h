@@ -9,9 +9,9 @@ typedef struct dc_dev_list DC_DevList;
 struct dc_dev;
 typedef struct dc_dev DC_Dev;
 
-struct dc_action;
-typedef struct dc_action DC_Action;
-struct dc_action_ctx;
-typedef struct dc_action_ctx DC_ActionCtx;
+struct dc_procedure;
+typedef struct dc_procedure DC_Procedure;
+struct dc_procedure_ctx;
+typedef struct dc_procedure_ctx DC_ProcedureCtx;
 
 #endif // OBJECTS_DEF_H
