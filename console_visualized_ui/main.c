@@ -30,11 +30,11 @@ static int menu_choose_device(DC_DevList *devlist);
 static int menu_choose_action(DC_Dev *dev);
 static void show_smart_attrs(DC_Dev *dev);
 static int render_test_read(DC_Dev *dev);
-static int render_test_zerofill(DC_Dev *dev);
+static int render_test_posix_write_zeros(DC_Dev *dev);
 
 static int action_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name,
                 ActionDetachedLoopCB callback, void *callback_priv, int *interrupted);
-static int readtest_cb(DC_ActionCtx *ctx, void *callback_priv);
+static int posix_read_cb(DC_ActionCtx *ctx, void *callback_priv);
 static char *commaprint(uint64_t n, char *retbuf, size_t bufsize);
 void log_cb(enum DC_LogLevel level, const char* fmt, va_list vl);
 
@@ -77,7 +77,7 @@ int main() {
             render_test_read(chosen_dev);
             break;
         case ACT_ZEROFILL:
-            render_test_zerofill(chosen_dev);
+            render_test_posix_write_zeros(chosen_dev);
             break;
         default:
             dialog_msgbox("Error", "Wrong action index", 0, 0, 1);
@@ -435,7 +435,7 @@ static int render_test_read(DC_Dev *dev) {
     r = rwtest_render_thread_start(windows);
     if (r)
         return r; // FIXME leak
-    r = action_find_start_perform_until_interrupt(dev, "readtest", readtest_cb, (void*)windows, &interrupted);
+    r = action_find_start_perform_until_interrupt(dev, "posix_read", posix_read_cb, (void*)windows, &interrupted);
     if (r)
         return r;
     rwtest_render_thread_join(windows);
@@ -451,7 +451,7 @@ static int render_test_read(DC_Dev *dev) {
     return 0;
 }
 
-static int render_test_zerofill(DC_Dev *dev) {
+static int render_test_posix_write_zeros(DC_Dev *dev) {
     int r;
     int interrupted;
     char *ask;
@@ -478,7 +478,7 @@ static int render_test_zerofill(DC_Dev *dev) {
     r = rwtest_render_thread_start(windows);
     if (r)
         return r; // FIXME leak
-    r = action_find_start_perform_until_interrupt(dev, "zerofill", readtest_cb, (void*)windows, &interrupted);
+    r = action_find_start_perform_until_interrupt(dev, "posix_write_zeros", posix_read_cb, (void*)windows, &interrupted);
     if (r)
         return r;
     rwtest_render_thread_join(windows);
@@ -494,7 +494,7 @@ static int render_test_zerofill(DC_Dev *dev) {
     return 0;
 }
 
-static int readtest_cb(DC_ActionCtx *ctx, void *callback_priv) {
+static int posix_read_cb(DC_ActionCtx *ctx, void *callback_priv) {
     int r;
     rwtest_render_priv_t *priv = callback_priv;
 

@@ -38,9 +38,9 @@ set(LIBDEVCHECK_SRCS
 	${LIBDEVCHECK_DIR}/action.c
 	${LIBDEVCHECK_DIR}/device.c
 	${LIBDEVCHECK_DIR}/libdevcheck.c
-	${LIBDEVCHECK_DIR}/readtest.c
+	${LIBDEVCHECK_DIR}/posix_read.c
 	${LIBDEVCHECK_DIR}/utils.c
-	${LIBDEVCHECK_DIR}/zerofill.c
+	${LIBDEVCHECK_DIR}/posix_write_zeros.c
 	${LIBDEVCHECK_DIR}/log.c
 )
 

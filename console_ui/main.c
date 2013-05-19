@@ -10,8 +10,8 @@
 
 static int action_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name,
         ActionDetachedLoopCB callback, void *callback_priv);
-static int readtest_cb(DC_ActionCtx *ctx, void *callback_priv);
-static int zerofill_cb(DC_ActionCtx *ctx, void *callback_priv);
+static int posix_read_cb(DC_ActionCtx *ctx, void *callback_priv);
+static int posix_write_zeros_cb(DC_ActionCtx *ctx, void *callback_priv);
 
 int main() {
     printf(WHDD_ABOUT);
@@ -84,7 +84,7 @@ int main() {
         free(text);
         break;
     case 2:
-        action_find_start_perform_until_interrupt(chosen_dev, "readtest", readtest_cb, NULL);
+        action_find_start_perform_until_interrupt(chosen_dev, "posix_read", posix_read_cb, NULL);
         break;
     case 3:
         printf("This will destroy all data on device %s (%s). Are you sure? (y/n)\n",
@@ -93,7 +93,7 @@ int main() {
         r = scanf("\n%c", &ans);
         if (ans != 'y')
             break;
-        action_find_start_perform_until_interrupt(chosen_dev, "zerofill", zerofill_cb, NULL);
+        action_find_start_perform_until_interrupt(chosen_dev, "posix_write_zeros", posix_write_zeros_cb, NULL);
         break;
     default:
         printf("Wrong action index\n");
@@ -104,7 +104,7 @@ int main() {
     return 0;
 }
 
-static int readtest_cb(DC_ActionCtx *ctx, void *callback_priv) {
+static int posix_read_cb(DC_ActionCtx *ctx, void *callback_priv) {
     if (ctx->performs_executed == 1) {
         printf("Performing read-test of '%s' with block size of %"PRIu64" bytes\n",
                 ctx->dev->dev_fs_name, ctx->blk_size);
@@ -116,7 +116,7 @@ static int readtest_cb(DC_ActionCtx *ctx, void *callback_priv) {
     return 0;
 }
 
-static int zerofill_cb(DC_ActionCtx *ctx, void *callback_priv) {
+static int posix_write_zeros_cb(DC_ActionCtx *ctx, void *callback_priv) {
     if (ctx->performs_executed == 1) {
         printf("Performing 'write zeros' test of '%s' with block size of %"PRIu64" bytes\n",
                 ctx->dev->dev_fs_name, ctx->blk_size);

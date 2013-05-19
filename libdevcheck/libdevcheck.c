@@ -48,8 +48,8 @@ int dc_init(void) {
 #define ACTION_REGISTER(x) { \
         extern DC_Action x; \
         dc_action_register(&x); }
-    ACTION_REGISTER(readtest);
-    ACTION_REGISTER(zerofill);
+    ACTION_REGISTER(posix_read);
+    ACTION_REGISTER(posix_write_zeros);
 #undef ACTION_REGISTER
     return 0;
 }
