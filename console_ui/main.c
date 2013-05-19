@@ -79,7 +79,7 @@ int main() {
     case 1:
         ;
         char *text;
-        text = dc_dev_smartctl_text(chosen_dev->dev_path, "-A -i");
+        text = dc_dev_smartctl_text(chosen_dev->dev_path, " -i -s on -A ");
         if (text)
             printf("%s\n", text);
         free(text);
