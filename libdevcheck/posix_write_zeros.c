@@ -20,7 +20,7 @@ struct posix_write_zeros_priv {
 };
 typedef struct posix_write_zeros_priv PosixWriteZerosPriv;
 
-#define BLK_SIZE (128 * 512) // FIXME hardcode
+#define BLK_SIZE (256 * 512) // FIXME hardcode
 static int Open(DC_ActionCtx *ctx) {
     int r;
     PosixWriteZerosPriv *priv = ctx->priv;

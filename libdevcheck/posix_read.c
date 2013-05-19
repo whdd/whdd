@@ -20,7 +20,7 @@ struct read_priv {
 };
 typedef struct read_priv PosixReadPriv;
 
-#define BLK_SIZE (128 * 512) // FIXME hardcode
+#define BLK_SIZE (256 * 512) // FIXME hardcode
 static int Open(DC_ActionCtx *ctx) {
     int r;
     PosixReadPriv *priv = ctx->priv;
