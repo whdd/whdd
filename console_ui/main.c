@@ -8,14 +8,7 @@
 #include "device.h"
 #include "procedure.h"
 #include "utils.h"
-
-typedef enum {
-    CliAction_eInvalid = -1,
-    CliAction_eExit = 0,
-    CliAction_eShowSmart = 1,
-    CliAction_eProcRead = 2,
-    CliAction_eProcWriteZeros = 3,
-} CliAction;
+#include "ui_mutual.h"
 
 static int proc_render_cb(DC_ProcedureCtx *ctx, void *callback_priv);
 CliAction request_and_get_cli_action();
@@ -64,13 +57,14 @@ int main() {
             }
             case CliAction_eProcRead:
             case CliAction_eProcWriteZeros:
+            case CliAction_eProcVerify:
             {
                 DC_Dev *chosen_dev = request_and_get_device();
                 if (!chosen_dev) {
                     printf("Invalid choice\n");
                     break;
                 }
-                char *act_name = action == CliAction_eProcRead ? "posix_read" : "posix_write_zeros";
+                char *act_name = actions[action].name;
                 DC_Procedure *act = dc_find_procedure(act_name);
                 assert(act);
                 printf("Going to perform test %s (%s)\n", act->name, act->long_name);
@@ -115,15 +109,13 @@ static int proc_render_cb(DC_ProcedureCtx *ctx, void *callback_priv) {
 
 CliAction request_and_get_cli_action() {
     // print procedures list
-    printf("\nChoose action #:\n"
-            "0) Exit\n"
-            "1) Show SMART attributes\n"
-            "2) Perform read test\n"
-            "3) Perform 'write zeros' test\n"
-          );
+    printf("\nChoose action #:\n");
+    int i;
+    for (i = 0; i <= CliAction_eMaxValidIndex; i++)
+        printf("%d) %s\n", (int)actions[i].menu_number, actions[i].name);
     int chosen_action_ind;
     int r = scanf("%d", &chosen_action_ind);
-    if (r != 1 || chosen_action_ind < 0 || chosen_action_ind > 3)
+    if (r != 1 || chosen_action_ind < 0 || chosen_action_ind > CliAction_eMaxValidIndex)
         return CliAction_eInvalid;
     return (CliAction)chosen_action_ind;
 }

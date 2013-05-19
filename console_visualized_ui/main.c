@@ -18,11 +18,7 @@
 #include "ncurses_convenience.h"
 #include "dialog_convenience.h"
 #include "render.h"
-
-#define ACT_EXIT 0
-#define ACT_ATTRS 1
-#define ACT_READ 2
-#define ACT_ZEROFILL 3
+#include "ui_mutual.h"
 
 static int global_init(void);
 static void global_fini(void);
@@ -61,15 +57,16 @@ int main() {
             break;
 
         switch (chosen_procedure_ind) {
-        case ACT_EXIT:
+        case CliAction_eExit:
             return 0;
-        case ACT_ATTRS:
+        case CliAction_eShowSmart:
             show_smart_attrs(chosen_dev);
             break;
-        case ACT_READ:
-        case ACT_ZEROFILL:
+        case CliAction_eProcRead:
+        case CliAction_eProcWriteZeros:
+        case CliAction_eProcVerify:
         {
-            char *act_name = chosen_procedure_ind == ACT_READ ? "posix_read" : "posix_write_zeros";
+            char *act_name = actions[chosen_procedure_ind].name;
             DC_Procedure *act = dc_find_procedure(act_name);
             assert(act);
             if (act->flags & DC_PROC_FLAG_DESTRUCTIVE) {
@@ -174,20 +171,20 @@ static int menu_choose_device(DC_DevList *devlist) {
 }
 
 static int menu_choose_procedure(DC_Dev *dev) {
-    char *items[4 * 2];
-    items[1] = strdup("Exit");
-    items[3] = strdup("Show SMART attributes");
-    items[5] = strdup("Perform read test");
-    items[7] = strdup("Perform 'write zeros' test");
+    // TODO fix this awful mess
+    char *items[n_actions * 2];
+    items[1] = actions[0].name;
+    items[3] = actions[1].name;
+    items[5] = actions[2].name;
+    items[7] = actions[3].name;
+    items[9] = actions[4].name;
     int i;
     // this fuckin libdialog makes me code crappy
-    for (i = 0; i < 4; i++)
-        items[2*i] = strdup("");
+    for (i = 0; i < n_actions; i++)
+        items[2*i] = "";
 
     clear_body();
-    int chosen_procedure_ind = my_dialog_menu("Choose procedure", "", 0, 0, 4 * 3, 4, items);
-    for (i = 0; i < 8; i++)
-        free(items[i]);
+    int chosen_procedure_ind = my_dialog_menu("Choose procedure", "", 0, 0, 4 * 3, n_actions, items);
     return chosen_procedure_ind;
 }
 
