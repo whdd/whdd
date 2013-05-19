@@ -106,25 +106,30 @@ int main() {
 }
 
 static int posix_read_cb(DC_ProcedureCtx *ctx, void *callback_priv) {
-    if (ctx->performs_executed == 1) {
+    if (ctx->progress.num == 1) {  // TODO eliminate such hacks
         printf("Performing read-test of '%s' with block size of %"PRIu64" bytes\n",
                 ctx->dev->dev_fs_name, ctx->blk_size);
     }
-    printf("Block #%"PRIu64" (total %"PRIu64") read in %"PRIu64" mcs. Errno %d\n",
-            ctx->blk_index, ctx->blks_total, ctx->report.blk_access_time,
-            ctx->report.blk_access_errno);
+    printf("LBA #%"PRIu64" read %s in %"PRIu64" mcs. Progress %"PRIu64"/%"PRIu64"\n",
+            ctx->current_lba,
+            ctx->report.blk_status == 0 ? "OK" : "FAILED",
+            ctx->report.blk_access_time,
+            ctx->progress.num, ctx->progress.den);
     fflush(stdout);
     return 0;
 }
 
 static int posix_write_zeros_cb(DC_ProcedureCtx *ctx, void *callback_priv) {
-    if (ctx->performs_executed == 1) {
-        printf("Performing 'write zeros' test of '%s' with block size of %"PRIu64" bytes\n",
+    // TODO eliminate duplication
+    if (ctx->progress.num == 1) {  // TODO eliminate such hacks
+        printf("Performing write-test of '%s' with block size of %"PRIu64" bytes\n",
                 ctx->dev->dev_fs_name, ctx->blk_size);
     }
-    printf("Block #%"PRIu64" (total %"PRIu64") written in %"PRIu64" mcs. Errno %d\n",
-            ctx->blk_index, ctx->blks_total, ctx->report.blk_access_time,
-            ctx->report.blk_access_errno);
+    printf("LBA #%"PRIu64" wrote %s in %"PRIu64" mcs. Progress %"PRIu64"/%"PRIu64"\n",
+            ctx->current_lba,
+            ctx->report.blk_status == 0 ? "OK" : "FAILED",
+            ctx->report.blk_access_time,
+            ctx->progress.num, ctx->progress.den);
     fflush(stdout);
     return 0;
 }

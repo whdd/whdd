@@ -17,6 +17,7 @@
 struct posix_write_zeros_priv {
     int fd;
     void *buf;
+    uint64_t blk_index;
 };
 typedef struct posix_write_zeros_priv PosixWriteZerosPriv;
 
@@ -24,11 +25,12 @@ typedef struct posix_write_zeros_priv PosixWriteZerosPriv;
 static int Open(DC_ProcedureCtx *ctx) {
     int r;
     PosixWriteZerosPriv *priv = ctx->priv;
+
+    // Setting context
     ctx->blk_size = BLK_SIZE;
-    ctx->blks_total = ctx->dev->capacity / ctx->blk_size;
+    ctx->progress.den = ctx->dev->capacity / ctx->blk_size;
     if (ctx->dev->capacity % ctx->blk_size)
-        ctx->blks_total++;
-    ctx->performs_total = ctx->blks_total;
+        ctx->progress.den++;
 
     r = posix_memalign(&priv->buf, sysconf(_SC_PAGESIZE), ctx->blk_size);
     if (r)
@@ -54,14 +56,39 @@ fail_buf:
 static int Perform(DC_ProcedureCtx *ctx) {
     ssize_t write_ret;
     PosixWriteZerosPriv *priv = ctx->priv;
+    struct timespec pre, post;
+    int r;
+
+    // Updating context
+    ctx->report.blk_status = DC_BlockStatus_eOk;
+    priv->blk_index++;
+
+    // Timing
+    r = clock_gettime(DC_BEST_CLOCK, &pre);
+    assert(!r);
+
+    // Acting
     write_ret = write(priv->fd, priv->buf, ctx->blk_size);
-    ctx->blk_index++;
+
+    // Error handling
     if (write_ret != ctx->blk_size) {
-        int errno_store;
-        errno_store = errno;
-        lseek(priv->fd, ctx->blk_size * ctx->blk_index, SEEK_SET);
-        errno = errno_store; // dc_procedure_perform() stores errno value to context
+        // fd position is undefined, set it to write to next block
+        lseek(priv->fd, ctx->blk_size * priv->blk_index, SEEK_SET);
+
+        // Updating context
+        ctx->report.blk_status = DC_BlockStatus_eError;
     }
+
+    // Timing
+    r = clock_gettime(DC_BEST_CLOCK, &post);
+    assert(!r);
+
+    // Updating context
+    ctx->progress.num = priv->blk_index;
+    ctx->current_lba = priv->blk_index * ctx->blk_size / 512;
+    ctx->report.blk_access_time = (post.tv_sec - pre.tv_sec) * 1000000 +
+        (post.tv_nsec - pre.tv_nsec) / 1000;
+
     return 0;
 }
 

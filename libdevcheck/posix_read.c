@@ -17,6 +17,7 @@ struct read_priv {
     int fd;
     void *buf;
     int old_readahead;
+    uint64_t blk_index;
 };
 typedef struct read_priv PosixReadPriv;
 
@@ -24,11 +25,12 @@ typedef struct read_priv PosixReadPriv;
 static int Open(DC_ProcedureCtx *ctx) {
     int r;
     PosixReadPriv *priv = ctx->priv;
+
+    // Setting context
     ctx->blk_size = BLK_SIZE;
-    ctx->blks_total = ctx->dev->capacity / ctx->blk_size;
+    ctx->progress.den = ctx->dev->capacity / ctx->blk_size;
     if (ctx->dev->capacity % ctx->blk_size)
-        ctx->blks_total++;
-    ctx->performs_total = ctx->blks_total;
+        ctx->progress.den++;
 
     r = posix_memalign(&priv->buf, sysconf(_SC_PAGESIZE), ctx->blk_size);
     if (r)
@@ -60,22 +62,39 @@ fail_buf:
 static int Perform(DC_ProcedureCtx *ctx) {
     ssize_t read_ret;
     PosixReadPriv *priv = ctx->priv;
+    struct timespec pre, post;
+    int r;
+
+    // Updating context
+    ctx->report.blk_status = DC_BlockStatus_eOk;
+    priv->blk_index++;
+
+    // Timing
+    r = clock_gettime(DC_BEST_CLOCK, &pre);
+    assert(!r);
+
+    // Acting
     read_ret = read(priv->fd, priv->buf, ctx->blk_size);
-    ctx->blk_index++;
+
+    // Error handling
     if (read_ret != ctx->blk_size) {
-        int errno_store;
-        /* Set read position appropriately for the case it somehow reads non-full block
-         *
-         * From "man 2 read":
-         * On error, -1 is returned, and errno is set appropriately. In this case it is
-         * left unspecified whether the file position (if any) changes.
-         *
-         * So we set read position as appropriate
-         */
-        errno_store = errno;
-        lseek(priv->fd, ctx->blk_size * ctx->blk_index, SEEK_SET);
-        errno = errno_store; // dc_procedure_perform() stores errno value to context
+        // Position of fd is undefined. Set fd position to read next block
+        lseek(priv->fd, ctx->blk_size * priv->blk_index, SEEK_SET);
+
+        // Updating context
+        ctx->report.blk_status = DC_BlockStatus_eError;
     }
+
+    // Timing
+    r = clock_gettime(DC_BEST_CLOCK, &post);
+    assert(!r);
+
+    // Updating context
+    ctx->progress.num = priv->blk_index;
+    ctx->current_lba = priv->blk_index * ctx->blk_size / 512;
+    ctx->report.blk_access_time = (post.tv_sec - pre.tv_sec) * 1000000 +
+        (post.tv_nsec - pre.tv_nsec) / 1000;
+
     return 0;
 }
 

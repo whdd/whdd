@@ -22,22 +22,33 @@ struct dc_procedure {
 int dc_procedure_register(DC_Procedure *procedure);
 DC_Procedure *dc_find_procedure(char *name);
 
+typedef struct dc_rational {
+    uint64_t num;  // numerator
+    uint64_t den;  // denominator
+} DC_Rational;
+
+typedef enum {
+    DC_BlockStatus_eOk = 0,
+    DC_BlockStatus_eError,   // Generic error condition
+    DC_BlockStatus_eTimeout,
+    // More to come with details from low-level drive commands
+} DC_BlockStatus;
+
 struct dc_procedure_ctx {
     void* priv; // for procedure private context
     DC_Dev *dev; // device which is operated
     DC_Procedure *procedure;
-    uint64_t blk_size;
-    uint64_t blk_index;
-    uint64_t blks_total;
-    uint64_t performs_executed; // how many times .perform() took place. For callbacks handiness
-    uint64_t performs_total; // how many times .perform() from start to finish has to be done
-    int interrupt; // if 1, then looped processing must stop
-    int finished; // if 1, then looped processing has finished
+    uint64_t blk_size;  // set by procedure on .open()
+    uint64_t current_lba;  // updated by procedure on .perform()
+    DC_Rational progress;  // updated by procedure on .perform()
+    int interrupt; // if set to 1 by frontend, then looped processing must stop
+    // TODO interrupt is now meant for loop, think of interrupting blocking perform operation
+    int finished; // if 1, then looped processing has finished  // TODO eliminate, use pthread_join()
 
     struct dc_test_report {
         uint64_t blk_access_time; // in mcs
-        int blk_access_errno;
-    } report; // report of last perform
+        DC_BlockStatus blk_status;
+    } report; // updated by procedure on .perform()
 };
 
 int dc_procedure_open(DC_Procedure *procedure, DC_Dev *dev, DC_ProcedureCtx **ctx);

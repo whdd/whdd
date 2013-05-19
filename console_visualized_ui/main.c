@@ -190,7 +190,7 @@ static void show_smart_attrs(DC_Dev *dev) {
 
 typedef struct blk_report {
     uint64_t seqno;
-    int access_errno;
+    DC_BlockStatus blk_status;
     unsigned int access_time;
 } blk_report_t;
 
@@ -346,7 +346,7 @@ static void *rwtest_render_thread_proc(void *arg) {
 }
 
 static void rwtest_render_update_vis(rwtest_render_priv_t *this, blk_report_t *rep) {
-    if (rep->access_errno)
+    if (rep->blk_status)
     {
         print_vis(this->vis, error_vis);
         this->access_time_stats_accum[6]++;
@@ -499,16 +499,16 @@ static int posix_read_cb(DC_ProcedureCtx *ctx, void *callback_priv) {
     int r;
     rwtest_render_priv_t *priv = callback_priv;
 
-    uint64_t bytes_processed = ctx->performs_executed * ctx->blk_size;
+    uint64_t bytes_processed = ctx->current_lba * 512;
     if (bytes_processed > ctx->dev->capacity)
         bytes_processed = ctx->dev->capacity;
-    priv->cur_lba = bytes_processed / 512;
+    priv->cur_lba = ctx->current_lba;
 
-    if (ctx->performs_executed == 1) {
+    if (ctx->progress.num == 1) {  // TODO fix this hack
         r = clock_gettime(DC_BEST_CLOCK, &priv->start_time);
         assert(!r);
     } else {
-        if ((ctx->performs_executed % 1000) == 0) {
+        if ((ctx->progress.num % 1000) == 0) {
             struct timespec now;
             r = clock_gettime(DC_BEST_CLOCK, &now);
             assert(!r);
@@ -528,12 +528,12 @@ static int posix_read_cb(DC_ProcedureCtx *ctx, void *callback_priv) {
     // enqueue block report
     blk_report_t *rep = blk_rep_get_next_for_write(priv);
     assert(rep);
-    rep->access_errno = ctx->report.blk_access_errno;
+    rep->blk_status = ctx->report.blk_status;
     rep->access_time = ctx->report.blk_access_time;
     blk_rep_write_finalize(priv, rep);
     //fprintf(stderr, "finalized %"PRIu64"\n", priv->next_report_seqno_write-1);
 
-    if ((ctx->performs_executed % REPORTS_BURST) == 0)
+    if ((ctx->progress.num % REPORTS_BURST) == 0)
         sched_yield();
 
     return 0;

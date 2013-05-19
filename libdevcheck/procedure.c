@@ -41,23 +41,6 @@ fail_ctx:
     return 1;
 }
 
-int dc_procedure_perform(DC_ProcedureCtx *ctx) {
-    int r;
-    struct timespec pre, post;
-
-    r = clock_gettime(DC_BEST_CLOCK, &pre);
-    assert(!r);
-    errno = 0;
-    r = ctx->procedure->perform(ctx);
-    ctx->report.blk_access_errno = errno;
-    r = clock_gettime(DC_BEST_CLOCK, &post);
-    assert(!r);
-    ctx->report.blk_access_time = (post.tv_sec - pre.tv_sec) * 1000000 +
-        (post.tv_nsec - pre.tv_nsec) / 1000;
-    ctx->performs_executed++;
-    return r;
-}
-
 void dc_procedure_close(DC_ProcedureCtx *ctx) {
     ctx->procedure->close(ctx);
     free(ctx->priv);
@@ -69,10 +52,9 @@ int dc_procedure_perform_loop(DC_ProcedureCtx *ctx, ProcedureDetachedLoopCB call
     int ret = 0;
     int perform_ret;
     while (!ctx->interrupt) {
-        if (ctx->performs_total && (ctx->performs_executed >= ctx->performs_total))
+        if (ctx->progress.num >= ctx->progress.den)
             break;
-
-        perform_ret = dc_procedure_perform(ctx);
+        perform_ret = ctx->procedure->perform(ctx);
         r = callback(ctx, callback_priv);
         if (perform_ret) {
             ret = perform_ret;
