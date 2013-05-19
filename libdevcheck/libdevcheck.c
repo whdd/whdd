@@ -9,6 +9,7 @@
 #include "libdevcheck.h"
 #include "procedure.h"
 #include "config.h"
+#include "utils.h"
 
 clockid_t DC_BEST_CLOCK;
 
@@ -36,14 +37,13 @@ int dc_init(void) {
 #else
     DC_BEST_CLOCK = CLOCK_MONOTONIC;
 #endif
-
-    struct sched_param sched_param;
-    // prio = max - 1, to leave max prio for performer thread
-    sched_param.sched_priority = sched_get_priority_min(SCHED_FIFO);
-    r = sched_setscheduler(0, SCHED_FIFO, &sched_param);
+    r = clock_gettime(DC_BEST_CLOCK, &dummy);
     if (r) {
-        dc_log(DC_LOG_WARNING, "sched_setscheduler fail, ret %d\n", r);
+        dc_log(DC_LOG_ERROR, "Monotonic POSIX clock unavailable\n");
+        return 1;
     }
+
+    dc_realtime_scheduling_enable_with_prio(0);
 
 #define PROCEDURE_REGISTER(x) { \
         extern DC_Procedure x; \

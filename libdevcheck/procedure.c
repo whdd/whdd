@@ -97,7 +97,7 @@ int dc_procedure_perform_loop_detached(DC_ProcedureCtx *ctx, ProcedureDetachedLo
     };
     void *thread_proc(void *packed_args) {
         struct args_pack *args = packed_args;
-        dc_raise_thread_prio();
+        dc_realtime_scheduling_enable_with_prio(1);
         dc_procedure_perform_loop(args->ctx, args->callback, args->callback_priv);
         free(args);
         return NULL;

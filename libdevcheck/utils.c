@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <errno.h>
 
 #include "utils.h"
 #include "log.h"
@@ -57,12 +58,15 @@ fail_buf_form:
     return NULL;
 }
 
-void dc_raise_thread_prio(void) {
+int dc_realtime_scheduling_enable_with_prio(int prio) {
     int r;
     struct sched_param sched_param;
-    sched_param.sched_priority = sched_get_priority_max(SCHED_FIFO);
+    if (prio)
+        sched_param.sched_priority = sched_get_priority_max(SCHED_FIFO);
+    else
+        sched_param.sched_priority = sched_get_priority_min(SCHED_FIFO);
     r = pthread_setschedparam(pthread_self(), SCHED_FIFO, &sched_param);
-    if (r) {
-        dc_log(DC_LOG_ERROR, "pthread_setschedparam fail, ret %d\n", r);
-    }
+    if (r)
+        dc_log(DC_LOG_WARNING, "Failed to enable realtime scheduling, pthread_setschedparam errno %d\n", errno);
+    return r;
 }
