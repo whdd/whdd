@@ -123,20 +123,9 @@ DC_Dev *request_and_get_device() {
     printf("\nChoose device by #:\n");
     for (i = 0; i < devs_num; i++) {
         DC_Dev *dev = dc_dev_list_get_entry(devlist, i);
-        char cap_buf[30];
-        char native_cap_buf[30];
-        char *cap_print, *native_cap_print;  // TODO fix weird commaprint behaviour
-        cap_print = commaprint(dev->capacity, cap_buf, sizeof(cap_buf));
-        native_cap_print = commaprint(dev->native_capacity, native_cap_buf, sizeof(native_cap_buf));
-        printf("#%d: %s %s, capacity", i, dev->dev_fs_name ,dev->model_str);
-        if (dev->native_capacity != -1) {
-            printf(" %s bytes ", native_cap_print);
-            if (dev->native_capacity != dev->capacity)
-                printf("!!! HPA enabled to show %s bytes", cap_print);
-        } else {
-            printf(" %s bytes ", cap_buf);
-        }
-        printf("\n");
+        char descr_buf[80];
+        ui_dev_descr_format(descr_buf, sizeof(descr_buf), dev);
+        printf("#%d: %s %s\n", i, dev->dev_fs_name, descr_buf);
     }
     int chosen_dev_ind;
     int r = scanf("%d", &chosen_dev_ind);

@@ -1,6 +1,9 @@
 #ifndef UI_MUTUAL_H
 #define UI_MUTUAL_H
 
+#include "objects_def.h"
+#include "device.h"
+
 typedef enum {
     CliAction_eInvalid = -1,
     CliAction_eExit = 0,
@@ -26,5 +29,7 @@ static struct action {
 };
 
 static const int n_actions = CliAction_eMaxValidIndex + 1;
+
+void ui_dev_descr_format(char *buf, int bufsize, DC_Dev *dev);
 
 #endif  // UI_MUTUAL_H
