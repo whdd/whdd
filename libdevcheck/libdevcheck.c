@@ -135,6 +135,7 @@ static void dev_list_build(DC_DevList *dc_devlist) {
             asprintf(&dc_dev->dev_path, "/dev/%s", ptname);
             assert(dc_dev->dev_path);
             dc_dev->capacity = sz * 1024;
+            dc_dev->native_capacity = dc_dev_get_native_capacity(dc_dev->dev_path);
             dc_dev->next = dc_devlist->arr;
             dc_devlist->arr = dc_dev;
             dc_devlist->arr_size++;

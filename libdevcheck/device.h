@@ -8,6 +8,7 @@ struct dc_dev {
     char *dev_path;
     char *model_str;
     uint64_t capacity;
+    int64_t native_capacity;
     struct dc_dev *next;
 };
 
