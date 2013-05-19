@@ -1,3 +1,8 @@
+#define _GNU_SOURCE
+#include <unistd.h>
+#include <assert.h>
+#include <errno.h>
+
 #include <dialog.h>
 
 #define LLEN(n) ((n) * MENUBOX_TAGS)

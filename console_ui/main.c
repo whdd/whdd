@@ -13,6 +13,7 @@
 static int proc_render_cb(DC_ProcedureCtx *ctx, void *callback_priv);
 CliAction request_and_get_cli_action();
 DC_Dev *request_and_get_device();
+void set_hpa_dialog(DC_Dev *dev);
 
 int main() {
     printf(WHDD_ABOUT);
@@ -53,6 +54,10 @@ int main() {
                 else
                     printf("Failed. Check your permissions.\n");
                 free(text);
+                break;
+            }
+            case CliAction_eSetHpa: {
+                set_hpa_dialog(chosen_dev);
                 break;
             }
             case CliAction_eProcRead:
@@ -132,4 +137,30 @@ DC_Dev *request_and_get_device() {
     if (r != 1 || chosen_dev_ind < 0 || chosen_dev_ind >= devs_num)
         return NULL;
     return dc_dev_list_get_entry(devlist, chosen_dev_ind);
+}
+
+void set_hpa_dialog(DC_Dev *dev) {
+    if (dev->native_capacity == -1) {
+        printf("Querying native max LBA failed on this device. Setting max LBA will surely fail.");
+        return;
+    }
+    printf("This can make your data unreachable on device %s (%s). Are you sure? (y/n)\n",
+            dev->dev_fs_name, dev->model_str);
+    char ans = 'n';
+    int r = scanf("\n%c", &ans);
+    if (ans != 'y')
+        return;
+    uint64_t current_max_lba = dev->capacity / 512 - 1;
+    uint64_t native_max_lba = dev->native_capacity / 512 - 1;
+    char suggested_input[30];
+    snprintf(suggested_input, sizeof(suggested_input), "%"PRIu64, native_max_lba);
+    char descr[200];
+    printf("Enter max addressable LBA. Native max LBA is %"PRIu64", current max LBA is %"PRIu64"\nIn other words: reachable_capacity_in_bytes = (max_LBA + 1) * 512\n", native_max_lba, current_max_lba);
+    uint64_t set_max_lba;
+    r = scanf("\n%"PRIu64, &set_max_lba);
+    if (r != 1) {
+        printf("Invalid input\n");
+        return;
+    }
+    dc_dev_set_max_lba(dev->dev_path, set_max_lba);
 }
