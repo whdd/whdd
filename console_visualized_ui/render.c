@@ -89,42 +89,30 @@ static blk_report_t *blk_rep_read(render_priv_t *this) {
     return rep;
 }
 
-static void *render_thread_proc(void *arg) {
-    // TODO Rework this eliminating REPORTS_BURST
-#define REPORTS_BURST 20
-    render_priv_t *this = arg;
-    // TODO block signals in this thread
-    while (1) {
-        unsigned int reports_on_this_lap = 0;
-        blk_report_t *cur_rep;
+static int get_queue_length(render_priv_t *this) {
+    return this->next_report_seqno_write - this->next_report_seqno_read;
+}
 
-        if (!this->order_hangup) {
-            if ( ! blk_rep_is_n_avail(this, REPORTS_BURST)) {
-                //fprintf(stderr, "REPORT_BURST pkts not avail for read yet\n");
-                usleep(10*1000);
-                continue; // no REPORTS_BURST pkts queued yet
-            }
-        } else {
-            if ( ! blk_rep_is_n_avail(this, 1))
-                break;
-        }
-
-        while ((reports_on_this_lap++ < REPORTS_BURST) &&
-                (cur_rep = blk_rep_read(this))
-                ) {
-            // if processed REPORTS_BURST blocks, redraw view
-            // free processed reports and go next lap
-            render_update_vis(this, cur_rep);
-        }
-        render_update_stats(this);
-
-        wnoutrefresh(this->vis);
-        doupdate();
-        sched_yield();
+static void render_queued(render_priv_t *this) {
+    int queue_length = get_queue_length(this);
+    while (queue_length) {
+        blk_report_t *cur_rep = blk_rep_read(this);
+        render_update_vis(this, cur_rep);
+        queue_length--;
     }
     render_update_stats(this);
     wnoutrefresh(this->vis);
     doupdate();
+}
+
+static void *render_thread_proc(void *arg) {
+    render_priv_t *this = arg;
+    // TODO block signals in this thread
+    while (!this->order_hangup) {
+        render_queued(this);
+        usleep(20000);  // Nearly 50 Hz, nice framerate for action movie
+    }
+    render_queued(this);
     return NULL;
 }
 
@@ -229,9 +217,6 @@ static int handle_reports(DC_ProcedureCtx *ctx, void *callback_priv) {
     rep->access_time = ctx->report.blk_access_time;
     blk_rep_write_finalize(priv, rep);
     //fprintf(stderr, "finalized %"PRIu64"\n", priv->next_report_seqno_write-1);
-
-    if ((ctx->progress.num % REPORTS_BURST) == 0)
-        sched_yield();
 
     return 0;
 }
