@@ -14,8 +14,32 @@ typedef struct scsi_command {
 
 typedef struct scsi_ata_return_descriptor {
     uint8_t descriptor[14];
-    uint8_t error;
-    uint8_t status;
+    union {
+        uint8_t value;
+        struct {
+            unsigned obs:  1;
+            unsigned nm:   1;
+            unsigned abrt: 1;
+            unsigned mcr:  1;
+            unsigned idnf: 1;
+            unsigned mc:   1;
+            unsigned unc:  1;
+            unsigned na1:  1;
+        } bits;
+    } error;
+    union {
+        uint8_t value;
+        struct {
+            unsigned err:  1;
+            unsigned na3:  1;
+            unsigned na2:  1;
+            unsigned drq:  1;
+            unsigned na1:  1;
+            unsigned df:   1;
+            unsigned drdy: 1;
+            unsigned bsy:  1;
+        } bits;
+    } status;
     uint64_t lba;
 } ScsiAtaReturnDescriptor;
 
