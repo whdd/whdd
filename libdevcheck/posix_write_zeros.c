@@ -62,11 +62,6 @@ static int Perform(DC_ProcedureCtx *ctx) {
         lseek(priv->fd, ctx->blk_size * ctx->blk_index, SEEK_SET);
         errno = errno_store; // dc_procedure_perform() stores errno value to context
     }
-    /* trick from hdparm */
-    /* access all sectors of buf to ensure the read fully completed */
-    unsigned i;
-    for (i = 0; i < ctx->blk_size; i += 512)
-        ((char*)priv->buf)[i] &= 1;
     return 0;
 }
 
