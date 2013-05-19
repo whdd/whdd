@@ -7,6 +7,7 @@
 #include "libdevcheck.h"
 #include "device.h"
 #include "procedure.h"
+#include "utils.h"
 
 static int procedure_find_start_perform_until_interrupt(DC_Dev *dev, char *act_name,
         ProcedureDetachedLoopCB callback, void *callback_priv);
@@ -78,7 +79,7 @@ int main() {
     case 1:
         ;
         char *text;
-        text = dc_dev_smartctl_text(chosen_dev, "-A -i");
+        text = dc_dev_smartctl_text(chosen_dev->dev_path, "-A -i");
         if (text)
             printf("%s\n", text);
         free(text);

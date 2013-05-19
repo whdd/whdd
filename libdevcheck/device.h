@@ -11,6 +11,4 @@ struct dc_dev {
     struct dc_dev *next;
 };
 
-char *dc_dev_smartctl_text(DC_Dev *dev, char *options);
-
 #endif // DEVICE_H

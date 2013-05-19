@@ -70,3 +70,16 @@ int dc_realtime_scheduling_enable_with_prio(int prio) {
         dc_log(DC_LOG_WARNING, "Failed to enable realtime scheduling, pthread_setschedparam errno %d\n", errno);
     return r;
 }
+
+char *dc_dev_smartctl_text(char *dev_fs_path, char *options) {
+    int r;
+    char *command_line;
+    r = asprintf(&command_line, "smartctl %s %s", options, dev_fs_path);
+    if (r == -1)
+        return NULL;
+
+    char *smartctl_output = cmd_output(command_line);
+    free(command_line);
+
+    return smartctl_output;
+}

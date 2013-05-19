@@ -36,7 +36,6 @@ set(CONSOLE_VISUALIZED_UI_SRCS
 set(LIBDEVCHECK_DIR libdevcheck)
 set(LIBDEVCHECK_SRCS
 	${LIBDEVCHECK_DIR}/procedure.c
-	${LIBDEVCHECK_DIR}/device.c
 	${LIBDEVCHECK_DIR}/libdevcheck.c
 	${LIBDEVCHECK_DIR}/posix_read.c
 	${LIBDEVCHECK_DIR}/utils.c

@@ -17,4 +17,6 @@ char *cmd_output(char *command_line);
  */
 int dc_realtime_scheduling_enable_with_prio(int prio);
 
+char *dc_dev_smartctl_text(char *dev_fs_path, char *options);
+
 #endif // LIBDEVCHECK_UTILS_H

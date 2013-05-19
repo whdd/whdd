@@ -12,6 +12,7 @@
 #include <dialog.h>
 #include "libdevcheck.h"
 #include "device.h"
+#include "utils.h"
 #include "procedure.h"
 #include "vis.h"
 #include "ncurses_convenience.h"
@@ -180,7 +181,7 @@ static int menu_choose_procedure(DC_Dev *dev) {
 
 static void show_smart_attrs(DC_Dev *dev) {
     char *text;
-    text = dc_dev_smartctl_text(dev, "-s on -A");
+    text = dc_dev_smartctl_text(dev->dev_path, "-s on -A");
     dialog_msgbox("SMART Attributes", text ? : "Getting attrs failed", LINES-6, COLS, 1);
     if (text)
         free(text);
