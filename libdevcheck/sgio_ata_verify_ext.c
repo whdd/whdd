@@ -61,24 +61,41 @@ static int Perform(DC_ProcedureCtx *ctx) {
     // Timing
     r = clock_gettime(DC_BEST_CLOCK, &post);
     assert(!r);
+    ScsiAtaReturnDescriptor scsi_ata_return;
+    fill_scsi_ata_return_descriptor(&scsi_ata_return, &scsi_command);
 #if 0
     fprintf(stderr, "scsi status: %hhu, msg status %hhu, host status %hu, driver status %hu, duration %u, auxinfo %u\n",
-        scsi_command->io_hdr.status,
-        scsi_command->io_hdr.msg_status,
-        scsi_command->io_hdr.host_status,
-        scsi_command->io_hdr.driver_status,
-        scsi_command->io_hdr.duration,
-        scsi_command->io_hdr.info);
+        scsi_command.io_hdr.status,
+        scsi_command.io_hdr.msg_status,
+        scsi_command.io_hdr.host_status,
+        scsi_command.io_hdr.driver_status,
+        scsi_command.io_hdr.duration,
+        scsi_command.io_hdr.info);
     fprintf(stderr, "sense buffer, in hex: ");
-    for (i = 0; i < sizeof(sb); i++)
-      fprintf(stderr, "%02hhx", sb[i]);
+    int i;
+    for (i = 0; i < sizeof(scsi_command.sense_buf); i++)
+      fprintf(stderr, "%02hhx", scsi_command.sense_buf[i]);
     fprintf(stderr, "\n");
 #endif
 
     // Error handling
-    // TODO Look at output registries
+    // Updating context
     if (ioctl_ret) {
-        // Updating context
+        ctx->report.blk_status = DC_BlockStatus_eError;
+    } else if (scsi_command.io_hdr.duration >= scsi_command.io_hdr.timeout) {
+        ctx->report.blk_status = DC_BlockStatus_eTimeout;
+    } else if (scsi_ata_return.status.bits.err) {
+        if (scsi_ata_return.error.bits.unc)
+            ctx->report.blk_status = DC_BlockStatus_eUnc;
+        else if (scsi_ata_return.error.bits.idnf)
+            ctx->report.blk_status = DC_BlockStatus_eIdnf;
+        else if (scsi_ata_return.error.bits.abrt)
+            ctx->report.blk_status = DC_BlockStatus_eAbrt;
+        else
+            ctx->report.blk_status = DC_BlockStatus_eError;
+    } else if (scsi_command.sense_buf[1] == 0x0b) {
+        ctx->report.blk_status = DC_BlockStatus_eAbrt;
+    } else if (scsi_ata_return.status.bits.df) {
         ctx->report.blk_status = DC_BlockStatus_eError;
     }
 

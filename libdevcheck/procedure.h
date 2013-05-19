@@ -31,6 +31,9 @@ typedef enum {
     DC_BlockStatus_eOk = 0,
     DC_BlockStatus_eError,   // Generic error condition
     DC_BlockStatus_eTimeout,
+    DC_BlockStatus_eUnc,
+    DC_BlockStatus_eIdnf,
+    DC_BlockStatus_eAbrt,
     // More to come with details from low-level drive commands
 } DC_BlockStatus;
 
