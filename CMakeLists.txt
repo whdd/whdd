@@ -29,6 +29,7 @@ set(CONSOLE_VISUALIZED_UI_DIR console_visualized_ui)
 set(CONSOLE_VISUALIZED_UI_SRCS
 	${CONSOLE_VISUALIZED_UI_DIR}/dialog_convenience.c
 	${CONSOLE_VISUALIZED_UI_DIR}/main.c
+	${CONSOLE_VISUALIZED_UI_DIR}/render.c
 	${CONSOLE_VISUALIZED_UI_DIR}/ncurses_convenience.c
 	${CONSOLE_VISUALIZED_UI_DIR}/vis.c
 )

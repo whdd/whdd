@@ -17,8 +17,6 @@ typedef enum {
     CliAction_eProcWriteZeros = 3,
 } CliAction;
 
-static int procedure_perform_until_interrupt(DC_ProcedureCtx *actctx,
-        ProcedureDetachedLoopCB callback, void *callback_priv);
 static int proc_render_cb(DC_ProcedureCtx *ctx, void *callback_priv);
 CliAction request_and_get_cli_action();
 DC_Dev *request_and_get_device();
@@ -113,63 +111,6 @@ static int proc_render_cb(DC_ProcedureCtx *ctx, void *callback_priv) {
             ctx->progress.num, ctx->progress.den);
     fflush(stdout);
     return 0;
-}
-
-static int procedure_perform_until_interrupt(DC_ProcedureCtx *actctx,
-        ProcedureDetachedLoopCB callback, void *callback_priv
-        ) {
-    int r;
-    siginfo_t siginfo;
-    sigset_t set;
-    pthread_t tid;
-
-    sigemptyset(&set);
-    sigaddset(&set, SIGQUIT);
-    sigaddset(&set, SIGINT);
-    sigaddset(&set, SIGHUP);
-    sigaddset(&set, SIGTERM);
-    r = sigprocmask(SIG_BLOCK, &set, NULL);
-    if (r) {
-        printf("sigprocmask failed: %d\n", r);
-        goto fail;
-    }
-
-    r = dc_procedure_perform_loop_detached(actctx, callback, callback_priv, &tid);
-    if (r) {
-        printf("dc_procedure_perform_loop_detached fail\n");
-        goto fail;
-    }
-
-    struct timespec finish_check_interval = { .tv_sec = 1, .tv_nsec = 0 };
-    while (!actctx->finished) {
-        r = sigtimedwait(&set, &siginfo, &finish_check_interval);
-        if (r > 0) { // got signal `r`
-            actctx->interrupt = 1;
-            break;
-        } else { // "fail"
-            if ((errno == EAGAIN) || // timed out
-                    (errno == EINTR)) // interrupted by non-catched signal
-                continue;
-            else
-                printf("sigtimedwait fail, errno %d\n", errno);
-        }
-    }
-
-    r = pthread_join(tid, NULL);
-    assert(!r);
-
-    r = sigprocmask(SIG_UNBLOCK, &set, NULL);
-    if (r) {
-        printf("sigprocmask failed: %d\n", r);
-        goto fail;
-    }
-
-    dc_procedure_close(actctx);
-    return 0;
-
-fail:
-    dc_procedure_close(actctx);
-    return 1;
 }
 
 CliAction request_and_get_cli_action() {

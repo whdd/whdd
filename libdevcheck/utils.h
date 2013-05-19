@@ -2,6 +2,9 @@
 #define LIBDEVCHECK_UTILS_H
 
 #include <pthread.h>
+#include <inttypes.h>
+
+#include "procedure.h"
 
 /**
  * Execute bash command thru popen()
@@ -18,5 +21,10 @@ char *cmd_output(char *command_line);
 int dc_realtime_scheduling_enable_with_prio(int prio);
 
 char *dc_dev_smartctl_text(char *dev_fs_path, char *options);
+
+char *commaprint(uint64_t n, char *retbuf, size_t bufsize);
+
+int procedure_perform_until_interrupt(DC_ProcedureCtx *actctx,
+        ProcedureDetachedLoopCB callback, void *callback_priv);
 
 #endif // LIBDEVCHECK_UTILS_H
