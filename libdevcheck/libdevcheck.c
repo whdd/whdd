@@ -88,7 +88,8 @@ int dc_dev_list_size(DC_DevList *list) {
 DC_Dev *dc_dev_list_get_entry(DC_DevList *list, int index) {
     DC_Dev *dev = list->arr;
     while (index > 0) {
-        if (!dev) return NULL;
+        if (!dev)
+            return NULL;
         dev = dev->next;
         index--;
     }
@@ -151,20 +152,22 @@ static void dev_list_fill_info(DC_DevList *list) {
 }
 
 static void dev_modelname_fill(DC_Dev *dev) {
-        // fill model name, if exists
-        char *model_file_name;
-        asprintf(&model_file_name,
-                "/sys/block/%s/device/model", dev->dev_fs_name);
-        assert(model_file_name);
+    // fill model name, if exists
+    char *model_file_name;
+    asprintf(&model_file_name, "/sys/block/%s/device/model", dev->dev_fs_name);
+    assert(model_file_name);
 
-        FILE *model_file = fopen(model_file_name, "r");
-        free(model_file_name);
-        if (!model_file) return;
-        char model[256];
-        int r;
-        r = fscanf(model_file, "%256[^\n]", model);
-        if (r != 1) { dc_log(DC_LOG_ERROR, "outrageous error at scanning model name\n"); return; }
-        dev->model_str = strdup(model);
-        assert(dev->model_str);
+    FILE *model_file = fopen(model_file_name, "r");
+    free(model_file_name);
+    if (!model_file)
+        return;
+    char model[256];
+    int r;
+    r = fscanf(model_file, "%256[^\n]", model);
+    if (r != 1) {
+        dc_log(DC_LOG_ERROR, "Outrageous error at scanning model name\n");
+        return;
+    }
+    dev->model_str = strdup(model);
+    assert(dev->model_str);
 }
-
