@@ -30,6 +30,11 @@ int main() {
     }
 
     while (1) {
+        DC_Dev *chosen_dev = request_and_get_device();
+        if (!chosen_dev) {
+            printf("Invalid choice\n");
+            break;
+        }
         CliAction action = request_and_get_cli_action();
         switch (action) {
             case CliAction_eInvalid: {
@@ -41,11 +46,6 @@ int main() {
                 return 0;
             }
             case CliAction_eShowSmart: {
-                DC_Dev *chosen_dev = request_and_get_device();
-                if (!chosen_dev) {
-                    printf("Invalid choice\n");
-                    break;
-                }
                 char *text;
                 text = dc_dev_smartctl_text(chosen_dev->dev_path, " -i -s on -A ");
                 if (text)
@@ -60,11 +60,6 @@ int main() {
             case CliAction_eProcVerify:
             case CliAction_eProcHdioVerify:
             {
-                DC_Dev *chosen_dev = request_and_get_device();
-                if (!chosen_dev) {
-                    printf("Invalid choice\n");
-                    break;
-                }
                 char *act_name = actions[action].name;
                 DC_Procedure *act = dc_find_procedure(act_name);
                 assert(act);
@@ -125,22 +120,24 @@ DC_Dev *request_and_get_device() {
     int i;
     DC_DevList *devlist = dc_dev_list();
     int devs_num = dc_dev_list_size(devlist);
+    printf("\nChoose device by #:\n");
     for (i = 0; i < devs_num; i++) {
         DC_Dev *dev = dc_dev_list_get_entry(devlist, i);
-        printf(
-                "#%d:" // index
-                " %s" // /dev/name
-                " %s" // model name
-                // TODO human-readable size
-                " %"PRIu64" bytes" // size
-                "\n"
-                ,i
-                ,dev->dev_fs_name
-                ,dev->model_str
-                ,dev->capacity
-              );
+        char cap_buf[30];
+        char native_cap_buf[30];
+        char *cap_print, *native_cap_print;  // TODO fix weird commaprint behaviour
+        cap_print = commaprint(dev->capacity, cap_buf, sizeof(cap_buf));
+        native_cap_print = commaprint(dev->native_capacity, native_cap_buf, sizeof(native_cap_buf));
+        printf("#%d: %s %s, capacity", i, dev->dev_fs_name ,dev->model_str);
+        if (dev->native_capacity != -1) {
+            printf(" %s bytes ", native_cap_print);
+            if (dev->native_capacity != dev->capacity)
+                printf("!!! HPA enabled to show %s bytes", cap_print);
+        } else {
+            printf(" %s bytes ", cap_buf);
+        }
+        printf("\n");
     }
-    printf("Choose device by #:\n");
     int chosen_dev_ind;
     int r = scanf("%d", &chosen_dev_ind);
     if (r != 1 || chosen_dev_ind < 0 || chosen_dev_ind >= devs_num)
