@@ -41,6 +41,7 @@ void fill_scsi_ata_return_descriptor(ScsiAtaReturnDescriptor *scsi_ata_ret, Scsi
     uint8_t *descr = &scsi_cmd->sense_buf[8];
     memcpy(scsi_ata_ret->descriptor, descr, sizeof(scsi_ata_ret->descriptor));
     scsi_ata_ret->error = descr[3];
+    scsi_ata_ret->status = descr[13];
     scsi_ata_ret->lba  = 0;
     scsi_ata_ret->lba |= (uint64_t)descr[7];
     scsi_ata_ret->lba |= (uint64_t)descr[9]  <<  8;

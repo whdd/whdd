@@ -15,6 +15,7 @@ typedef struct scsi_command {
 typedef struct scsi_ata_return_descriptor {
     uint8_t descriptor[14];
     uint8_t error;
+    uint8_t status;
     uint64_t lba;
 } ScsiAtaReturnDescriptor;
 
