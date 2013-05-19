@@ -101,7 +101,7 @@ static void Close(DC_ProcedureCtx *ctx) {
 DC_Procedure posix_write_zeros = {
     .name = "posix_write_zeros",
     .long_name = "Fill device space with zeros, using POSIX write() call, in direct mode",
-    .flags = DC_PROC_FLAG_DESCTRUCTIVE,
+    .flags = DC_PROC_FLAG_DESTRUCTIVE,
     .open = Open,
     .perform = Perform,
     .close = Close,

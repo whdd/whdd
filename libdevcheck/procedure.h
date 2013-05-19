@@ -5,7 +5,7 @@
 #include "device.h"
 #include <pthread.h>
 
-#define DC_PROC_FLAG_DESCTRUCTIVE 1
+#define DC_PROC_FLAG_DESTRUCTIVE 1
 
 struct dc_procedure {
     char *name;
