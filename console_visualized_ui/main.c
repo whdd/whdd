@@ -148,19 +148,16 @@ static int menu_choose_device(DC_DevList *devlist) {
     assert(items);
 
     int i;
-    int max_descr_len = 0;
     for (i = 0; i < devs_num; i++) {
         DC_Dev *dev = dc_dev_list_get_entry(devlist, i);
         char dev_descr_buf[80];
         ui_dev_descr_format(dev_descr_buf, sizeof(dev_descr_buf), dev);
         items[2*i] = strdup(dev->dev_fs_name);
         items[2*i+1] = strdup(dev_descr_buf);
-        if (strlen(dev_descr_buf) > max_descr_len)
-            max_descr_len = strlen(dev_descr_buf);
     }
 
     clear_body();
-    int chosen_dev_ind = my_dialog_menu("Choose device", "", 0, max_descr_len + 15, devs_num * 3, devs_num, items);
+    int chosen_dev_ind = my_dialog_menu("Choose device", "", 0, 0, devs_num * 3, devs_num, items);
     for (i = 0; i < devs_num; i++) {
         free(items[2*i]);
         free(items[2*i+1]);
