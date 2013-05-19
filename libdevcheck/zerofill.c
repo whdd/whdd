@@ -40,9 +40,9 @@ static int Open(DC_ActionCtx *ctx) {
         dc_log(DC_LOG_FATAL, "open %s fail\n", ctx->dev->dev_path);
         goto fail_open;
     }
-    r = ioctl(priv->fd, BLKFLSBUF, NULL); // flush cache
-    assert(!r);
-
+    r = ioctl(priv->fd, BLKFLSBUF, NULL);
+    if (r == -1)
+      dc_log(DC_LOG_WARNING, "Flushing block device buffers failed\n");
     return 0;
 
 fail_open:

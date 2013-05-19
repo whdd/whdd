@@ -16,6 +16,7 @@
 struct read_priv {
     int fd;
     void *buf;
+    int old_readahead;
 };
 typedef struct read_priv ReadPriv;
 
@@ -38,8 +39,15 @@ static int Open(DC_ActionCtx *ctx) {
         dc_log(DC_LOG_FATAL, "open %s fail\n", ctx->dev->dev_path);
         goto fail_open;
     }
-    r = ioctl(priv->fd, BLKFLSBUF, NULL); // flush cache
-    assert(!r);
+    r = ioctl(priv->fd, BLKFLSBUF, NULL);
+    if (r == -1)
+      dc_log(DC_LOG_WARNING, "Flushing block device buffers failed\n");
+    r = ioctl(priv->fd, BLKRAGET, &priv->old_readahead);
+    if (r == -1)
+      dc_log(DC_LOG_WARNING, "Getting block device readahead setting failed\n");
+    r = ioctl(priv->fd, BLKRASET, 0);
+    if (r == -1)
+      dc_log(DC_LOG_WARNING, "Disabling block device readahead setting failed\n");
 
     return 0;
 
@@ -78,6 +86,9 @@ static int Perform(DC_ActionCtx *ctx) {
 
 static void Close(DC_ActionCtx *ctx) {
     ReadPriv *priv = ctx->priv;
+    int r = ioctl(priv->fd, BLKRASET, priv->old_readahead);
+    if (r == -1)
+      dc_log(DC_LOG_WARNING, "Restoring block device readahead setting failed\n");
     free(priv->buf);
     close(priv->fd);
 }
