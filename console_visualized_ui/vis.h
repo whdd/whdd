@@ -22,7 +22,7 @@ typedef struct vis_t {
 
 extern vis_t bs_vis[];
 extern vis_t exceed_vis;
-extern vis_t error_vis;
+extern vis_t error_vis[]; // 0th is unused, rest go as in enum
 
 void init_my_colors(void);
 vis_t choose_vis(uint64_t access_time);

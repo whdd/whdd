@@ -12,9 +12,9 @@ static render_priv_t *render_priv_prepare(void) {
     render_priv_t *this = calloc(1, sizeof(*this));
     if (!this)
         return NULL;
-    this->legend = derwin(stdscr, 7, LEGEND_WIDTH/2, 4, COLS-LEGEND_WIDTH); // leave 1st and last lines untouched
+    this->legend = derwin(stdscr, 11 /* legend win height */, LEGEND_WIDTH/2, 4, COLS-LEGEND_WIDTH); // leave 1st and last lines untouched
     assert(this->legend);
-    this->access_time_stats = derwin(stdscr, 7, LEGEND_WIDTH/2, 4, COLS-LEGEND_WIDTH/2);
+    this->access_time_stats = derwin(stdscr, 11 /* height */, LEGEND_WIDTH/2, 4, COLS-LEGEND_WIDTH/2);
     assert(this->access_time_stats);
     show_legend(this->legend);
     this->vis = derwin(stdscr, LINES-5, COLS-LEGEND_WIDTH-1, 2, 0); // leave 1st and last lines untouched
@@ -28,7 +28,7 @@ static render_priv_t *render_priv_prepare(void) {
     this->eta = derwin(stdscr, 1, LEGEND_WIDTH, 1, COLS-LEGEND_WIDTH);
     assert(this->eta);
 
-    this->summary = derwin(stdscr, 10, LEGEND_WIDTH, 11, COLS-LEGEND_WIDTH);
+    this->summary = derwin(stdscr, 10, LEGEND_WIDTH, 16, COLS-LEGEND_WIDTH);
     assert(this->summary);
 
     this->w_end_lba = derwin(stdscr, 1, 20, 1, COLS-41);
@@ -106,8 +106,8 @@ static void *render_thread_proc(void *arg) {
 static void render_update_vis(render_priv_t *this, blk_report_t *rep) {
     if (rep->blk_status)
     {
-        print_vis(this->vis, error_vis);
-        this->access_time_stats_accum[6]++;
+        print_vis(this->vis, error_vis[rep->blk_status]);
+        this->error_stats_accum[rep->blk_status]++;
     }
     else
     {
@@ -127,8 +127,10 @@ static void render_update_vis(render_priv_t *this, blk_report_t *rep) {
 static void render_update_stats(render_priv_t *this) {
     werase(this->access_time_stats);
     unsigned int i;
-    for (i = 0; i < 7; i++)
+    for (i = 0; i < 6; i++)
         wprintw(this->access_time_stats, "%d\n", this->access_time_stats_accum[i]);
+    for (i = 1; i < 6; i++)
+        wprintw(this->access_time_stats, "%d\n", this->error_stats_accum[i]);
     wnoutrefresh(this->access_time_stats);
 
     if (this->avg_processing_speed != 0) {

@@ -9,8 +9,14 @@ vis_t bs_vis[]   = {
                     { 500000, L'\u2588', 0, MY_COLOR_RED }, // red full block
 };
 vis_t exceed_vis =  { 0,      L'\u2588', 1, MY_COLOR_RED }; // bold red full block
-vis_t error_vis  =  { 0,      L'x',      1, MY_COLOR_RED };
-
+vis_t error_vis[]= {
+                    { 0,      L' ',      1, MY_COLOR_RED }, // unused
+                    { 0,      L'\u0436', 1, MY_COLOR_RED }, // eError
+                    { 0,      L'?',      1, MY_COLOR_GRAY }, // eTimeout
+                    { 0,      L'x',      1, MY_COLOR_RED }, // eUnc
+                    { 0,      L'S',      1, MY_COLOR_GREEN }, // eIdnf
+                    { 0,      L'!',      1, MY_COLOR_RED }, // eAbrt
+};
 void init_my_colors(void) {
     init_pair(MY_COLOR_GRAY, COLOR_WHITE, COLOR_BLACK);
     init_pair(MY_COLOR_GREEN, COLOR_GREEN, COLOR_BLACK);
@@ -46,9 +52,27 @@ void show_legend(WINDOW *win) {
     print_vis(win,exceed_vis);
     wattrset(win, A_NORMAL);
     wprintw(win, " >500ms\n");
-    print_vis(win, error_vis);
+
+    print_vis(win, error_vis[1]);
     wattrset(win, A_NORMAL);
     wprintw(win, " ERR\n");
+
+    print_vis(win, error_vis[2]);
+    wattrset(win, A_NORMAL);
+    wprintw(win, " TIME\n");
+
+    print_vis(win, error_vis[3]);
+    wattrset(win, A_NORMAL);
+    wprintw(win, " UNC\n");
+
+    print_vis(win, error_vis[4]);
+    wattrset(win, A_NORMAL);
+    wprintw(win, " IDNF\n");
+
+    print_vis(win, error_vis[5]);
+    wattrset(win, A_NORMAL);
+    wprintw(win, " ABRT\n");
+
     wrefresh(win);
 }
 

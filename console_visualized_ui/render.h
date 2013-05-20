@@ -29,7 +29,8 @@ typedef struct render_priv {
     WINDOW *w_log;
 
     struct timespec start_time;
-    uint64_t access_time_stats_accum[7];
+    uint64_t access_time_stats_accum[6];
+    uint64_t error_stats_accum[6]; // 0th is unused, the rest are as in DC_BlockStatus enum
     uint64_t avg_processing_speed;
     uint64_t eta_time; // estimated time
     uint64_t cur_lba;
