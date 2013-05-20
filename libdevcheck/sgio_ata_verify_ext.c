@@ -63,6 +63,7 @@ static int Perform(DC_ProcedureCtx *ctx) {
     assert(!r);
     ScsiAtaReturnDescriptor scsi_ata_return;
     fill_scsi_ata_return_descriptor(&scsi_ata_return, &scsi_command);
+    int sense_key = get_sense_key_from_sense_buffer(scsi_command.sense_buf);
 #if 0
     fprintf(stderr, "scsi status: %hhu, msg status %hhu, host status %hu, driver status %hu, duration %u, auxinfo %u\n",
         scsi_command.io_hdr.status,
@@ -76,6 +77,7 @@ static int Perform(DC_ProcedureCtx *ctx) {
     for (i = 0; i < sizeof(scsi_command.sense_buf); i++)
       fprintf(stderr, "%02hhx", scsi_command.sense_buf[i]);
     fprintf(stderr, "\n");
+    fprintf(stderr, "sense key is %d", sense_key);
 #endif
 
     // Error handling
@@ -93,10 +95,13 @@ static int Perform(DC_ProcedureCtx *ctx) {
             ctx->report.blk_status = DC_BlockStatus_eAbrt;
         else
             ctx->report.blk_status = DC_BlockStatus_eError;
-    } else if (scsi_command.sense_buf[1] == 0x0b) {
-        ctx->report.blk_status = DC_BlockStatus_eAbrt;
     } else if (scsi_ata_return.status.bits.df) {
         ctx->report.blk_status = DC_BlockStatus_eError;
+    } else if (sense_key) {
+        if (sense_key == 0x0b)
+            ctx->report.blk_status = DC_BlockStatus_eAbrt;
+        else
+            ctx->report.blk_status = DC_BlockStatus_eError;
     }
 
     // Updating context

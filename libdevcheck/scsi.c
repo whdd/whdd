@@ -50,3 +50,16 @@ void fill_scsi_ata_return_descriptor(ScsiAtaReturnDescriptor *scsi_ata_ret, Scsi
     scsi_ata_ret->lba |= (uint64_t)descr[8]  << 32;
     scsi_ata_ret->lba |= (uint64_t)descr[10] << 40;
 }
+
+int get_sense_key_from_sense_buffer(uint8_t *buf) {
+    switch (buf[0]) {
+        case 0x70:
+        case 0x71:
+            return buf[2] & 0x0f;
+        case 0x72:
+        case 0x73:
+            return buf[1] & 0x0f;
+        default:
+            return -1;
+    }
+}

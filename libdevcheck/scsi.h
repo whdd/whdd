@@ -47,4 +47,6 @@ void prepare_scsi_command_from_ata(ScsiCommand *scsi_cmd, AtaCommand *ata_cmd);
 
 void fill_scsi_ata_return_descriptor(ScsiAtaReturnDescriptor *scsi_ata_ret, ScsiCommand *scsi_cmd);
 
+int get_sense_key_from_sense_buffer(uint8_t *buf);
+
 #endif  // SCSI_H
