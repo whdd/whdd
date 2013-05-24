@@ -66,7 +66,7 @@ add_executable(whdd-cli
 	${LIBDEVCHECK_SRCS}
 )
 
-add_executable(whdd-curses
+add_executable(whdd
 	${CUI_SRCS}
 	${LIBDEVCHECK_SRCS}
 )
@@ -78,12 +78,12 @@ find_package(DIALOG REQUIRED)
 find_library(MENUW_LIBRARY menuw)
 find_library(NCURSESW_LIBRARY ncursesw)
 if(DIALOG_FOUND AND MENUW_LIBRARY AND NCURSESW_LIBRARY)
-	target_link_libraries(whdd-curses 
+	target_link_libraries(whdd
 		${DIALOG_LIBRARIES} ${MENUW_LIBRARY} ${NCURSESW_LIBRARY} rt pthread)
 else()
 	message(FATAL_ERROR "Dialog or menuw library not found!")
 endif(DIALOG_FOUND AND MENUW_LIBRARY AND NCURSESW_LIBRARY)
-install(TARGETS whdd-cli whdd-curses DESTINATION sbin)
+install(TARGETS whdd-cli whdd DESTINATION sbin)
 
 # Packaging stuff
 # 'make package_source' to make tarball
