@@ -20,19 +20,19 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
 	set(WHDD_VERSION "${WHDD_VERSION}-g${WHDD_REVISION}")
 endif(EXISTS "${CMAKE_SOURCE_DIR}/.git")
 
-set(CONSOLE_UI_DIR console_ui)
-set(CONSOLE_UI_SRCS
-	${CONSOLE_UI_DIR}/main.c
+set(CLI_DIR cli)
+set(CLI_SRCS
+	${CLI_DIR}/main.c
 	ui_mutual.c
 )
 
-set(CONSOLE_VISUALIZED_UI_DIR console_visualized_ui)
-set(CONSOLE_VISUALIZED_UI_SRCS
-	${CONSOLE_VISUALIZED_UI_DIR}/dialog_convenience.c
-	${CONSOLE_VISUALIZED_UI_DIR}/main.c
-	${CONSOLE_VISUALIZED_UI_DIR}/render.c
-	${CONSOLE_VISUALIZED_UI_DIR}/ncurses_convenience.c
-	${CONSOLE_VISUALIZED_UI_DIR}/vis.c
+set(CUI_DIR cui)
+set(CUI_SRCS
+	${CUI_DIR}/dialog_convenience.c
+	${CUI_DIR}/main.c
+	${CUI_DIR}/render.c
+	${CUI_DIR}/ncurses_convenience.c
+	${CUI_DIR}/vis.c
 	ui_mutual.c
 )
 
@@ -50,8 +50,8 @@ set(LIBDEVCHECK_SRCS
 )
 
 include_directories(
-	${CONSOLE_UI_DIR}
-	${CONSOLE_VISUALIZED_UI_DIR}
+	${CLI_DIR}
+	${CUI_DIR}
 	${LIBDEVCHECK_DIR}
 	${CMAKE_CURRENT_BINARY_DIR}
 )
@@ -62,12 +62,12 @@ configure_file(${LIBDEVCHECK_DIR}/config.h.in
 	${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
 add_executable(whdd-cli
-	${CONSOLE_UI_SRCS}
+	${CLI_SRCS}
 	${LIBDEVCHECK_SRCS}
 )
 
 add_executable(whdd-curses
-	${CONSOLE_VISUALIZED_UI_SRCS}
+	${CUI_SRCS}
 	${LIBDEVCHECK_SRCS}
 )
 
