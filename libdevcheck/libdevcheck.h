@@ -2,6 +2,7 @@
 #define LIBDEVCHECK_H
 
 #include "config.h"
+#include "version.h"
 #define WHDD_ABOUT "WHDD - disk drives diagnostic tool\n" \
     "Revision " WHDD_VERSION "\n" \
     "License: GNU GPL\n" \

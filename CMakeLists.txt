@@ -3,8 +3,6 @@ project(whdd)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
 
-set(WHDD_VERSION "1.1")
-
 set(CMAKE_C_FLAGS "-pthread -Wall -Wextra ${CFLAGS}")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS}")
 set(CMAKE_C_FLAGS_DEBUG "-O0 -g -ggdb ${CMAKE_C_FLAGS}")
@@ -61,6 +59,10 @@ check_symbol_exists(CLOCK_MONOTONIC_RAW "time.h" HAVE_CLOCK_MONOTONIC_RAW)
 configure_file(${LIBDEVCHECK_DIR}/config.h.in
 	${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
+set_source_files_properties(version.h PROPERTIES GENERATED true HEADER_FILE_ONLY TRUE)
+add_custom_target(version ALL)
+add_custom_command(TARGET version COMMAND ./version.sh . version.h)
+
 add_executable(whdd-cli
 	${CLI_SRCS}
 	${LIBDEVCHECK_SRCS}
@@ -72,6 +74,9 @@ add_executable(whdd
 )
 
 include_directories(${DIALOG_INCLUDE_DIRS})
+add_dependencies(whdd-cli version)
+add_dependencies(whdd version)
+
 target_link_libraries(whdd-cli rt pthread)
 
 find_package(DIALOG REQUIRED)
