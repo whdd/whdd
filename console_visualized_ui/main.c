@@ -30,6 +30,9 @@ void log_cb(enum DC_LogLevel level, const char* fmt, va_list vl);
 
 int main() {
     int r;
+    dialog_vars.default_button = -1;
+    //printf("%d\n", dialog_vars.default_button);
+    //return 0;
     r = global_init();
     if (r) {
         fprintf(stderr, "init fail\n");
