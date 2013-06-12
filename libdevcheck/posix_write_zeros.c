@@ -44,7 +44,7 @@ static int Open(DC_ProcedureCtx *ctx) {
         goto fail_buf;
     memset(priv->buf, 0, ctx->blk_size);
 
-    priv->fd = open(ctx->dev->dev_path, O_WRONLY | O_SYNC | O_DIRECT | O_LARGEFILE | O_NOATIME);
+    priv->fd = open(ctx->dev->dev_path, O_WRONLY | O_DIRECT | O_LARGEFILE | O_NOATIME);
     if (priv->fd == -1) {
         dc_log(DC_LOG_FATAL, "open %s fail\n", ctx->dev->dev_path);
         goto fail_open;
