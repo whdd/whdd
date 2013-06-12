@@ -24,10 +24,10 @@ typedef struct dc_procedure_option {
     } default_val;
 } DC_ProcedureOption;
 
-typedef struct dc_option_set {
+typedef struct dc_option_setting {
     const char *name;
     const char *value;
-} DC_OptionSet;
+} DC_OptionSetting;
 
 struct dc_procedure {
     char *name;
@@ -78,7 +78,7 @@ struct dc_procedure_ctx {
     } report; // updated by procedure on .perform()
 };
 
-int dc_procedure_open(DC_Procedure *procedure, DC_Dev *dev, DC_ProcedureCtx **ctx, DC_OptionSet options[]);
+int dc_procedure_open(DC_Procedure *procedure, DC_Dev *dev, DC_ProcedureCtx **ctx, DC_OptionSetting options[]);
 int dc_procedure_perform(DC_ProcedureCtx *ctx);
 void dc_procedure_close(DC_ProcedureCtx *ctx);
 

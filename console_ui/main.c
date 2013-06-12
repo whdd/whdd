@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
@@ -15,9 +16,39 @@ CliAction request_and_get_cli_action();
 DC_Dev *request_and_get_device();
 void set_hpa_dialog(DC_Dev *dev);
 
+static int ask_option_value(DC_OptionSetting *setting, DC_ProcedureOption *option) {
+    char *suggested_value;
+    char entered_value[200];
+    const char *param_type_str;
+    switch (option->type) {
+        case DC_ProcedureOptionType_eInt64:
+            param_type_str = "numeric";
+            asprintf(&suggested_value, "%"PRId64, option->default_val.i64);
+            break;
+        case DC_ProcedureOptionType_eString:
+            param_type_str = "string";
+            asprintf(&suggested_value, "%s", option->default_val.str);
+            break;
+    }
+    printf("Please enter %s parameter: %s (%s)\n",
+            param_type_str, option->name, option->help);
+    printf("Enter empty string for default value '%s'\n", suggested_value);
+    char *ret = fgets(entered_value, sizeof(entered_value), stdin);
+    if (!ret)
+        return 1;
+    printf("Got value: '%s'\n", entered_value);
+    if (entered_value[0] == '\0' || entered_value[0] == '\n')
+        snprintf(entered_value, sizeof(entered_value), "%s", suggested_value);
+    printf("Result value: '%s'\n", entered_value);
+    setting->value = strdup(entered_value);
+    free(suggested_value);
+    return 0;
+}
+
 int main() {
     printf(WHDD_ABOUT);
     int r;
+    char *char_ret;
     // init libdevcheck
     r = dc_init();
     assert(!r);
@@ -71,13 +102,24 @@ int main() {
                 if (act->flags & DC_PROC_FLAG_DESTRUCTIVE) {
                     printf("This will destroy all data on device %s (%s). Are you sure? (y/n)\n",
                             chosen_dev->dev_fs_name, chosen_dev->model_str);
-                    char ans = 'n';
-                    r = scanf("\n%c", &ans);
-                    if (ans != 'y')
+                    char ans[10] = "n";
+                    char_ret = fgets(ans, sizeof(ans), stdin);
+                    if (!char_ret || ans[0] != 'y')
                         break;
                 }
+                DC_OptionSetting *option_set = calloc(act->options_num + 1, sizeof(DC_OptionSetting));
+                int i;
+                r = 0;
+                for (i = 0; i < act->options_num; i++) {
+                    option_set[i].name = act->options[i].name;
+                    r = ask_option_value(&option_set[i], &act->options[i]);
+                    if (r)
+                        break;
+                }
+                if (r)
+                    break;
                 DC_ProcedureCtx *actctx;
-                r = dc_procedure_open(act, chosen_dev, &actctx, NULL);
+                r = dc_procedure_open(act, chosen_dev, &actctx, option_set);
                 if (r) {
                     printf("Procedure init fail\n");
                     return 1;
@@ -113,8 +155,12 @@ CliAction request_and_get_cli_action() {
     int i;
     for (i = 0; i <= CliAction_eMaxValidIndex; i++)
         printf("%d) %s\n", (int)actions[i].menu_number, actions[i].name);
+    char input[10];
     int chosen_action_ind;
-    int r = scanf("%d", &chosen_action_ind);
+    char *char_ret = fgets(input, sizeof(input), stdin);
+    if (!char_ret)
+        return CliAction_eInvalid;
+    int r = sscanf(input, "%d", &chosen_action_ind);
     if (r != 1 || chosen_action_ind < 0 || chosen_action_ind > CliAction_eMaxValidIndex)
         return CliAction_eInvalid;
     return (CliAction)chosen_action_ind;
@@ -131,8 +177,12 @@ DC_Dev *request_and_get_device() {
         ui_dev_descr_format(descr_buf, sizeof(descr_buf), dev);
         printf("#%d: %s %s\n", i, dev->dev_fs_name, descr_buf);
     }
+    char input[10];
     int chosen_dev_ind;
-    int r = scanf("%d", &chosen_dev_ind);
+    char *char_ret = fgets(input, sizeof(input), stdin);
+    if (!char_ret)
+        return NULL;
+    int r = sscanf(input, "%d", &chosen_dev_ind);
     if (r != 1 || chosen_dev_ind < 0 || chosen_dev_ind >= devs_num)
         return NULL;
     return dc_dev_list_get_entry(devlist, chosen_dev_ind);
@@ -145,9 +195,9 @@ void set_hpa_dialog(DC_Dev *dev) {
     }
     printf("This can make your data unreachable on device %s (%s). Are you sure? (y/n)\n",
             dev->dev_fs_name, dev->model_str);
-    char ans = 'n';
-    int r = scanf("\n%c", &ans);
-    if (ans != 'y')
+    char ans[30] = "n";
+    char *char_ret = fgets(ans, sizeof(ans), stdin);
+    if (!char_ret || ans[0] != 'y')
         return;
     uint64_t current_max_lba = dev->capacity / 512 - 1;
     uint64_t native_max_lba = dev->native_capacity / 512 - 1;
@@ -156,7 +206,10 @@ void set_hpa_dialog(DC_Dev *dev) {
     char descr[200];
     printf("Enter max addressable LBA. Native max LBA is %"PRIu64", current max LBA is %"PRIu64"\nIn other words: reachable_capacity_in_bytes = (max_LBA + 1) * 512\n", native_max_lba, current_max_lba);
     uint64_t set_max_lba;
-    r = scanf("\n%"PRIu64, &set_max_lba);
+    char_ret = fgets(ans, sizeof(ans), stdin);
+    if (!char_ret)
+        return;
+    int r = sscanf(ans, "%"PRIu64, &set_max_lba);
     if (r != 1) {
         printf("Invalid input\n");
         return;

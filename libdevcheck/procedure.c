@@ -26,7 +26,7 @@ DC_Procedure *dc_find_procedure(char *name) {
     return iter;
 }
 
-int dc_procedure_open(DC_Procedure *procedure, DC_Dev *dev, DC_ProcedureCtx **ctx_arg, DC_OptionSet options[]) {
+int dc_procedure_open(DC_Procedure *procedure, DC_Dev *dev, DC_ProcedureCtx **ctx_arg, DC_OptionSetting options[]) {
     DC_ProcedureCtx *ctx = calloc(1, sizeof(*ctx));
     int i;
     int ret;
