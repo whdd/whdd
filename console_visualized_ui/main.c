@@ -28,6 +28,38 @@ static void show_smart_attrs(DC_Dev *dev);
 static void set_hpa_dialog(DC_Dev *dev);
 void log_cb(enum DC_LogLevel level, const char* fmt, va_list vl);
 
+static int ask_option_value(DC_OptionSetting *setting, DC_ProcedureOption *option) {
+    char *suggested_value;
+    char entered_value[200];
+    const char *param_type_str;
+    switch (option->type) {
+        case DC_ProcedureOptionType_eInt64:
+            param_type_str = "numeric";
+            asprintf(&suggested_value, "%"PRId64, option->default_val.i64);
+            break;
+        case DC_ProcedureOptionType_eString:
+            param_type_str = "string";
+            asprintf(&suggested_value, "%s", option->default_val.str);
+            break;
+    }
+    char prompt[200];
+    snprintf(prompt, sizeof(prompt), "Please enter %s parameter: %s (%s)",
+            param_type_str, option->name, option->help);
+
+    int r = dialog_inputbox("Input box", prompt, 0, 0, suggested_value, 0);
+    if (r != 0) {
+        dialog_msgbox("Info", "Action cancelled", 0, 0, 1);
+        return 1;
+    }
+    // Wow, libdialog is awesomely sane and brilliantly documented lib, i fuckin love it
+    snprintf(entered_value, sizeof(entered_value), "%s", dialog_vars.input_result);
+    if (entered_value[0] == '\0' || entered_value[0] == '\n')
+        snprintf(entered_value, sizeof(entered_value), "%s", suggested_value);
+    setting->value = strdup(entered_value);
+    free(suggested_value);
+    return 0;
+}
+
 int main() {
     int r;
     dialog_vars.default_button = -1;
@@ -87,8 +119,19 @@ int main() {
                 if (/* No */ r)
                     break;
             }
+            DC_OptionSetting *option_set = calloc(act->options_num + 1, sizeof(DC_OptionSetting));
+            int i;
+            r = 0;
+            for (i = 0; i < act->options_num; i++) {
+                option_set[i].name = act->options[i].name;
+                r = ask_option_value(&option_set[i], &act->options[i]);
+                if (r)
+                    break;
+            }
+            if (r)
+                break;
             DC_ProcedureCtx *actctx;
-            r = dc_procedure_open(act, chosen_dev, &actctx, NULL);
+            r = dc_procedure_open(act, chosen_dev, &actctx, option_set);
             if (r) {
                 dialog_msgbox("Error", "Procedure init fail", 0, 0, 1);
                 continue;
