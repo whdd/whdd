@@ -4,13 +4,37 @@
 #include "libdevcheck.h"
 #include "device.h"
 #include <pthread.h>
+#include <stddef.h>
 
 #define DC_PROC_FLAG_DESTRUCTIVE 1
+
+typedef enum {
+    DC_ProcedureOptionType_eInt64,
+    DC_ProcedureOptionType_eString,
+} DC_ProcedureOptionType;
+
+typedef struct dc_procedure_option {
+    const char *name;
+    const char *help;
+    int offset;
+    DC_ProcedureOptionType type;
+    union {
+        int64_t i64;
+        const char *str;
+    } default_val;
+} DC_ProcedureOption;
+
+typedef struct dc_option_set {
+    const char *name;
+    const char *value;
+} DC_OptionSet;
 
 struct dc_procedure {
     char *name;
     char *long_name;
     int flags;  // For DC_PROC_FLAG_*
+    DC_ProcedureOption *options;
+    int options_num;
     int priv_data_size;
     int (*open)(DC_ProcedureCtx *procedure);
     int (*perform)(DC_ProcedureCtx *ctx);
@@ -54,7 +78,7 @@ struct dc_procedure_ctx {
     } report; // updated by procedure on .perform()
 };
 
-int dc_procedure_open(DC_Procedure *procedure, DC_Dev *dev, DC_ProcedureCtx **ctx);
+int dc_procedure_open(DC_Procedure *procedure, DC_Dev *dev, DC_ProcedureCtx **ctx, DC_OptionSet options[]);
 int dc_procedure_perform(DC_ProcedureCtx *ctx);
 void dc_procedure_close(DC_ProcedureCtx *ctx);
 

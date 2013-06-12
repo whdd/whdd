@@ -77,7 +77,7 @@ int main() {
                         break;
                 }
                 DC_ProcedureCtx *actctx;
-                r = dc_procedure_open(act, chosen_dev, &actctx);
+                r = dc_procedure_open(act, chosen_dev, &actctx, NULL);
                 if (r) {
                     printf("Procedure init fail\n");
                     return 1;

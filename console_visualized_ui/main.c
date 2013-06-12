@@ -88,7 +88,7 @@ int main() {
                     break;
             }
             DC_ProcedureCtx *actctx;
-            r = dc_procedure_open(act, chosen_dev, &actctx);
+            r = dc_procedure_open(act, chosen_dev, &actctx, NULL);
             if (r) {
                 dialog_msgbox("Error", "Procedure init fail", 0, 0, 1);
                 continue;

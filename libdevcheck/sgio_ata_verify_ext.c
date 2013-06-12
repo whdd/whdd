@@ -16,6 +16,9 @@
 #include "scsi.h"
 
 typedef struct verify_priv {
+    int64_t start_lba;
+    int64_t end_lba;
+    int64_t lba_to_process;
     int fd;
 } VerifyPriv;
 
@@ -26,8 +29,11 @@ static int Open(DC_ProcedureCtx *ctx) {
 
     // Setting context
     ctx->blk_size = BLK_SIZE;
-    ctx->progress.den = ctx->dev->capacity / ctx->blk_size;
-    if (ctx->dev->capacity % ctx->blk_size)
+    ctx->current_lba = priv->start_lba;
+    priv->end_lba = ctx->dev->capacity / 512;
+    priv->lba_to_process = priv->end_lba - priv->start_lba;
+    ctx->progress.den = priv->lba_to_process / SECTORS_AT_ONCE;
+    if (priv->lba_to_process % SECTORS_AT_ONCE)
         ctx->progress.den++;
 
     priv->fd = open(ctx->dev->dev_path, O_RDWR);
@@ -42,6 +48,7 @@ static int Perform(DC_ProcedureCtx *ctx) {
     VerifyPriv *priv = ctx->priv;
     struct timespec pre, post;
     int ioctl_ret;
+    int sectors_to_read = (priv->lba_to_process < SECTORS_AT_ONCE) ? priv->lba_to_process : SECTORS_AT_ONCE;
     int r;
 
     // Updating context
@@ -53,7 +60,7 @@ static int Perform(DC_ProcedureCtx *ctx) {
 
     // Acting
     AtaCommand ata_command;
-    prepare_ata_command(&ata_command, WIN_VERIFY_EXT /* 42h */, ctx->current_lba, SECTORS_AT_ONCE);
+    prepare_ata_command(&ata_command, WIN_VERIFY_EXT /* 42h */, ctx->current_lba, sectors_to_read);
     ScsiCommand scsi_command;
     prepare_scsi_command_from_ata(&scsi_command, &ata_command);
     ioctl_ret = ioctl(priv->fd, SG_IO, &scsi_command);
@@ -106,7 +113,8 @@ static int Perform(DC_ProcedureCtx *ctx) {
 
     // Updating context
     ctx->progress.num++;
-    ctx->current_lba += SECTORS_AT_ONCE;
+    priv->lba_to_process -= sectors_to_read;
+    ctx->current_lba += sectors_to_read;
     // SG_IO builtin timing figured out to be worse that clock_gettime()
     //ctx->report.blk_access_time = scsi_command.io_hdr.duration * 1000;
     ctx->report.blk_access_time = (post.tv_sec - pre.tv_sec) * 1000000 +
@@ -120,6 +128,11 @@ static void Close(DC_ProcedureCtx *ctx) {
     close(priv->fd);
 }
 
+static DC_ProcedureOption options[] = {
+    { "start_lba", "set LBA address to begin from", offsetof(VerifyPriv, start_lba), DC_ProcedureOptionType_eInt64, { .i64 = 0 } },
+    { NULL }
+};
+
 DC_Procedure sgio_ata_verify_ext = {
     .name = "ata_verify_ext",
     .long_name = "Test using ATA command READ VERIFY EXT",
@@ -127,5 +140,6 @@ DC_Procedure sgio_ata_verify_ext = {
     .perform = Perform,
     .close = Close,
     .priv_data_size = sizeof(VerifyPriv),
+    .options = options,
 };
 
