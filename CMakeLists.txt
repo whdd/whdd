@@ -18,46 +18,43 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
 	set(WHDD_VERSION "${WHDD_VERSION}-g${WHDD_REVISION}")
 endif(EXISTS "${CMAKE_SOURCE_DIR}/.git")
 
-set(CLI_DIR cli)
 set(CLI_SRCS
-	${CLI_DIR}/main.c
+	cli/main.c
 	ui_mutual.c
 )
 
-set(CUI_DIR cui)
 set(CUI_SRCS
-	${CUI_DIR}/dialog_convenience.c
-	${CUI_DIR}/main.c
-	${CUI_DIR}/render.c
-	${CUI_DIR}/ncurses_convenience.c
-	${CUI_DIR}/vis.c
+	cui/dialog_convenience.c
+	cui/main.c
+	cui/render.c
+	cui/ncurses_convenience.c
+	cui/vis.c
 	ui_mutual.c
 )
 
-set(LIBDEVCHECK_DIR libdevcheck)
 set(LIBDEVCHECK_SRCS
-	${LIBDEVCHECK_DIR}/procedure.c
-	${LIBDEVCHECK_DIR}/libdevcheck.c
-	${LIBDEVCHECK_DIR}/posix_read.c
-	${LIBDEVCHECK_DIR}/utils.c
-	${LIBDEVCHECK_DIR}/posix_write_zeros.c
-	${LIBDEVCHECK_DIR}/log.c
-	${LIBDEVCHECK_DIR}/sgio_ata_verify_ext.c
-	${LIBDEVCHECK_DIR}/ata.c
-	${LIBDEVCHECK_DIR}/scsi.c
+	libdevcheck/procedure.c
+	libdevcheck/libdevcheck.c
+	libdevcheck/posix_read.c
+	libdevcheck/utils.c
+	libdevcheck/posix_write_zeros.c
+	libdevcheck/log.c
+	libdevcheck/sgio_ata_verify_ext.c
+	libdevcheck/ata.c
+	libdevcheck/scsi.c
 )
 
 include_directories(
-	${CLI_DIR}
-	${CUI_DIR}
-	${LIBDEVCHECK_DIR}
-	${CMAKE_CURRENT_BINARY_DIR}
+	cli
+	cui
+	libdevcheck
+	.
 )
 
 include(CheckSymbolExists)
 check_symbol_exists(CLOCK_MONOTONIC_RAW "time.h" HAVE_CLOCK_MONOTONIC_RAW)
-configure_file(${LIBDEVCHECK_DIR}/config.h.in
-	${CMAKE_CURRENT_BINARY_DIR}/config.h)
+configure_file(libdevcheck/config.h.in
+	./config.h)
 
 set_source_files_properties(version.h PROPERTIES GENERATED true HEADER_FILE_ONLY TRUE)
 add_custom_target(version ALL)
