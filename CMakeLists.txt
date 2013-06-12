@@ -42,6 +42,7 @@ set(LIBDEVCHECK_SRCS
 	libdevcheck/sgio_ata_verify_ext.c
 	libdevcheck/ata.c
 	libdevcheck/scsi.c
+	libdevcheck/copy.c
 )
 
 include_directories(
