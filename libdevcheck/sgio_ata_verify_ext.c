@@ -121,8 +121,8 @@ static void Close(DC_ProcedureCtx *ctx) {
 }
 
 DC_Procedure sgio_ata_verify_ext = {
-    .name = "sgio_ata_verify_ext",
-    .long_name = "Test surface for reading, using ATA command VERIFY EXT, via ioctl(SG_IO)",
+    .name = "ata_verify_ext",
+    .long_name = "Test using ATA command READ VERIFY EXT",
     .open = Open,
     .perform = Perform,
     .close = Close,

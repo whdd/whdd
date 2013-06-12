@@ -63,7 +63,6 @@ int main() {
             case CliAction_eProcRead:
             case CliAction_eProcWriteZeros:
             case CliAction_eProcVerify:
-            case CliAction_eProcHdioVerify:
             {
                 char *act_name = actions[action].name;
                 DC_Procedure *act = dc_find_procedure(act_name);

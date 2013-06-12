@@ -47,7 +47,6 @@ set(LIBDEVCHECK_SRCS
 	${LIBDEVCHECK_DIR}/sgio_ata_verify_ext.c
 	${LIBDEVCHECK_DIR}/ata.c
 	${LIBDEVCHECK_DIR}/scsi.c
-	${LIBDEVCHECK_DIR}/hdio_ata_verify.c
 )
 
 include_directories(
