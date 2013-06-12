@@ -7,7 +7,7 @@ void ui_dev_descr_format(char *buf, int bufsize, DC_Dev *dev) {
     char cap_buf[30];
     char native_cap_buf[30];
     char *cap_print, *native_cap_print, *primary_cap_print;  // TODO fix weird commaprint behaviour
-    cap_print = commaprint(dev->capacity, cap_buf, sizeof(cap_buf));
+    primary_cap_print = cap_print = commaprint(dev->capacity, cap_buf, sizeof(cap_buf));
     native_cap_print = commaprint(dev->native_capacity, native_cap_buf, sizeof(native_cap_buf));
 
     char warning[50] = "; no HPA";
