@@ -3,7 +3,7 @@ project(whdd)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
 
-set(CMAKE_C_FLAGS "-pthread -Wall -Wextra ${CFLAGS}")
+set(CMAKE_C_FLAGS "-std=gnu99 -pthread -Wall -Wextra -Wno-missing-field-initializers ${CFLAGS}")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS}")
 set(CMAKE_C_FLAGS_DEBUG "-O0 -g -ggdb ${CMAKE_C_FLAGS}")
 
