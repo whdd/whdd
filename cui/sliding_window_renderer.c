@@ -224,18 +224,19 @@ static int HandleReport(DC_RendererCtx *ctx) {
         r = clock_gettime(DC_BEST_CLOCK, &priv->start_time);
         assert(!r);
     } else {
-        if ((actctx->progress.num % 1000) == 0) {
+        if ((actctx->progress.num % 10) == 0) {
             struct timespec now;
             r = clock_gettime(DC_BEST_CLOCK, &now);
             assert(!r);
-            uint64_t time_elapsed = now.tv_sec - priv->start_time.tv_sec;
-            if (time_elapsed > 0) {
-                priv->avg_processing_speed = bytes_processed / time_elapsed; // Byte/s
+            uint64_t time_elapsed_ms = now.tv_sec * 1000 + now.tv_nsec / (1000*1000)
+                - priv->start_time.tv_sec * 1000 - priv->start_time.tv_nsec / (1000*1000);
+            if (time_elapsed_ms > 0) {
+                priv->avg_processing_speed = bytes_processed * 1000 / time_elapsed_ms; // Byte/s
                 // capacity / speed = total_time
                 // total_time = elapsed + eta
                 // eta = total_time - elapsed
                 // eta = capacity / speed  -  elapsed
-                priv->eta_time = actctx->dev->capacity / priv->avg_processing_speed - time_elapsed;
+                priv->eta_time = actctx->dev->capacity / priv->avg_processing_speed - time_elapsed_ms / 1000;
 
             }
         }
