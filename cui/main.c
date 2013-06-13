@@ -138,7 +138,13 @@ int main() {
                 dialog_msgbox("Error", "Procedure init fail", 0, 0, 1);
                 continue;
             }
-            render_procedure(actctx, dc_find_renderer("sliding_window"));
+            DC_Renderer *renderer;
+            if ((chosen_procedure_ind == CliAction_eProcCopy)
+                    || (chosen_procedure_ind == CliAction_eProcCopyDamaged))
+                renderer = dc_find_renderer("whole_space");
+            else
+                renderer = dc_find_renderer("sliding_window");
+            render_procedure(actctx, renderer);
             break;
         }
         default:
@@ -174,6 +180,7 @@ static int global_init(void) {
     r = dc_init();
     assert(!r);
     RENDERER_REGISTER(sliding_window);
+    RENDERER_REGISTER(whole_space);
     dc_log_set_callback(log_cb);
     r = atexit(global_fini);
     assert(r == 0);

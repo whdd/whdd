@@ -30,6 +30,7 @@ set(CUI_SRCS
 	cui/vis.c
 	ui_mutual.c
     cui/sliding_window_renderer.c
+    cui/whole_space_renderer.c
 )
 
 set(LIBDEVCHECK_SRCS
