@@ -7,6 +7,8 @@
 #include "dialog_convenience.h"
 
 static void *render_thread_proc(void *arg);
+static void blk_rep_write_finalize(render_priv_t *this, blk_report_t *rep);
+static blk_report_t *blk_rep_get_next_for_write(render_priv_t *this);
 
 static render_priv_t *render_priv_prepare(DC_ProcedureCtx *actctx) {
     render_priv_t *this = calloc(1, sizeof(*this));
@@ -62,7 +64,7 @@ static render_priv_t *render_priv_prepare(DC_ProcedureCtx *actctx) {
 static void render_update_vis(render_priv_t *this, blk_report_t *rep);
 static void render_update_stats(render_priv_t *this);
 
-blk_report_t *blk_rep_get_next_for_write(render_priv_t *this) {
+static blk_report_t *blk_rep_get_next_for_write(render_priv_t *this) {
     blk_report_t *rep = &this->reports[
         (this->next_report_seqno_write) % (sizeof(this->reports) / sizeof(this->reports[0]))
         ];
@@ -70,7 +72,7 @@ blk_report_t *blk_rep_get_next_for_write(render_priv_t *this) {
     return rep;
 }
 
-void blk_rep_write_finalize(render_priv_t *this, blk_report_t *rep) {
+static void blk_rep_write_finalize(render_priv_t *this, blk_report_t *rep) {
     rep->seqno = this->next_report_seqno_write;
     this->next_report_seqno_write++;
     //fprintf(stderr, "mark %p with seqno %"PRIu64", go to next\n", rep, rep->seqno);
@@ -117,17 +119,17 @@ static void *render_thread_proc(void *arg) {
 }
 
 static void render_update_vis(render_priv_t *this, blk_report_t *rep) {
-    if (rep->blk_status)
+    if (rep->report.blk_status)
     {
-        print_vis(this->vis, error_vis[rep->blk_status]);
-        this->error_stats_accum[rep->blk_status]++;
+        print_vis(this->vis, error_vis[rep->report.blk_status]);
+        this->error_stats_accum[rep->report.blk_status]++;
     }
     else
     {
-        print_vis(this->vis, choose_vis(rep->access_time));
+        print_vis(this->vis, choose_vis(rep->report.blk_access_time));
         unsigned int i;
         for (i = 0; i < 5; i++)
-            if (rep->access_time < bs_vis[i].access_time) {
+            if (rep->report.blk_access_time < bs_vis[i].access_time) {
                 this->access_time_stats_accum[i]++;
                 break;
             }
@@ -225,8 +227,7 @@ static int handle_reports(DC_ProcedureCtx *ctx, void *callback_priv) {
     // enqueue block report
     blk_report_t *rep = blk_rep_get_next_for_write(priv);
     assert(rep);
-    rep->blk_status = ctx->report.blk_status;
-    rep->access_time = ctx->report.blk_access_time;
+    rep->report = ctx->report;
     blk_rep_write_finalize(priv, rep);
     //fprintf(stderr, "finalized %"PRIu64"\n", priv->next_report_seqno_write-1);
 

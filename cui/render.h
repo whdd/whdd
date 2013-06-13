@@ -11,8 +11,7 @@
 
 typedef struct blk_report {
     uint64_t seqno;
-    DC_BlockStatus blk_status;
-    unsigned int access_time;
+    DC_BlockReport report;
 } blk_report_t;
 
 typedef struct render_priv {
@@ -45,8 +44,6 @@ typedef struct render_priv {
     uint64_t next_report_seqno_read;
 } render_priv_t;
 
-void blk_rep_write_finalize(render_priv_t *this, blk_report_t *rep);
-blk_report_t *blk_rep_get_next_for_write(render_priv_t *this);
 int render_procedure(DC_ProcedureCtx *actctx);
 
 #endif // RENDER_H
