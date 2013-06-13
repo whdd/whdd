@@ -26,10 +26,10 @@ set(CLI_SRCS
 set(CUI_SRCS
 	cui/dialog_convenience.c
 	cui/main.c
-	cui/render.c
 	cui/ncurses_convenience.c
 	cui/vis.c
 	ui_mutual.c
+    cui/sliding_window_renderer.c
 )
 
 set(LIBDEVCHECK_SRCS
@@ -44,6 +44,7 @@ set(LIBDEVCHECK_SRCS
 	libdevcheck/scsi.c
 	libdevcheck/copy.c
 	libdevcheck/copy_damaged.c
+    libdevcheck/render.c
 )
 
 include_directories(

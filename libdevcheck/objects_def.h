@@ -14,4 +14,7 @@ typedef struct dc_procedure DC_Procedure;
 struct dc_procedure_ctx;
 typedef struct dc_procedure_ctx DC_ProcedureCtx;
 
+typedef struct dc_renderer DC_Renderer;
+typedef struct dc_renderer_ctx DC_RendererCtx;
+
 #endif // OBJECTS_DEF_H

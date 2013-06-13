@@ -78,6 +78,7 @@ struct dc_procedure_ctx {
     // TODO interrupt is now meant for loop, think of interrupting blocking perform operation
     int finished; // if 1, then looped processing has finished
     DC_BlockReport report; // updated by procedure on .perform()
+    void *user_priv;  // pointer to user interface private data
 };
 
 int dc_procedure_open(DC_Procedure *procedure, DC_Dev *dev, DC_ProcedureCtx **ctx, DC_OptionSetting options[]);
