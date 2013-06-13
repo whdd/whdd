@@ -16,6 +16,7 @@ typedef struct blk_report {
 } blk_report_t;
 
 typedef struct render_priv {
+    DC_ProcedureCtx *procedure_ctx;
     WINDOW *legend; // not for updating, just to free afterwards
     WINDOW *vis; // window to print vis-char for each block
     WINDOW *access_time_stats;
@@ -43,8 +44,6 @@ typedef struct render_priv {
     uint64_t next_report_seqno_write;
     uint64_t next_report_seqno_read;
 } render_priv_t;
-
-extern render_priv_t *render_ctx_global;
 
 void blk_rep_write_finalize(render_priv_t *this, blk_report_t *rep);
 blk_report_t *blk_rep_get_next_for_write(render_priv_t *this);

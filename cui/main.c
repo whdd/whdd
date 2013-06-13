@@ -275,11 +275,13 @@ static void set_hpa_dialog(DC_Dev *dev) {
 void log_cb(enum DC_LogLevel level, const char* fmt, va_list vl) {
     char *msg = dc_log_default_form_string(level, fmt, vl);
     assert(msg);
+#if 0  // TODO
     if (render_ctx_global) {
         wprintw(render_ctx_global->w_log, "%s", msg);
         wrefresh(render_ctx_global->w_log);
     } else {
         dialog_msgbox("Internal message", msg, 0, 0, 1);
     }
+#endif
     free(msg);
 }

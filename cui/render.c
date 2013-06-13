@@ -6,12 +6,13 @@
 #include "ncurses_convenience.h"
 #include "dialog_convenience.h"
 
-render_priv_t *render_ctx_global = NULL;
+static void *render_thread_proc(void *arg);
 
-static render_priv_t *render_priv_prepare(void) {
+static render_priv_t *render_priv_prepare(DC_ProcedureCtx *actctx) {
     render_priv_t *this = calloc(1, sizeof(*this));
     if (!this)
         return NULL;
+    this->procedure_ctx = actctx;
     this->legend = derwin(stdscr, 11 /* legend win height */, LEGEND_WIDTH/2, 4, COLS-LEGEND_WIDTH); // leave 1st and last lines untouched
     assert(this->legend);
     this->access_time_stats = derwin(stdscr, 11 /* height */, LEGEND_WIDTH/2, 4, COLS-LEGEND_WIDTH/2);
@@ -43,6 +44,18 @@ static render_priv_t *render_priv_prepare(void) {
 
     this->reports[0].seqno = 1; // anything but zero
 
+    char comma_lba_buf[30], *comma_lba_p;
+    comma_lba_p = commaprint(actctx->dev->capacity / 512, comma_lba_buf, sizeof(comma_lba_buf));
+    wprintw(this->w_end_lba, "/ %s", comma_lba_p);
+    wnoutrefresh(this->w_end_lba);
+    wprintw(this->summary,
+            "%s %s bs=%d\n"
+            "Ctrl+C to abort\n",
+            actctx->procedure->name, actctx->dev->dev_path, actctx->blk_size);
+    wrefresh(this->summary);
+    int r = pthread_create(&this->render_thread, NULL, render_thread_proc, this);
+    if (r)
+        return NULL; // FIXME leak
     return this;
 }
 
@@ -156,6 +169,16 @@ static void render_update_stats(render_priv_t *this) {
 }
 
 void render_priv_destroy(render_priv_t *this) {
+    this->order_hangup = 1;
+    pthread_join(this->render_thread, NULL);
+    if (this->procedure_ctx->interrupt)
+        wprintw(this->summary, "Aborted.\n");
+    else
+        wprintw(this->summary, "Completed.\n");
+    wprintw(this->summary, "Press any key");
+    wrefresh(this->summary);
+    beep();
+    getch();
     delwin(this->legend);
     delwin(this->access_time_stats);
     delwin(this->vis);
@@ -212,34 +235,10 @@ static int handle_reports(DC_ProcedureCtx *ctx, void *callback_priv) {
 
 int render_procedure(DC_ProcedureCtx *actctx) {
     int r;
-    render_priv_t *windows = render_priv_prepare();
-    char comma_lba_buf[30], *comma_lba_p;
-    comma_lba_p = commaprint(actctx->dev->capacity / 512, comma_lba_buf, sizeof(comma_lba_buf));
-    wprintw(windows->w_end_lba, "/ %s", comma_lba_p);
-    wnoutrefresh(windows->w_end_lba);
-    wprintw(windows->summary,
-            "%s %s bs=%d\n"
-            "Ctrl+C to abort\n",
-            actctx->procedure->name, actctx->dev->dev_path, actctx->blk_size);
-    wrefresh(windows->summary);
-    render_ctx_global = windows;
-    r = pthread_create(&windows->render_thread, NULL, render_thread_proc, windows);
-    if (r)
-        return r; // FIXME leak
+    render_priv_t *windows = render_priv_prepare(actctx);
     r = procedure_perform_until_interrupt(actctx, handle_reports, (void*)windows);
     if (r)
         return r;
-    windows->order_hangup = 1;
-    pthread_join(windows->render_thread, NULL);
-    if (actctx->interrupt)
-        wprintw(windows->summary, "Aborted.\n");
-    else
-        wprintw(windows->summary, "Completed.\n");
-    wprintw(windows->summary, "Press any key");
-    wrefresh(windows->summary);
-    beep();
-    getch();
     render_priv_destroy(windows);
-    render_ctx_global = NULL;
     return 0;
 }
