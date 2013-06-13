@@ -61,6 +61,12 @@ typedef enum {
     // More to come with details from low-level drive commands
 } DC_BlockStatus;
 
+typedef struct dc_block_report {
+    uint64_t lba;
+    uint64_t blk_access_time; // in mcs
+    DC_BlockStatus blk_status;
+} DC_BlockReport;
+
 struct dc_procedure_ctx {
     void* priv; // for procedure private context
     DC_Dev *dev; // device which is operated
@@ -71,12 +77,7 @@ struct dc_procedure_ctx {
     int interrupt; // if set to 1 by frontend, then looped processing must stop
     // TODO interrupt is now meant for loop, think of interrupting blocking perform operation
     int finished; // if 1, then looped processing has finished
-
-    struct dc_test_report {
-        uint64_t lba;
-        uint64_t blk_access_time; // in mcs
-        DC_BlockStatus blk_status;
-    } report; // updated by procedure on .perform()
+    DC_BlockReport report; // updated by procedure on .perform()
 };
 
 int dc_procedure_open(DC_Procedure *procedure, DC_Dev *dev, DC_ProcedureCtx **ctx, DC_OptionSetting options[]);
