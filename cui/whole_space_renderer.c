@@ -35,6 +35,7 @@ typedef struct {
     struct timespec start_time;
     uint64_t access_time_stats_accum[6];
     uint64_t error_stats_accum[6]; // 0th is unused, the rest are as in DC_BlockStatus enum
+    uint64_t bytes_processed;
     uint64_t avg_processing_speed;
     uint64_t eta_time; // estimated time
     uint64_t cur_lba;
@@ -260,9 +261,9 @@ static int HandleReport(DC_RendererCtx *ctx) {
     WholeSpace *priv = ctx->priv;
     DC_ProcedureCtx *actctx = ctx->procedure_ctx;
 
-    uint64_t bytes_processed = actctx->report.lba * 512;
-    if (bytes_processed > actctx->dev->capacity)
-        bytes_processed = actctx->dev->capacity;
+    priv->bytes_processed += actctx->blk_size;
+    if (priv->bytes_processed > actctx->dev->capacity)
+        priv->bytes_processed = actctx->dev->capacity;
     priv->cur_lba = actctx->report.lba;
 
     if (actctx->progress.num == 1) {  // TODO fix priv hack
@@ -275,7 +276,7 @@ static int HandleReport(DC_RendererCtx *ctx) {
             assert(!r);
             uint64_t time_elapsed = now.tv_sec - priv->start_time.tv_sec;
             if (time_elapsed > 0) {
-                priv->avg_processing_speed = bytes_processed / time_elapsed; // Byte/s
+                priv->avg_processing_speed = priv->bytes_processed / time_elapsed; // Byte/s
                 // capacity / speed = total_time
                 // total_time = elapsed + eta
                 // eta = total_time - elapsed
