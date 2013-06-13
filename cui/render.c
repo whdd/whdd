@@ -196,10 +196,10 @@ static int handle_reports(DC_ProcedureCtx *ctx, void *callback_priv) {
     int r;
     render_priv_t *priv = callback_priv;
 
-    uint64_t bytes_processed = ctx->current_lba * 512;
+    uint64_t bytes_processed = ctx->report.lba * 512;
     if (bytes_processed > ctx->dev->capacity)
         bytes_processed = ctx->dev->capacity;
-    priv->cur_lba = ctx->current_lba;
+    priv->cur_lba = ctx->report.lba;
 
     if (ctx->progress.num == 1) {  // TODO fix this hack
         r = clock_gettime(DC_BEST_CLOCK, &priv->start_time);

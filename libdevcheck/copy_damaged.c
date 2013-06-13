@@ -48,7 +48,6 @@ static int Open(DC_ProcedureCtx *ctx) {
 
     // Setting context
     ctx->blk_size = BLK_SIZE;
-    ctx->current_lba = priv->start_lba;
     priv->end_lba = ctx->dev->capacity / 512;
     priv->lba_to_process = priv->end_lba - priv->start_lba;
     ctx->progress.den = priv->lba_to_process / SECTORS_AT_ONCE;
@@ -201,6 +200,7 @@ static int Perform(DC_ProcedureCtx *ctx) {
     assert(!r);
     lseek(priv->src_fd, 512 * lba_to_read, SEEK_SET);
     lseek(priv->dst_fd, 512 * lba_to_read, SEEK_SET);
+    ctx->report.lba = lba_to_read;
     ctx->report.blk_status = DC_BlockStatus_eOk;
     priv->blk_index++;
 
@@ -240,7 +240,6 @@ static int Perform(DC_ProcedureCtx *ctx) {
     assert(!r);
     ctx->progress.num++;
     priv->lba_to_process -= sectors_to_read;
-    ctx->current_lba = lba_to_read;
     ctx->report.blk_access_time = (post.tv_sec - pre.tv_sec) * 1000000 +
         (post.tv_nsec - pre.tv_nsec) / 1000;
 

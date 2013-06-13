@@ -144,7 +144,7 @@ static int proc_render_cb(DC_ProcedureCtx *ctx, void *callback_priv) {
                 ctx->dev->dev_fs_name, ctx->blk_size);
     }
     printf("LBA #%"PRIu64" %s in %"PRIu64" mcs. Progress %"PRIu64"/%"PRIu64"\n",
-            ctx->current_lba,
+            ctx->report.lba,
             ctx->report.blk_status == 0 ? "OK" : "FAILED",
             ctx->report.blk_access_time,
             ctx->progress.num, ctx->progress.den);

@@ -19,6 +19,7 @@ typedef struct verify_priv {
     int64_t start_lba;
     int64_t end_lba;
     int64_t lba_to_process;
+    int64_t current_lba;
     int fd;
 } VerifyPriv;
 
@@ -29,7 +30,7 @@ static int Open(DC_ProcedureCtx *ctx) {
 
     // Setting context
     ctx->blk_size = BLK_SIZE;
-    ctx->current_lba = priv->start_lba;
+    priv->current_lba = priv->start_lba;
     priv->end_lba = ctx->dev->capacity / 512;
     priv->lba_to_process = priv->end_lba - priv->start_lba;
     ctx->progress.den = priv->lba_to_process / SECTORS_AT_ONCE;
@@ -52,6 +53,7 @@ static int Perform(DC_ProcedureCtx *ctx) {
     int r;
 
     // Updating context
+    ctx->report.lba = priv->current_lba;
     ctx->report.blk_status = DC_BlockStatus_eOk;
 
     // Timing
@@ -60,7 +62,7 @@ static int Perform(DC_ProcedureCtx *ctx) {
 
     // Acting
     AtaCommand ata_command;
-    prepare_ata_command(&ata_command, WIN_VERIFY_EXT /* 42h */, ctx->current_lba, sectors_to_read);
+    prepare_ata_command(&ata_command, WIN_VERIFY_EXT /* 42h */, priv->current_lba, sectors_to_read);
     ScsiCommand scsi_command;
     prepare_scsi_command_from_ata(&scsi_command, &ata_command);
     ioctl_ret = ioctl(priv->fd, SG_IO, &scsi_command);
@@ -114,7 +116,7 @@ static int Perform(DC_ProcedureCtx *ctx) {
     // Updating context
     ctx->progress.num++;
     priv->lba_to_process -= sectors_to_read;
-    ctx->current_lba += sectors_to_read;
+    priv->current_lba += sectors_to_read;
     // SG_IO builtin timing figured out to be worse that clock_gettime()
     //ctx->report.blk_access_time = scsi_command.io_hdr.duration * 1000;
     ctx->report.blk_access_time = (post.tv_sec - pre.tv_sec) * 1000000 +
