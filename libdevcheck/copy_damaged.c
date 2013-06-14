@@ -258,7 +258,7 @@ static void Close(DC_ProcedureCtx *ctx) {
 
 static DC_ProcedureOption options[] = {
     //{ "start_lba", "set LBA address to begin from", offsetof(CopyDamagedPriv, start_lba), DC_ProcedureOptionType_eInt64, { .i64 = 0 } },
-    { "dst_file", "set destination file path", offsetof(CopyDamagedPriv, dst_file), DC_ProcedureOptionType_eString, { .str = "" } },
+    { "dst_file", "set destination file path", offsetof(CopyDamagedPriv, dst_file), DC_ProcedureOptionType_eString, { .str = "/dev/null" } },
     { NULL }
 };
 
