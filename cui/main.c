@@ -226,7 +226,7 @@ static int menu_choose_procedure(DC_Dev *dev) {
     char *items[n_actions * 2];
     int i;
     for (i = 0; i < n_actions; i++)
-        items[2*i+1] = actions[i].name;
+        items[2*i+1] = actions[i].display_name;
     // this fuckin libdialog makes me code crappy
     for (i = 0; i < n_actions; i++)
         items[2*i] = "";

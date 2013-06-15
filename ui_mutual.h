@@ -19,15 +19,16 @@ typedef enum {
 static struct action {
     CliAction menu_number;
     char name[50];
+    char display_name[50];
 } actions[] = {
-    { CliAction_eExit,           "Exit" },
-    { CliAction_eShowSmart,      "Show SMART attributes" },
-    { CliAction_eSetHpa,         "Setup Hidden Protected Area" },
-    { CliAction_eProcRead,       "read_test" },
-    { CliAction_eProcWriteZeros, "posix_write_zeros" },
-    { CliAction_eProcCopy,       "copy" },
-    { CliAction_eProcCopyDamaged,"copy_damaged" },
-    { CliAction_eInvalid,        "" }
+    { CliAction_eExit,           "",                  "Exit" },
+    { CliAction_eShowSmart,      "",                  "Show SMART attributes" },
+    { CliAction_eSetHpa,         "",                  "Setup Hidden Protected Area" },
+    { CliAction_eProcRead,       "read_test",         "Read test" },
+    { CliAction_eProcWriteZeros, "posix_write_zeros", "Write zeros" },
+    { CliAction_eProcCopy,       "copy",              "Straight device copying" },
+    { CliAction_eProcCopyDamaged,"copy_damaged",      "Smart device copying" },
+    { CliAction_eInvalid,        "", "" }
 };
 
 static const int n_actions = CliAction_eAfterMaxValidIndex;

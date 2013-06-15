@@ -156,7 +156,7 @@ CliAction request_and_get_cli_action() {
     printf("\nChoose action #:\n");
     int i;
     for (i = 0; i < CliAction_eAfterMaxValidIndex; i++)
-        printf("%d) %s\n", (int)actions[i].menu_number, actions[i].name);
+        printf("%d) %s\n", (int)actions[i].menu_number, actions[i].display_name);
     char input[10];
     int chosen_action_ind;
     char *char_ret = fgets(input, sizeof(input), stdin);
