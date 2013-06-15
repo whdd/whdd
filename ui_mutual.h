@@ -7,13 +7,13 @@
 typedef enum {
     CliAction_eInvalid = -1,
     CliAction_eExit = 0,
-    CliAction_eShowSmart = 1,
-    CliAction_eSetHpa = 2,
-    CliAction_eProcRead = 3,
-    CliAction_eProcWriteZeros = 4,
-    CliAction_eProcCopy = 5,
-    CliAction_eProcCopyDamaged = 6,
-    CliAction_eMaxValidIndex = 6,
+    CliAction_eShowSmart,
+    CliAction_eSetHpa,
+    CliAction_eProcRead,
+    CliAction_eProcWriteZeros,
+    CliAction_eProcCopy,
+    CliAction_eProcCopyDamaged,
+    CliAction_eAfterMaxValidIndex,
 } CliAction;
 
 static struct action {
@@ -30,7 +30,7 @@ static struct action {
     { CliAction_eInvalid,        "" }
 };
 
-static const int n_actions = CliAction_eMaxValidIndex + 1;
+static const int n_actions = CliAction_eAfterMaxValidIndex;
 
 void ui_dev_descr_format(char *buf, int bufsize, DC_Dev *dev);
 

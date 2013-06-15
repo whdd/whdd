@@ -155,7 +155,7 @@ CliAction request_and_get_cli_action() {
     // print procedures list
     printf("\nChoose action #:\n");
     int i;
-    for (i = 0; i <= CliAction_eMaxValidIndex; i++)
+    for (i = 0; i < CliAction_eAfterMaxValidIndex; i++)
         printf("%d) %s\n", (int)actions[i].menu_number, actions[i].name);
     char input[10];
     int chosen_action_ind;
@@ -163,7 +163,7 @@ CliAction request_and_get_cli_action() {
     if (!char_ret)
         return CliAction_eInvalid;
     int r = sscanf(input, "%d", &chosen_action_ind);
-    if (r != 1 || chosen_action_ind < 0 || chosen_action_ind > CliAction_eMaxValidIndex)
+    if (r != 1 || chosen_action_ind < 0 || chosen_action_ind >= CliAction_eAfterMaxValidIndex)
         return CliAction_eInvalid;
     return (CliAction)chosen_action_ind;
 }
