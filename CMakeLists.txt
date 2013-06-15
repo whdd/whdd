@@ -36,11 +36,10 @@ set(CUI_SRCS
 set(LIBDEVCHECK_SRCS
 	libdevcheck/procedure.c
 	libdevcheck/libdevcheck.c
-	libdevcheck/posix_read.c
+	libdevcheck/read_test.c
 	libdevcheck/utils.c
 	libdevcheck/posix_write_zeros.c
 	libdevcheck/log.c
-	libdevcheck/sgio_ata_verify_ext.c
 	libdevcheck/ata.c
 	libdevcheck/scsi.c
 	libdevcheck/copy.c

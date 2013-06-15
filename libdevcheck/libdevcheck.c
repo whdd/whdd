@@ -48,9 +48,8 @@ int dc_init(void) {
 #define PROCEDURE_REGISTER(x) { \
         extern DC_Procedure x; \
         dc_procedure_register(&x); }
-    PROCEDURE_REGISTER(posix_read);
+    PROCEDURE_REGISTER(read_test);
     PROCEDURE_REGISTER(posix_write_zeros);
-    PROCEDURE_REGISTER(sgio_ata_verify_ext);
     PROCEDURE_REGISTER(copy);
     PROCEDURE_REGISTER(copy_damaged);
 #undef PROCEDURE_REGISTER

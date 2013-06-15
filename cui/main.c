@@ -103,7 +103,6 @@ int main() {
             break;
         case CliAction_eProcRead:
         case CliAction_eProcWriteZeros:
-        case CliAction_eProcVerify:
         case CliAction_eProcCopy:
         case CliAction_eProcCopyDamaged:
         {

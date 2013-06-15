@@ -11,10 +11,9 @@ typedef enum {
     CliAction_eSetHpa = 2,
     CliAction_eProcRead = 3,
     CliAction_eProcWriteZeros = 4,
-    CliAction_eProcVerify = 5,
-    CliAction_eProcCopy = 6,
-    CliAction_eProcCopyDamaged = 7,
-    CliAction_eMaxValidIndex = 7,
+    CliAction_eProcCopy = 5,
+    CliAction_eProcCopyDamaged = 6,
+    CliAction_eMaxValidIndex = 6,
 } CliAction;
 
 static struct action {
@@ -24,9 +23,8 @@ static struct action {
     { CliAction_eExit,           "Exit" },
     { CliAction_eShowSmart,      "Show SMART attributes" },
     { CliAction_eSetHpa,         "Setup Hidden Protected Area" },
-    { CliAction_eProcRead,       "posix_read" },
+    { CliAction_eProcRead,       "read_test" },
     { CliAction_eProcWriteZeros, "posix_write_zeros" },
-    { CliAction_eProcVerify,     "ata_verify_ext" },
     { CliAction_eProcCopy,       "copy" },
     { CliAction_eProcCopyDamaged,"copy_damaged" },
     { CliAction_eInvalid,        "" }
