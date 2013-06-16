@@ -57,7 +57,7 @@ void dc_log(enum DC_LogLevel level, const char* fmt, ...) {
         return;
     va_list vl;
     va_start(vl, fmt);
-    if (level >= dc_ctx_global->log_level)
+    if (level <= dc_ctx_global->log_level)
         dc_ctx_global->log_func(dc_ctx_global->logger_priv, level, fmt, vl);
     va_end(vl);
 }
