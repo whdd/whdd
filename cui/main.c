@@ -24,7 +24,6 @@ static int global_init(void);
 static void global_fini(void);
 static int menu_choose_device(DC_DevList *devlist);
 static int menu_choose_procedure(DC_Dev *dev);
-static void show_smart_attrs(DC_Dev *dev);
 void log_cb(void *priv, enum DC_LogLevel level, const char* fmt, va_list vl);
 
 static int ask_option_value(DC_OptionSetting *setting, DC_ProcedureOption *option) {
@@ -95,8 +94,6 @@ int main() {
         case CliAction_eExit:
             return 0;
         case CliAction_eShowSmart:
-            show_smart_attrs(chosen_dev);
-            break;
         case CliAction_eSetHpa:
         case CliAction_eProcRead:
         case CliAction_eProcWriteZeros:
@@ -233,15 +230,6 @@ static int menu_choose_procedure(DC_Dev *dev) {
     clear_body();
     int chosen_procedure_ind = my_dialog_menu("Choose procedure", "", 0, 0, 4 * 3, n_actions, items);
     return chosen_procedure_ind;
-}
-
-static void show_smart_attrs(DC_Dev *dev) {
-    char *text;
-    text = dc_dev_smartctl_text(dev->dev_path, " -i -s on -A ");
-    dialog_msgbox("SMART Attributes", text ? : "Getting attrs failed", LINES-6, COLS, 1);
-    if (text)
-        free(text);
-    refresh();
 }
 
 void log_cb(void *priv, enum DC_LogLevel level, const char* fmt, va_list vl) {

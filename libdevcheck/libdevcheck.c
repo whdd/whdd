@@ -53,6 +53,7 @@ int dc_init(void) {
     PROCEDURE_REGISTER(copy);
     PROCEDURE_REGISTER(copy_damaged);
     PROCEDURE_REGISTER(hpa_set);
+    PROCEDURE_REGISTER(smart_show);
 #undef PROCEDURE_REGISTER
     return 0;
 }

@@ -22,7 +22,7 @@ static struct action {
     char display_name[50];
 } actions[] = {
     { CliAction_eExit,           "",                  "Exit" },
-    { CliAction_eShowSmart,      "",                  "Show SMART attributes" },
+    { CliAction_eShowSmart,      "smart_show",        "Show SMART attributes" },
     { CliAction_eSetHpa,         "hpa_set",           "Setup Hidden Protected Area" },
     { CliAction_eProcRead,       "read_test",         "Read test" },
     { CliAction_eProcWriteZeros, "posix_write_zeros", "Write zeros" },

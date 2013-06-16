@@ -77,16 +77,7 @@ int main() {
                 printf("Exiting due to choice\n");
                 return 0;
             }
-            case CliAction_eShowSmart: {
-                char *text;
-                text = dc_dev_smartctl_text(chosen_dev->dev_path, " -i -s on -A ");
-                if (text)
-                    printf("%s\n", text);
-                else
-                    printf("Failed. Check your permissions.\n");
-                free(text);
-                break;
-            }
+            case CliAction_eShowSmart:
             case CliAction_eSetHpa:
             case CliAction_eProcRead:
             case CliAction_eProcWriteZeros:
