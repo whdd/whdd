@@ -48,7 +48,7 @@ int dc_procedure_open(DC_Procedure *procedure, DC_Dev *dev, DC_ProcedureCtx **ct
                 ret = sscanf(setting.value, "%"PRId64, (int64_t*)((uint8_t*)ctx->priv + opt->offset));
                 break;
             case DC_ProcedureOptionType_eString:
-                *((const char**)ctx->priv + opt->offset) = setting.value;
+                *(const char**)((uint8_t*)ctx->priv + opt->offset) = setting.value;
                 break;
         }
     }
@@ -67,7 +67,7 @@ int dc_procedure_open(DC_Procedure *procedure, DC_Dev *dev, DC_ProcedureCtx **ct
                             goto fail_priv;
                         break;
                     case DC_ProcedureOptionType_eString:
-                        *((const char**)ctx->priv + opt->offset) = strdup(options[arg_i].value);
+                        *(const char**)((uint8_t*)ctx->priv + opt->offset) = strdup(options[arg_i].value);
                         break;
                 }
             }
