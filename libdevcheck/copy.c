@@ -12,15 +12,26 @@
 #include <errno.h>
 #include <assert.h>
 #include "procedure.h"
+#include "ata.h"
+#include "scsi.h"
+
+enum Api {
+    Api_eAta,
+    Api_ePosix,
+};
 
 struct copy_priv {
+    const char *api_str;
     const char *dst_file;
+    enum Api api;
     int64_t start_lba;
     int64_t end_lba;
     int64_t lba_to_process;
     int src_fd;
     int dst_fd;
     void *buf;
+    AtaCommand ata_command;
+    ScsiCommand scsi_command;
     int old_readahead;
     uint64_t blk_index;
 };
@@ -30,7 +41,10 @@ typedef struct copy_priv CopyPriv;
 #define BLK_SIZE (SECTORS_AT_ONCE * 512) // FIXME hardcode
 
 static int SuggestDefaultValue(DC_Dev *dev, DC_OptionSetting *setting) {
-    if (!strcmp(setting->name, "dst_file")) {
+    if (!strcmp(setting->name, "api")) {
+        setting->value = strdup("ata");
+        // TODO Really check if ATA should work for dev in realtime
+    } else if (!strcmp(setting->name, "dst_file")) {
         setting->value = strdup("/dev/null");
     } else {
         return 1;
@@ -43,6 +57,12 @@ static int Open(DC_ProcedureCtx *ctx) {
     CopyPriv *priv = ctx->priv;
 
     // Setting context
+    if (!strcmp(priv->api_str, "ata"))
+        priv->api = Api_eAta;
+    else if (!strcmp(priv->api_str, "posix"))
+        priv->api = Api_ePosix;
+    else
+        return 1;
     ctx->blk_size = BLK_SIZE;
     priv->end_lba = ctx->dev->capacity / 512;
     priv->lba_to_process = priv->end_lba - priv->start_lba;
@@ -54,7 +74,8 @@ static int Open(DC_ProcedureCtx *ctx) {
     if (r)
         goto fail_buf;
 
-    priv->src_fd = open(ctx->dev->dev_path, O_RDONLY | O_DIRECT | O_LARGEFILE | O_NOATIME);
+    int open_flags = priv->api == Api_eAta ? O_RDWR : O_RDONLY | O_DIRECT | O_LARGEFILE | O_NOATIME;
+    priv->src_fd = open(ctx->dev->dev_path, open_flags);
     if (priv->src_fd == -1) {
         dc_log(DC_LOG_FATAL, "open %s fail\n", ctx->dev->dev_path);
         goto fail_open;
@@ -92,6 +113,8 @@ fail_buf:
 
 static int Perform(DC_ProcedureCtx *ctx) {
     ssize_t read_ret;
+    int ioctl_ret;
+    int ret = 0;
     CopyPriv *priv = ctx->priv;
     struct timespec pre, post;
     size_t sectors_to_read = (priv->lba_to_process < SECTORS_AT_ONCE) ? priv->lba_to_process : SECTORS_AT_ONCE;
@@ -103,27 +126,94 @@ static int Perform(DC_ProcedureCtx *ctx) {
     ctx->report.blk_status = DC_BlockStatus_eOk;
     priv->blk_index++;
 
+    // Preparing to act
+    if (priv->api == Api_eAta) {
+        memset(&priv->ata_command, 0, sizeof(priv->ata_command));
+        memset(&priv->scsi_command, 0, sizeof(priv->scsi_command));
+        prepare_ata_command(&priv->ata_command, /* WIN_READ_DMA_EXT */ 0x25, ctx->report.lba, sectors_to_read);
+        prepare_scsi_command_from_ata(&priv->scsi_command, &priv->ata_command);
+        priv->scsi_command.io_hdr.dxfer_direction = SG_DXFER_FROM_DEV;
+        priv->scsi_command.io_hdr.dxferp = priv->buf;
+        priv->scsi_command.io_hdr.dxfer_len = ctx->blk_size;
+        priv->scsi_command.scsi_cmd[1] = (6 << 1) + 1;  // DMA protocol + EXTEND bit
+#if 0
+        int i;
+        for (i = 0; i < sizeof(priv->scsi_command.scsi_cmd); i++)
+          fprintf(stderr, "%02hhx", priv->scsi_command.scsi_cmd[i]);
+        fprintf(stderr, "\n");
+#endif
+    }
+
     // Timing
     r = clock_gettime(DC_BEST_CLOCK, &pre);
     assert(!r);
 
     // Acting
-    read_ret = read(priv->src_fd, priv->buf, sectors_to_read * 512);
-
-    // Error handling
-    if (read_ret != sectors_to_read * 512) {
-        error_flag = 1;
-        // Position of fd is undefined. Set fds position to next block
-        lseek(priv->src_fd, 512 * priv->start_lba + ctx->blk_size * priv->blk_index, SEEK_SET);
-        lseek(priv->dst_fd, 512 * priv->start_lba + ctx->blk_size * priv->blk_index, SEEK_SET);
-
-        // Updating context
-        ctx->report.blk_status = DC_BlockStatus_eError;
-    }
+    if (priv->api == Api_eAta)
+        ioctl_ret = ioctl(priv->src_fd, SG_IO, &priv->scsi_command);
+    else
+        read_ret = read(priv->src_fd, priv->buf, sectors_to_read * 512);
 
     // Timing
     r = clock_gettime(DC_BEST_CLOCK, &post);
     assert(!r);
+
+    // Error handling
+    if (priv->api == Api_eAta) {
+        ScsiAtaReturnDescriptor scsi_ata_return;
+        fill_scsi_ata_return_descriptor(&scsi_ata_return, &priv->scsi_command);
+        int sense_key = get_sense_key_from_sense_buffer(priv->scsi_command.sense_buf);
+#if 0
+        fprintf(stderr, "scsi status: %hhu, msg status %hhu, host status %hu, driver status %hu, duration %u, auxinfo %u\n",
+            priv->scsi_command.io_hdr.status,
+            priv->scsi_command.io_hdr.msg_status,
+            priv->scsi_command.io_hdr.host_status,
+            priv->scsi_command.io_hdr.driver_status,
+            priv->scsi_command.io_hdr.duration,
+            priv->scsi_command.io_hdr.info);
+        fprintf(stderr, "sense buffer, in hex: ");
+        int i;
+        for (i = 0; i < sizeof(priv->scsi_command.sense_buf); i++)
+          fprintf(stderr, "%02hhx", priv->scsi_command.sense_buf[i]);
+        fprintf(stderr, "\n");
+        fprintf(stderr, "sense key is %d", sense_key);
+#endif
+
+        // Error handling
+        // Updating context
+        if (ioctl_ret) {
+            ctx->report.blk_status = DC_BlockStatus_eError;
+            ret = 1;
+        } else if (priv->scsi_command.io_hdr.duration >= priv->scsi_command.io_hdr.timeout) {
+            ctx->report.blk_status = DC_BlockStatus_eTimeout;
+        } else if (scsi_ata_return.status.bits.err) {
+            if (scsi_ata_return.error.bits.unc)
+                ctx->report.blk_status = DC_BlockStatus_eUnc;
+            else if (scsi_ata_return.error.bits.idnf)
+                ctx->report.blk_status = DC_BlockStatus_eIdnf;
+            else if (scsi_ata_return.error.bits.abrt)
+                ctx->report.blk_status = DC_BlockStatus_eAbrt;
+            else
+                ctx->report.blk_status = DC_BlockStatus_eError;
+        } else if (scsi_ata_return.status.bits.df) {
+            ctx->report.blk_status = DC_BlockStatus_eError;
+        } else if (sense_key) {
+            if (sense_key == 0x0b)
+                ctx->report.blk_status = DC_BlockStatus_eAbrt;
+            else
+                ctx->report.blk_status = DC_BlockStatus_eError;
+        }
+    } else {
+        if (read_ret != sectors_to_read * 512) {
+            error_flag = 1;
+            // Position of fd is undefined. Set fds position to next block
+            lseek(priv->src_fd, 512 * priv->start_lba + ctx->blk_size * priv->blk_index, SEEK_SET);
+            lseek(priv->dst_fd, 512 * priv->start_lba + ctx->blk_size * priv->blk_index, SEEK_SET);
+
+            // Updating context
+            ctx->report.blk_status = DC_BlockStatus_eError;
+        }
+    }
 
     // Acting: writing; not timed
     if (!error_flag) {
@@ -144,7 +234,7 @@ static int Perform(DC_ProcedureCtx *ctx) {
     ctx->report.blk_access_time = (post.tv_sec - pre.tv_sec) * 1000000 +
         (post.tv_nsec - pre.tv_nsec) / 1000;
 
-    return 0;
+    return ret;
 }
 
 static void Close(DC_ProcedureCtx *ctx) {
@@ -158,6 +248,7 @@ static void Close(DC_ProcedureCtx *ctx) {
 }
 
 static DC_ProcedureOption options[] = {
+    { "api", "select operation API: \"posix\" for POSIX read(), \"ata\" for ATA \"READ DMA EXT\" command", offsetof(CopyPriv, api_str), DC_ProcedureOptionType_eString },
     { "dst_file", "set destination file path", offsetof(CopyPriv, dst_file), DC_ProcedureOptionType_eString },
     { NULL }
 };
