@@ -44,6 +44,7 @@ static int ask_option_value(DC_OptionSetting *setting, DC_ProcedureOption *optio
     snprintf(prompt, sizeof(prompt), "Please enter %s parameter: %s (%s)",
             param_type_str, option->name, option->help);
 
+    dialog_vars.default_button = -1;  // Workaround for surprisingly unfocused input field on old libdialog
     int r = dialog_inputbox("Input box", prompt, 0, 0, suggested_value, 0);
     if (r != 0) {
         dialog_msgbox("Info", "Action cancelled", 0, 0, 1);
@@ -60,9 +61,6 @@ static int ask_option_value(DC_OptionSetting *setting, DC_ProcedureOption *optio
 
 int main() {
     int r;
-    dialog_vars.default_button = -1;
-    //printf("%d\n", dialog_vars.default_button);
-    //return 0;
     r = global_init();
     if (r) {
         fprintf(stderr, "init fail\n");
@@ -108,6 +106,7 @@ int main() {
                 r = asprintf(&ask, "This operation is invasive, i.e. it may make your data unreachable or even destroy it completely. Are you sure you want to proceed it on %s (%s)?",
                         chosen_dev->dev_fs_name, chosen_dev->model_str);
                 assert(r != -1);
+                dialog_vars.default_button = 1;  // Focus on "No"
                 r = dialog_yesno("Confirmation", ask, 0, 0);
                 // Yes = 0 (FALSE), No = 1, Escape = -1
                 free(ask);
