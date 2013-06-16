@@ -11,11 +11,12 @@ enum DC_LogLevel dc_log_get_level(void) {
 void dc_log_set_level(enum DC_LogLevel level) {
     dc_ctx_global->log_level = level;
 }
-void dc_log_set_callback(void (*log_func)(enum DC_LogLevel level, const char* fmt, va_list vl)) {
+void dc_log_set_callback(void (*log_func)(void *priv, enum DC_LogLevel level, const char* fmt, va_list vl), void *logger_priv) {
     dc_ctx_global->log_func = log_func;
+    dc_ctx_global->logger_priv = logger_priv;
 }
 
-static char *log_level_name(enum DC_LogLevel level) {
+char *log_level_name(enum DC_LogLevel level) {
     switch (level) {
         case DC_LOG_PANIC:   return "PANIC";
         case DC_LOG_FATAL:   return "FATAL";
@@ -44,7 +45,8 @@ char *dc_log_default_form_string(enum DC_LogLevel level, const char* fmt, va_lis
     return ret;
 }
 
-void dc_log_default_func(enum DC_LogLevel level, const char* fmt, va_list vl) {
+void dc_log_default_func(void *priv, enum DC_LogLevel level, const char* fmt, va_list vl) {
+    (void)priv;
     char *msg = dc_log_default_form_string(level, fmt, vl);
     fprintf(stderr, "%s", msg);
     free(msg);
@@ -56,6 +58,6 @@ void dc_log(enum DC_LogLevel level, const char* fmt, ...) {
     va_list vl;
     va_start(vl, fmt);
     if (level >= dc_ctx_global->log_level)
-        dc_ctx_global->log_func(level, fmt, vl);
+        dc_ctx_global->log_func(dc_ctx_global->logger_priv, level, fmt, vl);
     va_end(vl);
 }

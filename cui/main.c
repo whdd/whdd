@@ -25,7 +25,7 @@ static void global_fini(void);
 static int menu_choose_device(DC_DevList *devlist);
 static int menu_choose_procedure(DC_Dev *dev);
 static void show_smart_attrs(DC_Dev *dev);
-void log_cb(enum DC_LogLevel level, const char* fmt, va_list vl);
+void log_cb(void *priv, enum DC_LogLevel level, const char* fmt, va_list vl);
 
 static int ask_option_value(DC_OptionSetting *setting, DC_ProcedureOption *option) {
     char *suggested_value;
@@ -179,7 +179,7 @@ static int global_init(void) {
     assert(!r);
     RENDERER_REGISTER(sliding_window);
     RENDERER_REGISTER(whole_space);
-    dc_log_set_callback(log_cb);
+    dc_log_set_callback(log_cb, NULL);
     r = atexit(global_fini);
     assert(r == 0);
     return 0;
@@ -244,16 +244,10 @@ static void show_smart_attrs(DC_Dev *dev) {
     refresh();
 }
 
-void log_cb(enum DC_LogLevel level, const char* fmt, va_list vl) {
+void log_cb(void *priv, enum DC_LogLevel level, const char* fmt, va_list vl) {
+    (void)priv;
     char *msg = dc_log_default_form_string(level, fmt, vl);
     assert(msg);
-#if 0  // TODO
-    if (render_ctx_global) {
-        wprintw(render_ctx_global->w_log, "%s", msg);
-        wrefresh(render_ctx_global->w_log);
-    } else {
-        dialog_msgbox("Internal message", msg, 0, 0, 1);
-    }
-#endif
+    dialog_msgbox(log_level_name(level), msg, 0, 0, 1);
     free(msg);
 }

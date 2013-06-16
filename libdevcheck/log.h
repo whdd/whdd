@@ -14,8 +14,9 @@ enum DC_LogLevel {
 };
 enum DC_LogLevel dc_log_get_level(void);
 void dc_log_set_level(enum DC_LogLevel level);
-void dc_log_set_callback(void (*log_func)(enum DC_LogLevel level, const char* fmt, va_list vl));
-void dc_log_default_func(enum DC_LogLevel level, const char* fmt, va_list vl);
+void dc_log_set_callback(void (*log_func)(void *priv, enum DC_LogLevel level, const char* fmt, va_list vl), void *logger_priv);
+char *log_level_name(enum DC_LogLevel level);
+void dc_log_default_func(void *priv, enum DC_LogLevel level, const char* fmt, va_list vl);
 char *dc_log_default_form_string(enum DC_LogLevel level, const char* fmt, va_list vl);
 
 void dc_log(enum DC_LogLevel level, const char* fmt, ...) __attribute__((format(printf, 2, 3)));
