@@ -63,3 +63,46 @@ int get_sense_key_from_sense_buffer(uint8_t *buf) {
             return -1;
     }
 }
+
+DC_BlockStatus scsi_ata_check_return_status(ScsiCommand *scsi_command) {
+    int sense_key = get_sense_key_from_sense_buffer(scsi_command->sense_buf);
+    ScsiAtaReturnDescriptor scsi_ata_return;
+#if 0
+    fprintf(stderr, "scsi status: %hhu, msg status %hhu, host status %hu, driver status %hu, duration %u, auxinfo %u\n",
+            scsi_command->io_hdr.status,
+            scsi_command->io_hdr.msg_status,
+            scsi_command->io_hdr.host_status,
+            scsi_command->io_hdr.driver_status,
+            scsi_command->io_hdr.duration,
+            scsi_command->io_hdr.info);
+    fprintf(stderr, "sense buffer, in hex: ");
+    int i;
+    for (i = 0; i < sizeof(scsi_command->sense_buf); i++)
+        fprintf(stderr, "%02hhx", scsi_command->sense_buf[i]);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "sense key is %d", sense_key);
+#endif
+
+    if (scsi_command->io_hdr.duration >= scsi_command->io_hdr.timeout)
+        return DC_BlockStatus_eTimeout;
+
+    fill_scsi_ata_return_descriptor(&scsi_ata_return, scsi_command);
+    if (scsi_ata_return.status.bits.err) {
+        if (scsi_ata_return.error.bits.unc)
+            return DC_BlockStatus_eUnc;
+        else if (scsi_ata_return.error.bits.idnf)
+            return DC_BlockStatus_eIdnf;
+        else if (scsi_ata_return.error.bits.abrt)
+            return DC_BlockStatus_eAbrt;
+        else
+            return DC_BlockStatus_eError;
+    } else if (scsi_ata_return.status.bits.df) {
+        return DC_BlockStatus_eError;
+    } else if (sense_key) {
+        if (sense_key == 0x0b)
+            return DC_BlockStatus_eAbrt;
+        else
+            return DC_BlockStatus_eError;
+    }
+    return DC_BlockStatus_eOk;
+}

@@ -139,49 +139,12 @@ static int Perform(DC_ProcedureCtx *ctx) {
 
     // Error handling
     if (priv->api == Api_eAta) {
-        ScsiAtaReturnDescriptor scsi_ata_return;
-        fill_scsi_ata_return_descriptor(&scsi_ata_return, &priv->scsi_command);
-        int sense_key = get_sense_key_from_sense_buffer(priv->scsi_command.sense_buf);
-#if 0
-        fprintf(stderr, "scsi status: %hhu, msg status %hhu, host status %hu, driver status %hu, duration %u, auxinfo %u\n",
-            scsi_command.io_hdr.status,
-            scsi_command.io_hdr.msg_status,
-            scsi_command.io_hdr.host_status,
-            scsi_command.io_hdr.driver_status,
-            scsi_command.io_hdr.duration,
-            scsi_command.io_hdr.info);
-        fprintf(stderr, "sense buffer, in hex: ");
-        int i;
-        for (i = 0; i < sizeof(scsi_command.sense_buf); i++)
-          fprintf(stderr, "%02hhx", scsi_command.sense_buf[i]);
-        fprintf(stderr, "\n");
-        fprintf(stderr, "sense key is %d", sense_key);
-#endif
-
-        // Error handling
         // Updating context
         if (ioctl_ret) {
             ctx->report.blk_status = DC_BlockStatus_eError;
             ret = 1;
-        } else if (priv->scsi_command.io_hdr.duration >= priv->scsi_command.io_hdr.timeout) {
-            ctx->report.blk_status = DC_BlockStatus_eTimeout;
-        } else if (scsi_ata_return.status.bits.err) {
-            if (scsi_ata_return.error.bits.unc)
-                ctx->report.blk_status = DC_BlockStatus_eUnc;
-            else if (scsi_ata_return.error.bits.idnf)
-                ctx->report.blk_status = DC_BlockStatus_eIdnf;
-            else if (scsi_ata_return.error.bits.abrt)
-                ctx->report.blk_status = DC_BlockStatus_eAbrt;
-            else
-                ctx->report.blk_status = DC_BlockStatus_eError;
-        } else if (scsi_ata_return.status.bits.df) {
-            ctx->report.blk_status = DC_BlockStatus_eError;
-        } else if (sense_key) {
-            if (sense_key == 0x0b)
-                ctx->report.blk_status = DC_BlockStatus_eAbrt;
-            else
-                ctx->report.blk_status = DC_BlockStatus_eError;
         }
+        ctx->report.blk_status = scsi_ata_check_return_status(&priv->scsi_command);
     } else {
         if ((int)read_ret != (int)sectors_to_read * 512) {
             // Position of fd is undefined. Set fd position to read next block

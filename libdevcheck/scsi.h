@@ -5,6 +5,7 @@
 #include <scsi/sg.h>
 
 #include "ata.h"
+#include "procedure.h"
 
 typedef struct scsi_command {
     sg_io_hdr_t io_hdr;  // Helper struct used with ioctl(SG_IO), has some output members
@@ -48,5 +49,7 @@ void prepare_scsi_command_from_ata(ScsiCommand *scsi_cmd, AtaCommand *ata_cmd);
 void fill_scsi_ata_return_descriptor(ScsiAtaReturnDescriptor *scsi_ata_ret, ScsiCommand *scsi_cmd);
 
 int get_sense_key_from_sense_buffer(uint8_t *buf);
+
+DC_BlockStatus scsi_ata_check_return_status(ScsiCommand *scsi_command);
 
 #endif  // SCSI_H
