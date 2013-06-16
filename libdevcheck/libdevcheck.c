@@ -52,6 +52,7 @@ int dc_init(void) {
     PROCEDURE_REGISTER(posix_write_zeros);
     PROCEDURE_REGISTER(copy);
     PROCEDURE_REGISTER(copy_damaged);
+    PROCEDURE_REGISTER(hpa_set);
 #undef PROCEDURE_REGISTER
     return 0;
 }

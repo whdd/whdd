@@ -45,6 +45,7 @@ set(LIBDEVCHECK_SRCS
 	libdevcheck/copy.c
 	libdevcheck/copy_damaged.c
     libdevcheck/render.c
+    libdevcheck/hpa_set.c
 )
 
 include_directories(

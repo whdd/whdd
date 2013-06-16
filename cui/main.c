@@ -25,7 +25,6 @@ static void global_fini(void);
 static int menu_choose_device(DC_DevList *devlist);
 static int menu_choose_procedure(DC_Dev *dev);
 static void show_smart_attrs(DC_Dev *dev);
-static void set_hpa_dialog(DC_Dev *dev);
 void log_cb(enum DC_LogLevel level, const char* fmt, va_list vl);
 
 static int ask_option_value(DC_OptionSetting *setting, DC_ProcedureOption *option) {
@@ -99,8 +98,6 @@ int main() {
             show_smart_attrs(chosen_dev);
             break;
         case CliAction_eSetHpa:
-            set_hpa_dialog(chosen_dev);
-            break;
         case CliAction_eProcRead:
         case CliAction_eProcWriteZeros:
         case CliAction_eProcCopy:
@@ -137,6 +134,8 @@ int main() {
                 dialog_msgbox("Error", "Procedure init fail", 0, 0, 1);
                 continue;
             }
+            if (!act->perform)
+                break;
             DC_Renderer *renderer;
             if ((chosen_procedure_ind == CliAction_eProcCopy)
                     || (chosen_procedure_ind == CliAction_eProcCopyDamaged))
@@ -243,40 +242,6 @@ static void show_smart_attrs(DC_Dev *dev) {
     if (text)
         free(text);
     refresh();
-}
-
-static void set_hpa_dialog(DC_Dev *dev) {
-    if (dev->native_capacity == -1) {
-        dialog_msgbox("Well...", "Querying native max LBA failed on this device. Setting max LBA will surely fail.", 0, 0, 1);
-        return;
-    }
-    int r;
-    char *ask;
-    r = asprintf(&ask, "This can make your data unreachable on device %s (%s). Are you sure?",
-            dev->dev_fs_name, dev->model_str);
-    assert(r != -1);
-    r = dialog_yesno("Confirmation", ask, 0, 0);
-    // Yes = 0 (FALSE), No = 1, Escape = -1
-    free(ask);
-    if (/* No */ r)
-        return;
-    uint64_t current_max_lba = dev->capacity / 512 - 1;
-    uint64_t native_max_lba = dev->native_capacity / 512 - 1;
-    char suggested_input[30];
-    snprintf(suggested_input, sizeof(suggested_input), "%"PRIu64, native_max_lba);
-    char descr[200];
-    snprintf(descr, sizeof(descr), "Enter max addressable LBA. Native max LBA is %"PRIu64", current max LBA is %"PRIu64"\nIn other words: reachable_capacity_in_bytes = (max_LBA + 1) * 512", native_max_lba, current_max_lba);
-    r = dialog_inputbox("Input box", descr, 0, 0, suggested_input, 0);
-    if (r != 0) {
-        dialog_msgbox("Info", "Action cancelled", 0, 0, 1);
-        return;
-    }
-    // Wow, libdialog is awesomely sane and brilliantly documented lib, i fuckin love it
-    char *input_result = dialog_vars.input_result;
-    uint64_t set_max_lba = strtol(input_result, NULL, 10);
-    dc_dev_set_max_lba(dev->dev_path, set_max_lba);
-    snprintf(descr, sizeof(descr), "Set to %"PRIu64, set_max_lba);
-    dialog_msgbox("Info", descr, 0, 0, 1);
 }
 
 void log_cb(enum DC_LogLevel level, const char* fmt, va_list vl) {
