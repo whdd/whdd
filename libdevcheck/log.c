@@ -31,12 +31,13 @@ char *dc_log_default_form_string(enum DC_LogLevel level, const char* fmt, va_lis
     int r;
     char *msg;
     char *ret;
+    (void)level;
     r = vasprintf(&msg, fmt, vl);
     if (r == -1) {
         fprintf(stderr, "Forming log string fail\n");
         return NULL;
     }
-    r = asprintf(&ret, "[%s] %s", log_level_name(level), msg);
+    r = asprintf(&ret, "%s", msg);
     free(msg);
     if (r == -1) {
         fprintf(stderr, "Forming log string fail\n");
@@ -48,7 +49,7 @@ char *dc_log_default_form_string(enum DC_LogLevel level, const char* fmt, va_lis
 void dc_log_default_func(void *priv, enum DC_LogLevel level, const char* fmt, va_list vl) {
     (void)priv;
     char *msg = dc_log_default_form_string(level, fmt, vl);
-    fprintf(stderr, "%s", msg);
+    fprintf(stderr, "[%s] %s", log_level_name(level), msg);
     free(msg);
 }
 
