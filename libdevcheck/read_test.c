@@ -15,11 +15,6 @@
 #include "ata.h"
 #include "scsi.h"
 
-enum Api {
-    Api_eAta,
-    Api_ePosix,
-};
-
 struct read_priv {
     const char *api_str;
     int64_t start_lba;

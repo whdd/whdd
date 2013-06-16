@@ -15,11 +15,6 @@
 #include "ata.h"
 #include "scsi.h"
 
-enum Api {
-    Api_eAta,
-    Api_ePosix,
-};
-
 struct copy_priv {
     const char *api_str;
     const char *dst_file;

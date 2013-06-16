@@ -8,6 +8,11 @@
 
 #define DC_PROC_FLAG_INVASIVE 1
 
+enum Api {
+    Api_eAta,
+    Api_ePosix,
+};
+
 typedef enum {
     DC_ProcedureOptionType_eInt64,
     DC_ProcedureOptionType_eString,
