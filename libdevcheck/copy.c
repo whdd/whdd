@@ -28,6 +28,16 @@ typedef struct copy_priv CopyPriv;
 
 #define SECTORS_AT_ONCE 256
 #define BLK_SIZE (SECTORS_AT_ONCE * 512) // FIXME hardcode
+
+static int SuggestDefaultValue(DC_Dev *dev, DC_OptionSetting *setting) {
+    if (!strcmp(setting->name, "dst_file")) {
+        setting->value = strdup("/dev/null");
+    } else {
+        return 1;
+    }
+    return 0;
+}
+
 static int Open(DC_ProcedureCtx *ctx) {
     int r;
     CopyPriv *priv = ctx->priv;
@@ -148,14 +158,14 @@ static void Close(DC_ProcedureCtx *ctx) {
 }
 
 static DC_ProcedureOption options[] = {
-    //{ "start_lba", "set LBA address to begin from", offsetof(CopyPriv, start_lba), DC_ProcedureOptionType_eInt64, { .i64 = 0 } },
-    { "dst_file", "set destination file path", offsetof(CopyPriv, dst_file), DC_ProcedureOptionType_eString, { .str = "/dev/null" } },
+    { "dst_file", "set destination file path", offsetof(CopyPriv, dst_file), DC_ProcedureOptionType_eString },
     { NULL }
 };
 
 DC_Procedure copy = {
     .name = "copy",
     .long_name = "Device copying",
+    .suggest_default_value = SuggestDefaultValue,
     .open = Open,
     .perform = Perform,
     .close = Close,

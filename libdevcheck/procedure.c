@@ -10,7 +10,7 @@ int dc_procedure_register(DC_Procedure *procedure) {
     procedure->next = dc_ctx_global->procedure_list;
     dc_ctx_global->procedure_list = procedure;
     int options_num = 0;
-    while (procedure->options[options_num].name)
+    while (procedure->options && procedure->options[options_num].name)
         options_num++;
     procedure->options_num = options_num;
     return 0;
@@ -37,14 +37,18 @@ int dc_procedure_open(DC_Procedure *procedure, DC_Dev *dev, DC_ProcedureCtx **ct
     if (!ctx->priv)
         goto fail_priv;
 
-    for (i = 0; procedure->options[i].name; i++) {
+    for (i = 0; procedure->options && procedure->options[i].name; i++) {
         DC_ProcedureOption *opt = &procedure->options[i];
+        DC_OptionSetting setting;
+        setting.name = opt->name;
+        setting.value = NULL;
+        procedure->suggest_default_value(dev, &setting);
         switch (opt->type) {
             case DC_ProcedureOptionType_eInt64:
-                *(int64_t*)((uint8_t*)ctx->priv + opt->offset) = opt->default_val.i64;
+                ret = sscanf(setting.value, "%"PRId64, (int64_t*)((uint8_t*)ctx->priv + opt->offset));
                 break;
             case DC_ProcedureOptionType_eString:
-                *((const char**)ctx->priv + opt->offset) = strdup(opt->default_val.str);
+                *((const char**)ctx->priv + opt->offset) = setting.value;
                 break;
         }
     }

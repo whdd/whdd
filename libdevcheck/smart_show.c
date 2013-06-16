@@ -23,15 +23,10 @@ static void Close(DC_ProcedureCtx *ctx) {
     (void)ctx;
 }
 
-static DC_ProcedureOption options[] = {
-    { NULL }
-};
-
 DC_Procedure smart_show = {
     .name = "smart_show",
     .long_name = "Show SMART attributes",
     .open = Open,
     .close = Close,
     .priv_data_size = sizeof(SmartShowPriv),
-    .options = options,
 };

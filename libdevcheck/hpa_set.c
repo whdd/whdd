@@ -19,6 +19,19 @@ struct hpa_set_priv {
 };
 typedef struct hpa_set_priv HpaSetPriv;
 
+static int SuggestDefaultValue(DC_Dev *dev, DC_OptionSetting *setting) {
+    if (!strcmp(setting->name, "max_lba")) {
+        int64_t native_max_lba = dev->native_capacity / 512 - 1;  // TODO Request via ATA
+        char *string;
+        int r = asprintf(&string, "%"PRId64, native_max_lba);
+        assert(r != -1);
+        setting->value = string;
+    } else {
+        return 1;
+    }
+    return 0;
+}
+
 static int Open(DC_ProcedureCtx *ctx) {
     HpaSetPriv *priv = ctx->priv;
     dc_dev_set_max_lba(ctx->dev->dev_path, priv->max_lba);  // TODO return?
@@ -30,7 +43,7 @@ static void Close(DC_ProcedureCtx *ctx) {
 }
 
 static DC_ProcedureOption options[] = {
-    { "max_lba", "set maximum reachable LBA", offsetof(HpaSetPriv, max_lba), DC_ProcedureOptionType_eInt64, { .i64 = 0 } },
+    { "max_lba", "set maximum reachable LBA", offsetof(HpaSetPriv, max_lba), DC_ProcedureOptionType_eInt64 },
     { NULL }
 };
 
@@ -38,6 +51,7 @@ DC_Procedure hpa_set = {
     .name = "hpa_set",
     .long_name = "Set maximum reachable LBA",
     .flags = DC_PROC_FLAG_INVASIVE,
+    .suggest_default_value = SuggestDefaultValue,
     .open = Open,
     .close = Close,
     .priv_data_size = sizeof(HpaSetPriv),

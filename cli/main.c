@@ -16,17 +16,15 @@ CliAction request_and_get_cli_action();
 DC_Dev *request_and_get_device();
 
 static int ask_option_value(DC_OptionSetting *setting, DC_ProcedureOption *option) {
-    char *suggested_value;
+    char *suggested_value = setting->value;
     char entered_value[200];
     const char *param_type_str;
     switch (option->type) {
         case DC_ProcedureOptionType_eInt64:
             param_type_str = "numeric";
-            asprintf(&suggested_value, "%"PRId64, option->default_val.i64);
             break;
         case DC_ProcedureOptionType_eString:
             param_type_str = "string";
-            asprintf(&suggested_value, "%s", option->default_val.str);
             break;
     }
     printf("Please enter %s parameter: %s (%s)\n",
@@ -101,6 +99,11 @@ int main() {
                 r = 0;
                 for (i = 0; i < act->options_num; i++) {
                     option_set[i].name = act->options[i].name;
+                    r = act->suggest_default_value(chosen_dev, &option_set[i]);
+                    if (r) {
+                        dc_log(DC_LOG_ERROR, "Failed to get default value suggestion on '%s'", option_set[i].name);
+                        break;
+                    }
                     r = ask_option_value(&option_set[i], &act->options[i]);
                     if (r)
                         break;

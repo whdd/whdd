@@ -18,15 +18,11 @@ typedef struct dc_procedure_option {
     const char *help;
     int offset;
     DC_ProcedureOptionType type;
-    union {
-        int64_t i64;
-        const char *str;
-    } default_val;
 } DC_ProcedureOption;
 
 typedef struct dc_option_setting {
     const char *name;
-    const char *value;
+    char *value;
 } DC_OptionSetting;
 
 struct dc_procedure {
@@ -36,6 +32,7 @@ struct dc_procedure {
     DC_ProcedureOption *options;
     int options_num;
     int priv_data_size;
+    int (*suggest_default_value)(DC_Dev *dev, DC_OptionSetting *setting);
     int (*open)(DC_ProcedureCtx *procedure);
     int (*perform)(DC_ProcedureCtx *ctx);
     void (*close)(DC_ProcedureCtx *ctx);

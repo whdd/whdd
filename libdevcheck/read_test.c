@@ -37,6 +37,19 @@ typedef struct read_priv ReadPriv;
 
 #define SECTORS_AT_ONCE 256
 #define BLK_SIZE (SECTORS_AT_ONCE * 512) // FIXME hardcode
+
+static int SuggestDefaultValue(DC_Dev *dev, DC_OptionSetting *setting) {
+    if (!strcmp(setting->name, "api")) {
+        setting->value = strdup("ata");
+        // TODO Really check if ATA should work for dev in realtime
+    } else if (!strcmp(setting->name, "start_lba")) {
+        setting->value = strdup("0");
+    } else {
+        return 1;
+    }
+    return 0;
+}
+
 static int Open(DC_ProcedureCtx *ctx) {
     int r;
     int open_flags;
@@ -199,14 +212,15 @@ static void Close(DC_ProcedureCtx *ctx) {
 }
 
 static DC_ProcedureOption options[] = {
-    { "api", "select operation API: \"posix\" for POSIX read(), \"ata\" for ATA \"READ VERIFY EXT\" command", offsetof(ReadPriv, api_str), DC_ProcedureOptionType_eString, { .str = "ata" } },  // TODO "auto"; TODO flags syntax
-    { "start_lba", "set LBA address to begin from", offsetof(ReadPriv, start_lba), DC_ProcedureOptionType_eInt64, { .i64 = 0 } },
+    { "api", "select operation API: \"posix\" for POSIX read(), \"ata\" for ATA \"READ VERIFY EXT\" command", offsetof(ReadPriv, api_str), DC_ProcedureOptionType_eString },
+    { "start_lba", "set LBA address to begin from", offsetof(ReadPriv, start_lba), DC_ProcedureOptionType_eInt64 },
     { NULL }
 };
 
 DC_Procedure read_test = {
     .name = "read_test",
     .long_name = "Test device with reading",
+    .suggest_default_value = SuggestDefaultValue,
     .open = Open,
     .perform = Perform,
     .close = Close,

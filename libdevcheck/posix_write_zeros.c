@@ -26,6 +26,16 @@ typedef struct posix_write_zeros_priv PosixWriteZerosPriv;
 
 #define SECTORS_AT_ONCE 256
 #define BLK_SIZE (SECTORS_AT_ONCE * 512) // FIXME hardcode
+
+static int SuggestDefaultValue(DC_Dev *dev, DC_OptionSetting *setting) {
+    if (!strcmp(setting->name, "start_lba")) {
+        setting->value = strdup("0");
+    } else {
+        return 1;
+    }
+    return 0;
+}
+
 static int Open(DC_ProcedureCtx *ctx) {
     int r;
     PosixWriteZerosPriv *priv = ctx->priv;
@@ -108,7 +118,7 @@ static void Close(DC_ProcedureCtx *ctx) {
 }
 
 static DC_ProcedureOption options[] = {
-    { "start_lba", "set LBA address to begin from", offsetof(PosixWriteZerosPriv, start_lba), DC_ProcedureOptionType_eInt64, { .i64 = 0 } },
+    { "start_lba", "set LBA address to begin from", offsetof(PosixWriteZerosPriv, start_lba), DC_ProcedureOptionType_eInt64 },
     { NULL }
 };
 
@@ -116,6 +126,7 @@ DC_Procedure posix_write_zeros = {
     .name = "posix_write_zeros",
     .long_name = "Fill device space with zeros, using POSIX write() call, in direct mode",
     .flags = DC_PROC_FLAG_INVASIVE,
+    .suggest_default_value = SuggestDefaultValue,
     .open = Open,
     .perform = Perform,
     .close = Close,

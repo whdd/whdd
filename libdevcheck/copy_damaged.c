@@ -42,6 +42,16 @@ typedef struct copy_damaged_priv CopyDamagedPriv;
 #define SECTORS_AT_ONCE 256
 #define BLK_SIZE (SECTORS_AT_ONCE * 512) // FIXME hardcode
 #define INDIVISIBLE_DEFECT_ZONE_SIZE_SECTORS 1000*1000  // 500 MB
+
+static int SuggestDefaultValue(DC_Dev *dev, DC_OptionSetting *setting) {
+    if (!strcmp(setting->name, "dst_file")) {
+        setting->value = strdup("/dev/null");
+    } else {
+        return 1;
+    }
+    return 0;
+}
+
 static int Open(DC_ProcedureCtx *ctx) {
     int r;
     CopyDamagedPriv *priv = ctx->priv;
@@ -257,14 +267,14 @@ static void Close(DC_ProcedureCtx *ctx) {
 }
 
 static DC_ProcedureOption options[] = {
-    //{ "start_lba", "set LBA address to begin from", offsetof(CopyDamagedPriv, start_lba), DC_ProcedureOptionType_eInt64, { .i64 = 0 } },
-    { "dst_file", "set destination file path", offsetof(CopyDamagedPriv, dst_file), DC_ProcedureOptionType_eString, { .str = "/dev/null" } },
+    { "dst_file", "set destination file path", offsetof(CopyDamagedPriv, dst_file), DC_ProcedureOptionType_eString },
     { NULL }
 };
 
 DC_Procedure copy_damaged = {
     .name = "copy_damaged",
     .long_name = "Smart copying of device with defect zones",
+    .suggest_default_value = SuggestDefaultValue,
     .open = Open,
     .perform = Perform,
     .close = Close,
