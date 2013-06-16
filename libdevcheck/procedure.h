@@ -6,7 +6,7 @@
 #include <pthread.h>
 #include <stddef.h>
 
-#define DC_PROC_FLAG_DESTRUCTIVE 1
+#define DC_PROC_FLAG_INVASIVE 1
 
 typedef enum {
     DC_ProcedureOptionType_eInt64,

@@ -103,9 +103,9 @@ int main() {
             char *act_name = actions[chosen_procedure_ind].name;
             DC_Procedure *act = dc_find_procedure(act_name);
             assert(act);
-            if (act->flags & DC_PROC_FLAG_DESTRUCTIVE) {
+            if (act->flags & DC_PROC_FLAG_INVASIVE) {
                 char *ask;
-                r = asprintf(&ask, "This will destroy all data on device %s (%s). Are you sure?",
+                r = asprintf(&ask, "This operation is invasive, i.e. it may make your data unreachable or even destroy it completely. Are you sure you want to proceed it on %s (%s)?",
                         chosen_dev->dev_fs_name, chosen_dev->model_str);
                 assert(r != -1);
                 r = dialog_yesno("Confirmation", ask, 0, 0);
