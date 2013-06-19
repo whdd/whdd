@@ -22,7 +22,7 @@
 
 static int global_init(void);
 static void global_fini(void);
-static int menu_choose_device(DC_DevList *devlist);
+static DC_Dev *menu_choose_device(DC_DevList *devlist);
 static DC_Procedure *menu_choose_procedure(DC_Dev *dev);
 void log_cb(void *priv, enum DC_LogLevel level, const char* fmt, va_list vl);
 
@@ -70,20 +70,14 @@ int main() {
 
     while (1) {
         // draw menu of device choice
-        int chosen_dev_ind;
-        chosen_dev_ind = menu_choose_device(devlist);
-        if (chosen_dev_ind < 0)
-            break;
-
-        DC_Dev *chosen_dev = dc_dev_list_get_entry(devlist, chosen_dev_ind);
+        DC_Dev *chosen_dev = menu_choose_device(devlist);
         if (!chosen_dev) {
-            printw("No device with index %d\n", chosen_dev_ind);
-            return 1;
+            break;
         }
         // draw procedures menu
         DC_Procedure *act = menu_choose_procedure(chosen_dev);
         if (!act)
-            break;
+            continue;
         if (act->flags & DC_PROC_FLAG_INVASIVE) {
             char *ask;
             r = asprintf(&ask, "This operation is invasive, i.e. it may make your data unreachable or even destroy it completely. Are you sure you want to proceed it on %s (%s)?",
@@ -168,34 +162,39 @@ static void global_fini(void) {
     endwin();
 }
 
-static int menu_choose_device(DC_DevList *devlist) {
+static DC_Dev *menu_choose_device(DC_DevList *devlist) {
     int devs_num = dc_dev_list_size(devlist);
     if (devs_num == 0) {
         dialog_msgbox("Info", "No devices found", 0, 0, 1);
-        return -1;
+        return NULL;
     }
-
-    char **items = calloc( 2 * devs_num, sizeof(char*));
-    assert(items);
-
+    char *items[2 * devs_num];
     int i;
     for (i = 0; i < devs_num; i++) {
         DC_Dev *dev = dc_dev_list_get_entry(devlist, i);
         char dev_descr_buf[80];
         ui_dev_descr_format(dev_descr_buf, sizeof(dev_descr_buf), dev);
-        items[2*i] = strdup(dev->dev_fs_name);
+        items[2*i] = dev->dev_fs_name;
         items[2*i+1] = strdup(dev_descr_buf);
     }
 
     clear_body();
-    int chosen_dev_ind = my_dialog_menu("Choose device", "", 0, 0, devs_num * 3, devs_num, items);
-    for (i = 0; i < devs_num; i++) {
-        free(items[2*i]);
+    dialog_vars.no_items = 0;
+    dialog_vars.item_help = 0;
+    dialog_vars.input_result = NULL;
+    int ret = dialog_menu("Choose device", "", 0, 0, 0, devs_num, items);
+    for (i = 0; i < devs_num; i++)
         free(items[2*i+1]);
-    }
-    free(items);
 
-    return chosen_dev_ind;
+    if (ret != 0)
+        return NULL;
+    for (i = 0; i < devs_num; i++) {
+        DC_Dev *dev = dc_dev_list_get_entry(devlist, i);
+        if (!strcmp(dev->dev_fs_name, dialog_vars.input_result))
+            return dev;
+    }
+    assert(0);
+    return NULL;
 }
 
 static DC_Procedure *menu_choose_procedure(DC_Dev *dev) {
@@ -213,7 +212,7 @@ static DC_Procedure *menu_choose_procedure(DC_Dev *dev) {
     clear_body();
     dialog_vars.no_items = 1;
     dialog_vars.item_help = 0;
-    dialog_vars.input_result[0] = '\0';
+    dialog_vars.input_result = NULL;
     int ret = dialog_menu("Choose procedure", "", 0, 0, 0, nb_procedures, items);
     if (ret != 0)
         return NULL;  // User quit dialog, exit
