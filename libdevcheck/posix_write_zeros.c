@@ -124,7 +124,8 @@ static DC_ProcedureOption options[] = {
 
 DC_Procedure posix_write_zeros = {
     .name = "posix_write_zeros",
-    .long_name = "Fill device space with zeros, using POSIX write() call, in direct mode",
+    .display_name = "Write zeros",
+    .help = "Fills device space with zeros. Uses POSIX write() call, in direct mode",
     .flags = DC_PROC_FLAG_INVASIVE,
     .suggest_default_value = SuggestDefaultValue,
     .open = Open,

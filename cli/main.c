@@ -85,7 +85,7 @@ int main() {
                 char *act_name = actions[action].name;
                 DC_Procedure *act = dc_find_procedure(act_name);
                 assert(act);
-                printf("Going to perform test %s (%s)\n", act->name, act->long_name);
+                printf("Going to perform test %s (%s)\n", act->name, act->display_name);
                 if (act->flags & DC_PROC_FLAG_INVASIVE) {
                     printf("This operation is invasive, i.e. it may make your data unreachable or even destroy it completely. Are you sure you want to proceed it on %s (%s)? (y/n)\n",
                             chosen_dev->dev_fs_name, chosen_dev->model_str);

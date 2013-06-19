@@ -211,9 +211,11 @@ static DC_ProcedureOption options[] = {
     { NULL }
 };
 
+
 DC_Procedure copy = {
     .name = "copy",
-    .long_name = "Device copying",
+    .display_name = "Copy device",
+    .help = "Copies entire device to given destination (another device or generic file). It copies data sequentially, from LBA 0 up to end. To get data from source device, it may use ATA \"READ DMA EXT\" command, or POSIX read() function, by user choice.",
     .suggest_default_value = SuggestDefaultValue,
     .open = Open,
     .perform = Perform,

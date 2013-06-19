@@ -31,8 +31,9 @@ typedef struct dc_option_setting {
 } DC_OptionSetting;
 
 struct dc_procedure {
-    char *name;
-    char *long_name;
+    const char *name;
+    const char *display_name;
+    const char *help;
     int flags;  // For DC_PROC_FLAG_*
     DC_ProcedureOption *options;
     int options_num;

@@ -318,9 +318,11 @@ static DC_ProcedureOption options[] = {
     { NULL }
 };
 
+
 DC_Procedure copy_damaged = {
     .name = "copy_damaged",
-    .long_name = "Smart copying of device with defect zones",
+    .display_name = "Smart device copying",
+    .help = "Copies entire device to given destination (another device or generic file). It copies data sequentially, until read error is met. Then it reads unread data from another end of disk space. When this ends with read error, too, it jumps to the middle of unread zone and reads from there. This results in having two zones of unread data. It works this way until there are only small defective zones, then it attempts to copy them sequentially. To get data from source device, it may use ATA \"READ DMA EXT\" command, or POSIX read() function, by user choice.",
     .suggest_default_value = SuggestDefaultValue,
     .open = Open,
     .perform = Perform,

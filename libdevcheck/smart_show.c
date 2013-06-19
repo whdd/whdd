@@ -25,7 +25,7 @@ static void Close(DC_ProcedureCtx *ctx) {
 
 DC_Procedure smart_show = {
     .name = "smart_show",
-    .long_name = "Show SMART attributes",
+    .display_name = "Show SMART attributes",
     .open = Open,
     .close = Close,
     .priv_data_size = sizeof(SmartShowPriv),

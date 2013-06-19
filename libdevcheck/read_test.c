@@ -175,9 +175,11 @@ static DC_ProcedureOption options[] = {
     { NULL }
 };
 
+
 DC_Procedure read_test = {
     .name = "read_test",
-    .long_name = "Test device with reading",
+    .display_name = "Read test",
+    .help = "Verifies entire device with reading. It reads data sequentially, from given start LBA up to end. To get data from source device, it may use ATA \"READ VERIFY EXT\" command, or POSIX read() function, by user choice.",
     .suggest_default_value = SuggestDefaultValue,
     .open = Open,
     .perform = Perform,
