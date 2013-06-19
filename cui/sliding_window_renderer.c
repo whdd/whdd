@@ -8,7 +8,6 @@
 #include "render.h"
 #include "utils.h"
 #include "ncurses_convenience.h"
-#include "dialog_convenience.h"
 #include "procedure.h"
 #include "vis.h"
 

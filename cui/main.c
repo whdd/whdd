@@ -16,7 +16,6 @@
 #include "procedure.h"
 #include "vis.h"
 #include "ncurses_convenience.h"
-#include "dialog_convenience.h"
 #include "render.h"
 #include "ui_mutual.h"
 

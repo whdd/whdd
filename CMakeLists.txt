@@ -14,7 +14,6 @@ set(CLI_SRCS
 )
 
 set(CUI_SRCS
-	cui/dialog_convenience.c
 	cui/main.c
 	cui/ncurses_convenience.c
 	cui/vis.c
