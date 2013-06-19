@@ -23,7 +23,7 @@
 static int global_init(void);
 static void global_fini(void);
 static int menu_choose_device(DC_DevList *devlist);
-static int menu_choose_procedure(DC_Dev *dev);
+static DC_Procedure *menu_choose_procedure(DC_Dev *dev);
 void log_cb(void *priv, enum DC_LogLevel level, const char* fmt, va_list vl);
 
 static int ask_option_value(DC_OptionSetting *setting, DC_ProcedureOption *option) {
@@ -81,24 +81,10 @@ int main() {
             return 1;
         }
         // draw procedures menu
-        int chosen_procedure_ind;
-        chosen_procedure_ind = menu_choose_procedure(chosen_dev);
-        if (chosen_procedure_ind < 0)
+        DC_Procedure *act = menu_choose_procedure(chosen_dev);
+        if (!act)
             break;
-
-        switch (chosen_procedure_ind) {
-        case CliAction_eExit:
-            return 0;
-        case CliAction_eShowSmart:
-        case CliAction_eSetHpa:
-        case CliAction_eProcRead:
-        case CliAction_eProcWriteZeros:
-        case CliAction_eProcCopy:
-        case CliAction_eProcCopyDamaged:
         {
-            char *act_name = actions[chosen_procedure_ind].name;
-            DC_Procedure *act = dc_find_procedure(act_name);
-            assert(act);
             if (act->flags & DC_PROC_FLAG_INVASIVE) {
                 char *ask;
                 r = asprintf(&ask, "This operation is invasive, i.e. it may make your data unreachable or even destroy it completely. Are you sure you want to proceed it on %s (%s)?",
@@ -109,7 +95,7 @@ int main() {
                 // Yes = 0 (FALSE), No = 1, Escape = -1
                 free(ask);
                 if (/* No */ r)
-                    break;
+                    continue;
             }
             DC_OptionSetting *option_set = calloc(act->options_num + 1, sizeof(DC_OptionSetting));
             int i;
@@ -126,7 +112,7 @@ int main() {
                     break;
             }
             if (r)
-                break;
+                continue;
             DC_ProcedureCtx *actctx;
             r = dc_procedure_open(act, chosen_dev, &actctx, option_set);
             if (r) {
@@ -134,19 +120,14 @@ int main() {
                 continue;
             }
             if (!act->perform)
-                break;
+                continue;
             DC_Renderer *renderer;
-            if ((chosen_procedure_ind == CliAction_eProcCopy)
-                    || (chosen_procedure_ind == CliAction_eProcCopyDamaged))
+            if (!strcmp(act->name, "copy")
+                    || !strcmp(act->name, "copy_damaged"))
                 renderer = dc_find_renderer("whole_space");
             else
                 renderer = dc_find_renderer("sliding_window");
             render_procedure(actctx, renderer);
-            break;
-        }
-        default:
-            dialog_msgbox("Error", "Wrong procedure index", 0, 0, 1);
-            continue;
         }
     } // while(1)
 
@@ -219,19 +200,30 @@ static int menu_choose_device(DC_DevList *devlist) {
     return chosen_dev_ind;
 }
 
-static int menu_choose_procedure(DC_Dev *dev) {
-    // TODO fix this awful mess
-    char *items[n_actions * 2];
-    int i;
-    for (i = 0; i < n_actions; i++)
-        items[2*i+1] = actions[i].display_name;
-    // this fuckin libdialog makes me code crappy
-    for (i = 0; i < n_actions; i++)
-        items[2*i] = "";
+static DC_Procedure *menu_choose_procedure(DC_Dev *dev) {
+    int nb_procedures = dc_get_nb_procedures();
+    char *items[nb_procedures];
+    DC_Procedure *procedures[nb_procedures];
+    int i = 0;
+    DC_Procedure *procedure = NULL;
+    while ((procedure = dc_get_next_procedure(procedure))) {
+        items[i] = procedure->display_name;
+        procedures[i] = procedure;
+        i++;
+    }
 
     clear_body();
-    int chosen_procedure_ind = my_dialog_menu("Choose procedure", "", 0, 0, 4 * 3, n_actions, items);
-    return chosen_procedure_ind;
+    dialog_vars.no_items = 1;
+    dialog_vars.item_help = 0;
+    dialog_vars.input_result[0] = '\0';
+    int ret = dialog_menu("Choose procedure", "", 0, 0, 0, nb_procedures, items);
+    if (ret != 0)
+        return NULL;  // User quit dialog, exit
+    for (i = 0; i < nb_procedures; i++)
+      if (!strcmp(items[i], dialog_vars.input_result))
+        return procedures[i];
+    assert(0);
+    return NULL;
 }
 
 void log_cb(void *priv, enum DC_LogLevel level, const char* fmt, va_list vl) {

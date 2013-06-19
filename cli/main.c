@@ -12,7 +12,7 @@
 #include "ui_mutual.h"
 
 static int proc_render_cb(DC_ProcedureCtx *ctx, void *callback_priv);
-CliAction request_and_get_cli_action();
+DC_Procedure *request_and_get_cli_action();
 DC_Dev *request_and_get_device();
 
 static int ask_option_value(DC_OptionSetting *setting, DC_ProcedureOption *option) {
@@ -65,26 +65,10 @@ int main() {
             printf("Invalid choice\n");
             break;
         }
-        CliAction action = request_and_get_cli_action();
-        switch (action) {
-            case CliAction_eInvalid: {
-                printf("Invalid choice\n");
-                break;
-            }
-            case CliAction_eExit: {
-                printf("Exiting due to choice\n");
-                return 0;
-            }
-            case CliAction_eShowSmart:
-            case CliAction_eSetHpa:
-            case CliAction_eProcRead:
-            case CliAction_eProcWriteZeros:
-            case CliAction_eProcCopy:
-            case CliAction_eProcCopyDamaged:
             {
-                char *act_name = actions[action].name;
-                DC_Procedure *act = dc_find_procedure(act_name);
-                assert(act);
+                DC_Procedure *act = request_and_get_cli_action();
+                if (!act)
+                    break;
                 printf("Going to perform test %s (%s)\n", act->name, act->display_name);
                 if (act->flags & DC_PROC_FLAG_INVASIVE) {
                     printf("This operation is invasive, i.e. it may make your data unreachable or even destroy it completely. Are you sure you want to proceed it on %s (%s)? (y/n)\n",
@@ -92,7 +76,7 @@ int main() {
                     char ans[10] = "n";
                     char_ret = fgets(ans, sizeof(ans), stdin);
                     if (!char_ret || ans[0] != 'y')
-                        break;
+                        continue;
                 }
                 DC_OptionSetting *option_set = calloc(act->options_num + 1, sizeof(DC_OptionSetting));
                 int i;
@@ -109,21 +93,19 @@ int main() {
                         break;
                 }
                 if (r)
-                    break;
+                    continue;
                 DC_ProcedureCtx *actctx;
                 r = dc_procedure_open(act, chosen_dev, &actctx, option_set);
                 if (r) {
                     printf("Procedure init fail\n");
-                    return 1;
+                    continue;
                 }
                 if (!act->perform)
-                    break;
+                    continue;
                 printf("Performing on device %s with block size %"PRId64"\n",
                         chosen_dev->dev_path, actctx->blk_size);
                 procedure_perform_until_interrupt(actctx, proc_render_cb, NULL);
-                break;
             }
-        }  // switch (action)
     } // while(1)
 
     return 0;
@@ -143,21 +125,33 @@ static int proc_render_cb(DC_ProcedureCtx *ctx, void *callback_priv) {
     return 0;
 }
 
-CliAction request_and_get_cli_action() {
+DC_Procedure *request_and_get_cli_action() {
     // print procedures list
-    printf("\nChoose action #:\n");
     int i;
-    for (i = 0; i < CliAction_eAfterMaxValidIndex; i++)
-        printf("%d) %s\n", (int)actions[i].menu_number, actions[i].display_name);
+    DC_Procedure *procedure = NULL;
+    printf("\nChoose action #:\n");
+    printf("0) Exit\n");
+    for (i = 0; i < dc_get_nb_procedures(); i++) {
+        procedure = dc_get_next_procedure(procedure);
+        printf("%d) %s\n", i + 1, procedure->display_name);
+    }
     char input[10];
     int chosen_action_ind;
     char *char_ret = fgets(input, sizeof(input), stdin);
-    if (!char_ret)
-        return CliAction_eInvalid;
+    if (!char_ret) {
+        printf("Incorrect input\n");
+        return NULL;
+    }
     int r = sscanf(input, "%d", &chosen_action_ind);
-    if (r != 1 || chosen_action_ind < 0 || chosen_action_ind >= CliAction_eAfterMaxValidIndex)
-        return CliAction_eInvalid;
-    return (CliAction)chosen_action_ind;
+    if (r != 1 || chosen_action_ind < 0 || chosen_action_ind > dc_get_nb_procedures()) {
+        printf("Incorrect input\n");
+        return NULL;
+    }
+    if (chosen_action_ind == 0) {
+        printf("Exiting due to user choice\n");
+        return NULL;
+    }
+    return dc_get_procedure_by_index(chosen_action_ind - 1);
 }
 
 DC_Dev *request_and_get_device() {

@@ -13,6 +13,7 @@ int dc_procedure_register(DC_Procedure *procedure) {
     while (procedure->options && procedure->options[options_num].name)
         options_num++;
     procedure->options_num = options_num;
+    dc_ctx_global->nb_procedures++;
     return 0;
 }
 
@@ -24,6 +25,21 @@ DC_Procedure *dc_find_procedure(char *name) {
         iter = iter->next;
     }
     return iter;
+}
+
+int dc_get_nb_procedures() {
+    return dc_ctx_global->nb_procedures;
+}
+
+DC_Procedure *dc_get_next_procedure(DC_Procedure *prev) {
+    return prev ? prev->next : dc_ctx_global->procedure_list;
+}
+
+DC_Procedure *dc_get_procedure_by_index(int index) {
+    DC_Procedure *entry = dc_ctx_global->procedure_list;
+    for (int i = 0; entry && (i < index); i++)
+        entry = entry->next;
+    return entry;
 }
 
 int dc_procedure_open(DC_Procedure *procedure, DC_Dev *dev, DC_ProcedureCtx **ctx_arg, DC_OptionSetting options[]) {

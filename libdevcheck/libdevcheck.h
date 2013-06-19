@@ -23,6 +23,7 @@ extern clockid_t DC_BEST_CLOCK;
 // this should not be accessed from applications, for internal usage only
 struct dc_ctx {
     DC_Procedure *procedure_list;
+    int nb_procedures;
     DC_Renderer *renderer_list;
     enum DC_LogLevel log_level;
     void (*log_func)(void *priv, enum DC_LogLevel level, const char* fmt, va_list vl);
