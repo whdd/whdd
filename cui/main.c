@@ -84,51 +84,49 @@ int main() {
         DC_Procedure *act = menu_choose_procedure(chosen_dev);
         if (!act)
             break;
-        {
-            if (act->flags & DC_PROC_FLAG_INVASIVE) {
-                char *ask;
-                r = asprintf(&ask, "This operation is invasive, i.e. it may make your data unreachable or even destroy it completely. Are you sure you want to proceed it on %s (%s)?",
-                        chosen_dev->dev_fs_name, chosen_dev->model_str);
-                assert(r != -1);
-                dialog_vars.default_button = 1;  // Focus on "No"
-                r = dialog_yesno("Confirmation", ask, 0, 0);
-                // Yes = 0 (FALSE), No = 1, Escape = -1
-                free(ask);
-                if (/* No */ r)
-                    continue;
-            }
-            DC_OptionSetting *option_set = calloc(act->options_num + 1, sizeof(DC_OptionSetting));
-            int i;
-            r = 0;
-            for (i = 0; i < act->options_num; i++) {
-                option_set[i].name = act->options[i].name;
-                r = act->suggest_default_value(chosen_dev, &option_set[i]);
-                if (r) {
-                    dc_log(DC_LOG_ERROR, "Failed to get default value suggestion on '%s'", option_set[i].name);
-                    break;
-                }
-                r = ask_option_value(&option_set[i], &act->options[i]);
-                if (r)
-                    break;
-            }
-            if (r)
+        if (act->flags & DC_PROC_FLAG_INVASIVE) {
+            char *ask;
+            r = asprintf(&ask, "This operation is invasive, i.e. it may make your data unreachable or even destroy it completely. Are you sure you want to proceed it on %s (%s)?",
+                    chosen_dev->dev_fs_name, chosen_dev->model_str);
+            assert(r != -1);
+            dialog_vars.default_button = 1;  // Focus on "No"
+            r = dialog_yesno("Confirmation", ask, 0, 0);
+            // Yes = 0 (FALSE), No = 1, Escape = -1
+            free(ask);
+            if (/* No */ r)
                 continue;
-            DC_ProcedureCtx *actctx;
-            r = dc_procedure_open(act, chosen_dev, &actctx, option_set);
-            if (r) {
-                dialog_msgbox("Error", "Procedure init fail", 0, 0, 1);
-                continue;
-            }
-            if (!act->perform)
-                continue;
-            DC_Renderer *renderer;
-            if (!strcmp(act->name, "copy")
-                    || !strcmp(act->name, "copy_damaged"))
-                renderer = dc_find_renderer("whole_space");
-            else
-                renderer = dc_find_renderer("sliding_window");
-            render_procedure(actctx, renderer);
         }
+        DC_OptionSetting *option_set = calloc(act->options_num + 1, sizeof(DC_OptionSetting));
+        int i;
+        r = 0;
+        for (i = 0; i < act->options_num; i++) {
+            option_set[i].name = act->options[i].name;
+            r = act->suggest_default_value(chosen_dev, &option_set[i]);
+            if (r) {
+                dc_log(DC_LOG_ERROR, "Failed to get default value suggestion on '%s'", option_set[i].name);
+                break;
+            }
+            r = ask_option_value(&option_set[i], &act->options[i]);
+            if (r)
+                break;
+        }
+        if (r)
+            continue;
+        DC_ProcedureCtx *actctx;
+        r = dc_procedure_open(act, chosen_dev, &actctx, option_set);
+        if (r) {
+            dialog_msgbox("Error", "Procedure init fail", 0, 0, 1);
+            continue;
+        }
+        if (!act->perform)
+            continue;
+        DC_Renderer *renderer;
+        if (!strcmp(act->name, "copy")
+                || !strcmp(act->name, "copy_damaged"))
+            renderer = dc_find_renderer("whole_space");
+        else
+            renderer = dc_find_renderer("sliding_window");
+        render_procedure(actctx, renderer);
     } // while(1)
 
     return 0;

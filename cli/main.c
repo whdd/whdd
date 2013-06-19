@@ -65,47 +65,45 @@ int main() {
             printf("Invalid choice\n");
             break;
         }
-            {
-                DC_Procedure *act = request_and_get_cli_action();
-                if (!act)
-                    break;
-                printf("Going to perform test %s (%s)\n", act->name, act->display_name);
-                if (act->flags & DC_PROC_FLAG_INVASIVE) {
-                    printf("This operation is invasive, i.e. it may make your data unreachable or even destroy it completely. Are you sure you want to proceed it on %s (%s)? (y/n)\n",
-                            chosen_dev->dev_fs_name, chosen_dev->model_str);
-                    char ans[10] = "n";
-                    char_ret = fgets(ans, sizeof(ans), stdin);
-                    if (!char_ret || ans[0] != 'y')
-                        continue;
-                }
-                DC_OptionSetting *option_set = calloc(act->options_num + 1, sizeof(DC_OptionSetting));
-                int i;
-                r = 0;
-                for (i = 0; i < act->options_num; i++) {
-                    option_set[i].name = act->options[i].name;
-                    r = act->suggest_default_value(chosen_dev, &option_set[i]);
-                    if (r) {
-                        dc_log(DC_LOG_ERROR, "Failed to get default value suggestion on '%s'", option_set[i].name);
-                        break;
-                    }
-                    r = ask_option_value(&option_set[i], &act->options[i]);
-                    if (r)
-                        break;
-                }
-                if (r)
-                    continue;
-                DC_ProcedureCtx *actctx;
-                r = dc_procedure_open(act, chosen_dev, &actctx, option_set);
-                if (r) {
-                    printf("Procedure init fail\n");
-                    continue;
-                }
-                if (!act->perform)
-                    continue;
-                printf("Performing on device %s with block size %"PRId64"\n",
-                        chosen_dev->dev_path, actctx->blk_size);
-                procedure_perform_until_interrupt(actctx, proc_render_cb, NULL);
+        DC_Procedure *act = request_and_get_cli_action();
+        if (!act)
+            break;
+        printf("Going to perform test %s (%s)\n", act->name, act->display_name);
+        if (act->flags & DC_PROC_FLAG_INVASIVE) {
+            printf("This operation is invasive, i.e. it may make your data unreachable or even destroy it completely. Are you sure you want to proceed it on %s (%s)? (y/n)\n",
+                    chosen_dev->dev_fs_name, chosen_dev->model_str);
+            char ans[10] = "n";
+            char_ret = fgets(ans, sizeof(ans), stdin);
+            if (!char_ret || ans[0] != 'y')
+                continue;
+        }
+        DC_OptionSetting *option_set = calloc(act->options_num + 1, sizeof(DC_OptionSetting));
+        int i;
+        r = 0;
+        for (i = 0; i < act->options_num; i++) {
+            option_set[i].name = act->options[i].name;
+            r = act->suggest_default_value(chosen_dev, &option_set[i]);
+            if (r) {
+                dc_log(DC_LOG_ERROR, "Failed to get default value suggestion on '%s'", option_set[i].name);
+                break;
             }
+            r = ask_option_value(&option_set[i], &act->options[i]);
+            if (r)
+                break;
+        }
+        if (r)
+            continue;
+        DC_ProcedureCtx *actctx;
+        r = dc_procedure_open(act, chosen_dev, &actctx, option_set);
+        if (r) {
+            printf("Procedure init fail\n");
+            continue;
+        }
+        if (!act->perform)
+            continue;
+        printf("Performing on device %s with block size %"PRId64"\n",
+                chosen_dev->dev_path, actctx->blk_size);
+        procedure_perform_until_interrupt(actctx, proc_render_cb, NULL);
     } // while(1)
 
     return 0;
