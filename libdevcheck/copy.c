@@ -12,13 +12,28 @@
 #include <errno.h>
 #include <assert.h>
 #include "procedure.h"
-#include "ata.h"
 #include "scsi.h"
+
+typedef struct zone {
+    // begin_lba < end_lba
+    int64_t begin_lba;
+    int64_t end_lba;  // LBA of the first sector beyond zone
+    int begin_lba_defective;  // Whether reading near begin_lba failed
+    int end_lba_defective;  // Whether reading near end_lba failed
+    struct zone *next;
+} Zone;
+
+enum ReadStrategy {
+    ReadStrategy_ePlain,
+    ReadStrategy_eSmart,
+};
 
 struct copy_priv {
     const char *api_str;
+    const char *read_strategy_str;
     const char *dst_file;
     enum Api api;
+    enum ReadStrategy read_strategy;
     int64_t start_lba;
     int64_t end_lba;
     int64_t lba_to_process;
@@ -29,16 +44,22 @@ struct copy_priv {
     ScsiCommand scsi_command;
     int old_readahead;
     uint64_t blk_index;
+    Zone *unread_zones;
+    int nb_zones;
+    Zone *current_zone;
+    int current_zone_read_direction_reversive;
 };
 typedef struct copy_priv CopyPriv;
 
 #define SECTORS_AT_ONCE 256
 #define BLK_SIZE (SECTORS_AT_ONCE * 512) // FIXME hardcode
+#define INDIVISIBLE_DEFECT_ZONE_SIZE_SECTORS 1000*1000  // 500 MB
 
 static int SuggestDefaultValue(DC_Dev *dev, DC_OptionSetting *setting) {
     if (!strcmp(setting->name, "api")) {
         setting->value = strdup("ata");
-        // TODO Really check if ATA should work for dev in realtime
+    } else if (!strcmp(setting->name, "read_strategy")) {
+        setting->value = strdup("smart");
     } else if (!strcmp(setting->name, "dst_file")) {
         setting->value = strdup("/dev/null");
     } else {
@@ -57,6 +78,14 @@ static int Open(DC_ProcedureCtx *ctx) {
         dc_log(DC_LOG_WARNING, "Copying in ATA mode has been reported to write just zeros to destination file instead of data, in some installations. Please don't trust it, check procedure results by yourself.");
     } else if (!strcmp(priv->api_str, "posix")) {
         priv->api = Api_ePosix;
+    } else {
+        return 1;
+    }
+
+    if (!strcmp(priv->read_strategy_str, "smart")) {
+        priv->read_strategy = ReadStrategy_eSmart;
+    } else if (!strcmp(priv->read_strategy_str, "plain")) {
+        priv->read_strategy = ReadStrategy_ePlain;
     } else {
         return 1;
     }
@@ -96,6 +125,12 @@ static int Open(DC_ProcedureCtx *ctx) {
         goto fail_dst_open;
     }
 
+    priv->nb_zones = 1;
+    priv->unread_zones = calloc(1, sizeof(Zone));
+    assert(priv->unread_zones);
+    priv->unread_zones->begin_lba = priv->start_lba;
+    priv->unread_zones->end_lba = priv->end_lba;
+
     return 0;
 fail_dst_open:
     close(priv->src_fd);
@@ -108,18 +143,116 @@ fail_buf:
     return 1;
 }
 
+static int get_task(CopyPriv *priv, int64_t *lba_to_read, size_t *sectors_to_read) {
+    if (priv->read_strategy == ReadStrategy_ePlain) {
+        *lba_to_read = priv->blk_index * SECTORS_AT_ONCE;
+        *sectors_to_read = (priv->end_lba - *lba_to_read) < SECTORS_AT_ONCE ? (priv->end_lba - *lba_to_read) : SECTORS_AT_ONCE;
+        return 0;
+    }
+    Zone *entry;
+    assert(priv->unread_zones);  // We should not be there if all space has been read
+    assert(priv->nb_zones);
+
+    // Search for zone with non-defective border (beginning or end)
+    for (entry = priv->unread_zones; entry; entry = entry->next) {
+        int64_t zone_length_sectors = entry->end_lba - entry->begin_lba;
+        if (!entry->begin_lba_defective) {
+            priv->current_zone = entry;
+            priv->current_zone_read_direction_reversive = 0;
+            *sectors_to_read = (zone_length_sectors < SECTORS_AT_ONCE) ? zone_length_sectors : SECTORS_AT_ONCE;
+            *lba_to_read = entry->begin_lba;
+            return 0;
+        }
+        if (!entry->end_lba_defective) {
+            priv->current_zone = entry;
+            priv->current_zone_read_direction_reversive = 1;
+            *sectors_to_read = (zone_length_sectors < SECTORS_AT_ONCE) ? zone_length_sectors : SECTORS_AT_ONCE;
+            *lba_to_read = entry->end_lba - *sectors_to_read;
+            return 0;
+        }
+    }
+    // Only zones with both ends defective left
+    entry = priv->unread_zones;
+    assert(entry->begin_lba_defective);
+    assert(entry->end_lba_defective);
+    int64_t zone_length_sectors = entry->end_lba - entry->begin_lba;
+    if ((zone_length_sectors > INDIVISIBLE_DEFECT_ZONE_SIZE_SECTORS)  // Enough big zone to try in middle of it
+            && (priv->nb_zones < 1000)) {  // And we won't get in trouble of inflation of zones list
+        priv->nb_zones++;
+        Zone *newentry = calloc(1, sizeof(Zone));
+        assert(newentry);
+        newentry->next = entry->next;
+        entry->next = newentry;
+        newentry->end_lba = entry->end_lba;
+        newentry->end_lba_defective = entry->end_lba_defective;
+        newentry->begin_lba = entry->begin_lba + (zone_length_sectors / 2);
+        newentry->begin_lba -= (newentry->begin_lba % SECTORS_AT_ONCE);  // align to block size
+        assert((entry->begin_lba < newentry->begin_lba) && (newentry->begin_lba < newentry->end_lba));
+        entry->end_lba = newentry->begin_lba;
+        entry->end_lba_defective = 0;
+        return get_task(priv, lba_to_read, sectors_to_read);  // It will go by first branch in this function
+    }
+
+    priv->current_zone = entry;
+    priv->current_zone_read_direction_reversive = 0;
+    *sectors_to_read = (zone_length_sectors < SECTORS_AT_ONCE) ? zone_length_sectors : SECTORS_AT_ONCE;
+    *lba_to_read = entry->begin_lba;
+    return 0;
+}
+
+static int update_zones(CopyPriv *priv, int64_t lba_to_read, size_t sectors_to_read, int read_failed) {
+    if (priv->read_strategy != ReadStrategy_eSmart)
+        return 0;
+    Zone *prev;
+    Zone *entry;
+    if (priv->current_zone->begin_lba_defective && priv->current_zone->end_lba_defective) {
+        // We're reading straight ahead and ignoring failures
+        assert(lba_to_read == priv->current_zone->begin_lba);
+        assert(priv->current_zone_read_direction_reversive == 0);
+        priv->current_zone->begin_lba += sectors_to_read;
+    } else if (!priv->current_zone->begin_lba_defective) {
+        assert(lba_to_read == priv->current_zone->begin_lba);
+        assert(priv->current_zone_read_direction_reversive == 0);
+        priv->current_zone->begin_lba += sectors_to_read;
+        priv->current_zone->begin_lba_defective = read_failed;
+    } else {
+        assert(!priv->current_zone->end_lba_defective);
+        assert(lba_to_read == priv->current_zone->end_lba - sectors_to_read);
+        assert(priv->current_zone_read_direction_reversive == 1);
+        priv->current_zone->end_lba -= sectors_to_read;
+        priv->current_zone->end_lba_defective = read_failed;
+    }
+    // Check zones list and eliminate zero-length ones
+    for (prev = NULL, entry = priv->unread_zones; entry; prev = entry, entry = entry->next) {
+        if (entry->begin_lba == entry->end_lba) {
+            if (prev)
+                prev->next = entry->next;
+            else
+                priv->unread_zones = entry->next;
+            free(entry);
+            priv->nb_zones--;
+        }
+    }
+    return 0;
+}
+
 static int Perform(DC_ProcedureCtx *ctx) {
     ssize_t read_ret;
     int ioctl_ret;
     int ret = 0;
     CopyPriv *priv = ctx->priv;
     struct timespec pre, post;
-    size_t sectors_to_read = (priv->lba_to_process < SECTORS_AT_ONCE) ? priv->lba_to_process : SECTORS_AT_ONCE;
+    size_t sectors_to_read;
+    int64_t lba_to_read;
     int r;
     int error_flag = 0;
 
     // Updating context
-    ctx->report.lba = priv->start_lba + SECTORS_AT_ONCE * priv->blk_index;
+    r = get_task(priv, &lba_to_read, &sectors_to_read);
+    assert(!r);
+    lseek(priv->src_fd, 512 * lba_to_read, SEEK_SET);
+    lseek(priv->dst_fd, 512 * lba_to_read, SEEK_SET);
+    ctx->report.lba = lba_to_read;
     ctx->report.blk_status = DC_BlockStatus_eOk;
     priv->blk_index++;
 
@@ -167,9 +300,6 @@ static int Perform(DC_ProcedureCtx *ctx) {
     } else {
         if (read_ret != sectors_to_read * 512) {
             error_flag = 1;
-            // Position of fd is undefined. Set fds position to next block
-            lseek(priv->src_fd, 512 * priv->start_lba + ctx->blk_size * priv->blk_index, SEEK_SET);
-            lseek(priv->dst_fd, 512 * priv->start_lba + ctx->blk_size * priv->blk_index, SEEK_SET);
 
             // Updating context
             ctx->report.blk_status = DC_BlockStatus_eError;
@@ -182,7 +312,6 @@ static int Perform(DC_ProcedureCtx *ctx) {
 
         // Error handling
         if (write_ret != sectors_to_read * 512) {
-            lseek(priv->dst_fd, 512 * priv->start_lba + ctx->blk_size * priv->blk_index, SEEK_SET);
             // Updating context
             ctx->report.blk_status = DC_BlockStatus_eError;
             // TODO Transmit to user info that _write phase_ has failed
@@ -190,6 +319,8 @@ static int Perform(DC_ProcedureCtx *ctx) {
     }
 
     // Updating context
+    r = update_zones(priv, lba_to_read, sectors_to_read, error_flag);
+    assert(!r);
     ctx->progress.num++;
     priv->lba_to_process -= sectors_to_read;
     ctx->report.blk_access_time = (post.tv_sec - pre.tv_sec) * 1000000 +
@@ -209,7 +340,8 @@ static void Close(DC_ProcedureCtx *ctx) {
 }
 
 static DC_ProcedureOption options[] = {
-    { "api", "select operation API: \"posix\" for POSIX read(), \"ata\" for ATA \"READ DMA EXT\" command", offsetof(CopyPriv, api_str), DC_ProcedureOptionType_eString },
+    { "api", "select read operation API: \"posix\" for POSIX read(), \"ata\" for ATA \"READ DMA EXT\" command", offsetof(CopyPriv, api_str), DC_ProcedureOptionType_eString },
+    { "read_strategy", "select read strategy: \"plain\" for sequential reading, \"smart\" for algorithm which defers reading defect zones and copies normal zones first", offsetof(CopyPriv, read_strategy_str), DC_ProcedureOptionType_eString },
     { "dst_file", "set destination file path", offsetof(CopyPriv, dst_file), DC_ProcedureOptionType_eString },
     { NULL }
 };
@@ -217,8 +349,8 @@ static DC_ProcedureOption options[] = {
 
 DC_Procedure copy = {
     .name = "copy",
-    .display_name = "Copy device",
-    .help = "Copies entire device to given destination (another device or generic file). It copies data sequentially, from LBA 0 up to end. To get data from source device, it may use ATA \"READ DMA EXT\" command, or POSIX read() function, by user choice.",
+    .display_name = "Device copying",
+    .help = "Copies entire device to given destination (another device or generic file). If \"read_strategy\" = \"plain\", it just copies data sequentially. If \"read_strategy\" = \"smart\", it copies data sequentially until read error is met. Then it reads unread data from another end of disk space. When this ends with read error, too, it jumps to the middle of unread zone and reads from there. This results in having two zones of unread data. It works this way until there are only small defective zones, then it attempts to copy them sequentially. To get data from source device, it may use ATA \"READ DMA EXT\" command, or POSIX read() function, by user choice.",
     .suggest_default_value = SuggestDefaultValue,
     .open = Open,
     .perform = Perform,

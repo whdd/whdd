@@ -121,8 +121,7 @@ int main() {
         if (!act->perform)
             continue;
         DC_Renderer *renderer;
-        if (!strcmp(act->name, "copy")
-                || !strcmp(act->name, "copy_damaged"))
+        if (!strcmp(act->name, "copy"))
             renderer = dc_find_renderer("whole_space");
         else
             renderer = dc_find_renderer("sliding_window");
