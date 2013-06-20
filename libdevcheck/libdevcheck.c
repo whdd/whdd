@@ -48,11 +48,11 @@ int dc_init(void) {
 #define PROCEDURE_REGISTER(x) { \
         extern DC_Procedure x; \
         dc_procedure_register(&x); }
-    PROCEDURE_REGISTER(read_test);
-    PROCEDURE_REGISTER(posix_write_zeros);
-    PROCEDURE_REGISTER(copy);
-    PROCEDURE_REGISTER(copy_damaged);
     PROCEDURE_REGISTER(hpa_set);
+    PROCEDURE_REGISTER(posix_write_zeros);
+    PROCEDURE_REGISTER(copy_damaged);
+    PROCEDURE_REGISTER(copy);
+    PROCEDURE_REGISTER(read_test);
     PROCEDURE_REGISTER(smart_show);
 #undef PROCEDURE_REGISTER
     return 0;
