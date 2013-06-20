@@ -42,6 +42,7 @@ static int ask_option_value(DC_OptionSetting *setting, DC_ProcedureOption *optio
             param_type_str, option->name, option->help);
 
     dialog_vars.default_button = -1;  // Workaround for surprisingly unfocused input field on old libdialog
+    dialog_vars.input_result = NULL;
     int r = dialog_inputbox("Input box", prompt, 0, 0, suggested_value, 0);
     if (r != 0) {
         dialog_msgbox("Info", "Action cancelled", 0, 0, 1);
@@ -177,6 +178,7 @@ static DC_Dev *menu_choose_device(DC_DevList *devlist) {
     dialog_vars.no_items = 0;
     dialog_vars.item_help = 0;
     dialog_vars.input_result = NULL;
+    dialog_vars.default_button = 0;  // Focus on "OK"
     int ret = dialog_menu("Choose device", "", 0, 0, 0, devs_num, items);
     for (i = 0; i < devs_num; i++)
         free(items[2*i+1]);
@@ -208,6 +210,7 @@ static DC_Procedure *menu_choose_procedure(DC_Dev *dev) {
     dialog_vars.no_items = 1;
     dialog_vars.item_help = 0;
     dialog_vars.input_result = NULL;
+    dialog_vars.default_button = 0;  // Focus on "OK"
     int ret = dialog_menu("Choose procedure", "", 0, 0, 0, nb_procedures, items);
     if (ret != 0)
         return NULL;  // User quit dialog, exit
