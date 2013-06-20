@@ -220,7 +220,6 @@ static int Open(DC_RendererCtx *ctx) {
         priv->blocks_per_vis++;
     priv->vis = derwin(stdscr, priv->vis_height, priv->vis_width, 2, 0); // leave 1st and last lines untouched
     assert(priv->vis);
-    scrollok(priv->vis, TRUE);
     wrefresh(priv->vis);
 
     priv->avg_speed = derwin(stdscr, 1, LEGEND_WIDTH, 2, COLS-LEGEND_WIDTH);
