@@ -52,12 +52,14 @@ static int Open(DC_ProcedureCtx *ctx) {
     CopyPriv *priv = ctx->priv;
 
     // Setting context
-    if (!strcmp(priv->api_str, "ata"))
+    if (!strcmp(priv->api_str, "ata")) {
         priv->api = Api_eAta;
-    else if (!strcmp(priv->api_str, "posix"))
+        dc_log(DC_LOG_WARNING, "Copying in ATA mode has been reported to write just zeros to destination file instead of data, in some installations. Please don't trust it, check procedure results by yourself.");
+    } else if (!strcmp(priv->api_str, "posix")) {
         priv->api = Api_ePosix;
-    else
+    } else {
         return 1;
+    }
     ctx->blk_size = BLK_SIZE;
     priv->end_lba = ctx->dev->capacity / 512;
     priv->lba_to_process = priv->end_lba - priv->start_lba;
