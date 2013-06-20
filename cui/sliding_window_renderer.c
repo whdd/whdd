@@ -165,8 +165,10 @@ static int Open(DC_RendererCtx *ctx) {
 
     priv->legend = derwin(stdscr, 11 /* legend win height */, LEGEND_WIDTH/2, 4, COLS-LEGEND_WIDTH); // leave 1st and last lines untouched
     assert(priv->legend);
+    wbkgd(priv->legend, COLOR_PAIR(MY_COLOR_GRAY));
     priv->access_time_stats = derwin(stdscr, 11 /* height */, LEGEND_WIDTH/2, 4, COLS-LEGEND_WIDTH/2);
     assert(priv->access_time_stats);
+    wbkgd(priv->access_time_stats, COLOR_PAIR(MY_COLOR_GRAY));
     show_legend(priv->legend);
     priv->vis = derwin(stdscr, LINES-5, COLS-LEGEND_WIDTH-1, 2, 0); // leave 1st and last lines untouched
     assert(priv->vis);
@@ -175,22 +177,28 @@ static int Open(DC_RendererCtx *ctx) {
 
     priv->avg_speed = derwin(stdscr, 1, LEGEND_WIDTH, 2, COLS-LEGEND_WIDTH);
     assert(priv->avg_speed);
+    wbkgd(priv->avg_speed, COLOR_PAIR(MY_COLOR_GRAY));
 
     priv->eta = derwin(stdscr, 1, LEGEND_WIDTH, 1, COLS-LEGEND_WIDTH);
     assert(priv->eta);
+    wbkgd(priv->eta, COLOR_PAIR(MY_COLOR_GRAY));
 
     priv->summary = derwin(stdscr, 10, LEGEND_WIDTH, 16, COLS-LEGEND_WIDTH);
     assert(priv->summary);
+    wbkgd(priv->summary, COLOR_PAIR(MY_COLOR_GRAY));
 
     priv->w_end_lba = derwin(stdscr, 1, 20, 1, COLS-41);
     assert(priv->w_end_lba);
+    wbkgd(priv->w_end_lba, COLOR_PAIR(MY_COLOR_GRAY));
 
     priv->w_cur_lba = derwin(stdscr, 1, 20, 1, COLS-61);
     assert(priv->w_cur_lba);
+    wbkgd(priv->w_cur_lba, COLOR_PAIR(MY_COLOR_GRAY));
 
     priv->w_log = derwin(stdscr, 2, COLS, LINES-3, 0);
     assert(priv->w_log);
     scrollok(priv->w_log, TRUE);
+    wbkgd(priv->w_log, COLOR_PAIR(MY_COLOR_GRAY));
 
     priv->reports[0].seqno = 1; // anything but zero
 
