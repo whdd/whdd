@@ -135,10 +135,9 @@ DC_Procedure *request_and_get_cli_action() {
     int i;
     DC_Procedure *procedure = NULL;
     printf("\nChoose action #:\n");
-    printf("0) Exit\n");
     for (i = 0; i < dc_get_nb_procedures(); i++) {
         procedure = dc_get_next_procedure(procedure);
-        printf("%d) %s\n", i + 1, procedure->display_name);
+        printf("%d) %s\n", i, procedure->display_name);
     }
     char input[10];
     int chosen_action_ind;
@@ -148,15 +147,11 @@ DC_Procedure *request_and_get_cli_action() {
         return NULL;
     }
     int r = sscanf(input, "%d", &chosen_action_ind);
-    if (r != 1 || chosen_action_ind < 0 || chosen_action_ind > dc_get_nb_procedures()) {
+    if (r != 1 || chosen_action_ind < 0 || chosen_action_ind >= dc_get_nb_procedures()) {
         printf("Incorrect input\n");
         return NULL;
     }
-    if (chosen_action_ind == 0) {
-        printf("Exiting due to user choice\n");
-        return NULL;
-    }
-    return dc_get_procedure_by_index(chosen_action_ind - 1);
+    return dc_get_procedure_by_index(chosen_action_ind);
 }
 
 DC_Dev *request_and_get_device() {
