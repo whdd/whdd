@@ -23,10 +23,17 @@ typedef struct zone {
     struct zone *next;
 } Zone;
 
+enum ReadStrategy {
+    ReadStrategy_ePlain,
+    ReadStrategy_eSmart,
+};
+
 struct copy_damaged_priv {
     const char *api_str;
+    const char *read_strategy_str;
     const char *dst_file;
     enum Api api;
+    enum ReadStrategy read_strategy;
     int64_t start_lba;
     int64_t end_lba;
     int64_t lba_to_process;
@@ -51,6 +58,8 @@ typedef struct copy_damaged_priv CopyDamagedPriv;
 static int SuggestDefaultValue(DC_Dev *dev, DC_OptionSetting *setting) {
     if (!strcmp(setting->name, "api")) {
         setting->value = strdup("ata");
+    } else if (!strcmp(setting->name, "read_strategy")) {
+        setting->value = strdup("smart");
     } else if (!strcmp(setting->name, "dst_file")) {
         setting->value = strdup("/dev/null");
     } else {
@@ -69,6 +78,14 @@ static int Open(DC_ProcedureCtx *ctx) {
         dc_log(DC_LOG_WARNING, "Copying in ATA mode has been reported to write just zeros to destination file instead of data, in some installations. Please don't trust it, check procedure results by yourself.");
     } else if (!strcmp(priv->api_str, "posix")) {
         priv->api = Api_ePosix;
+    } else {
+        return 1;
+    }
+
+    if (!strcmp(priv->read_strategy_str, "smart")) {
+        priv->read_strategy = ReadStrategy_eSmart;
+    } else if (!strcmp(priv->read_strategy_str, "plain")) {
+        priv->read_strategy = ReadStrategy_ePlain;
     } else {
         return 1;
     }
@@ -127,6 +144,11 @@ fail_buf:
 }
 
 static int get_task(CopyDamagedPriv *priv, int64_t *lba_to_read, size_t *sectors_to_read) {
+    if (priv->read_strategy == ReadStrategy_ePlain) {
+        *lba_to_read = priv->blk_index * SECTORS_AT_ONCE;
+        *sectors_to_read = (priv->end_lba - *lba_to_read) < SECTORS_AT_ONCE ? (priv->end_lba - *lba_to_read) : SECTORS_AT_ONCE;
+        return 0;
+    }
     Zone *entry;
     assert(priv->unread_zones);  // We should not be there if all space has been read
     assert(priv->nb_zones);
@@ -179,6 +201,8 @@ static int get_task(CopyDamagedPriv *priv, int64_t *lba_to_read, size_t *sectors
 }
 
 static int update_zones(CopyDamagedPriv *priv, int64_t lba_to_read, size_t sectors_to_read, int read_failed) {
+    if (priv->read_strategy != ReadStrategy_eSmart)
+        return 0;
     Zone *prev;
     Zone *entry;
     if (priv->current_zone->begin_lba_defective && priv->current_zone->end_lba_defective) {
@@ -317,6 +341,7 @@ static void Close(DC_ProcedureCtx *ctx) {
 
 static DC_ProcedureOption options[] = {
     { "api", "select read operation API: \"posix\" for POSIX read(), \"ata\" for ATA \"READ DMA EXT\" command", offsetof(CopyDamagedPriv, api_str), DC_ProcedureOptionType_eString },
+    { "read_strategy", "select read strategy: \"plain\" for sequential reading, \"smart\" for algorithm which defers reading defect zones and copies normal zones first", offsetof(CopyDamagedPriv, read_strategy_str), DC_ProcedureOptionType_eString },
     { "dst_file", "set destination file path", offsetof(CopyDamagedPriv, dst_file), DC_ProcedureOptionType_eString },
     { NULL }
 };
@@ -325,7 +350,7 @@ static DC_ProcedureOption options[] = {
 DC_Procedure copy_damaged = {
     .name = "copy_damaged",
     .display_name = "Smart device copying",
-    .help = "Copies entire device to given destination (another device or generic file). It copies data sequentially, until read error is met. Then it reads unread data from another end of disk space. When this ends with read error, too, it jumps to the middle of unread zone and reads from there. This results in having two zones of unread data. It works this way until there are only small defective zones, then it attempts to copy them sequentially. To get data from source device, it may use ATA \"READ DMA EXT\" command, or POSIX read() function, by user choice.",
+    .help = "Copies entire device to given destination (another device or generic file). If \"read_strategy\" = \"plain\", it just copies data sequentially. If \"read_strategy\" = \"smart\", it copies data sequentially until read error is met. Then it reads unread data from another end of disk space. When this ends with read error, too, it jumps to the middle of unread zone and reads from there. This results in having two zones of unread data. It works this way until there are only small defective zones, then it attempts to copy them sequentially. To get data from source device, it may use ATA \"READ DMA EXT\" command, or POSIX read() function, by user choice.",
     .suggest_default_value = SuggestDefaultValue,
     .open = Open,
     .perform = Perform,
