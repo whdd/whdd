@@ -37,7 +37,7 @@ static int ask_option_value(DC_OptionSetting *setting, DC_ProcedureOption *optio
             param_type_str = "string";
             break;
     }
-    char prompt[200];
+    char prompt[500];
     snprintf(prompt, sizeof(prompt), "Please enter %s parameter: %s (%s)",
             param_type_str, option->name, option->help);
 
