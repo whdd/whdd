@@ -26,6 +26,7 @@ typedef struct zone {
 enum ReadStrategy {
     ReadStrategy_ePlain,
     ReadStrategy_eSmart,
+    ReadStrategy_eSmartNoReverse,
 };
 
 struct copy_priv {
@@ -59,7 +60,7 @@ static int SuggestDefaultValue(DC_Dev *dev, DC_OptionSetting *setting) {
     if (!strcmp(setting->name, "api")) {
         setting->value = strdup("ata");
     } else if (!strcmp(setting->name, "read_strategy")) {
-        setting->value = strdup("smart");
+        setting->value = strdup("smart_noreverse");
     } else if (!strcmp(setting->name, "dst_file")) {
         setting->value = strdup("/dev/null");
     } else {
@@ -84,6 +85,8 @@ static int Open(DC_ProcedureCtx *ctx) {
 
     if (!strcmp(priv->read_strategy_str, "smart")) {
         priv->read_strategy = ReadStrategy_eSmart;
+    } else if (!strcmp(priv->read_strategy_str, "smart_noreverse")) {
+        priv->read_strategy = ReadStrategy_eSmartNoReverse;
     } else if (!strcmp(priv->read_strategy_str, "plain")) {
         priv->read_strategy = ReadStrategy_ePlain;
     } else {
@@ -163,6 +166,8 @@ static int get_task(CopyPriv *priv, int64_t *lba_to_read, size_t *sectors_to_rea
             *lba_to_read = entry->begin_lba;
             return 0;
         }
+        if (priv->read_strategy == ReadStrategy_eSmartNoReverse)
+            continue;
         if (!entry->end_lba_defective) {
             priv->current_zone = entry;
             priv->current_zone_read_direction_reversive = 1;
@@ -174,7 +179,7 @@ static int get_task(CopyPriv *priv, int64_t *lba_to_read, size_t *sectors_to_rea
     // Only zones with both ends defective left
     entry = priv->unread_zones;
     assert(entry->begin_lba_defective);
-    assert(entry->end_lba_defective);
+    assert((priv->read_strategy == ReadStrategy_eSmartNoReverse) || entry->end_lba_defective);
     int64_t zone_length_sectors = entry->end_lba - entry->begin_lba;
     if ((zone_length_sectors > INDIVISIBLE_DEFECT_ZONE_SIZE_SECTORS)  // Enough big zone to try in middle of it
             && (priv->nb_zones < 1000)) {  // And we won't get in trouble of inflation of zones list
@@ -201,7 +206,7 @@ static int get_task(CopyPriv *priv, int64_t *lba_to_read, size_t *sectors_to_rea
 }
 
 static int update_zones(CopyPriv *priv, int64_t lba_to_read, size_t sectors_to_read, int read_failed) {
-    if (priv->read_strategy != ReadStrategy_eSmart)
+    if (priv->read_strategy == ReadStrategy_ePlain)
         return 0;
     Zone *prev;
     Zone *entry;
@@ -343,7 +348,7 @@ static void Close(DC_ProcedureCtx *ctx) {
 
 static DC_ProcedureOption options[] = {
     { "api", "select read operation API: \"posix\" for POSIX read(), \"ata\" for ATA \"READ DMA EXT\" command", offsetof(CopyPriv, api_str), DC_ProcedureOptionType_eString },
-    { "read_strategy", "select read strategy: \"plain\" for sequential reading, \"smart\" for algorithm which defers reading defect zones and copies normal zones first", offsetof(CopyPriv, read_strategy_str), DC_ProcedureOptionType_eString },
+    { "read_strategy", "select read strategy: \"plain\" for sequential reading, \"smart\" for algorithm which defers reading defect zones and copies normal zones first, \"smart_noreverse\" for same as smart but not reading in reverse direction", offsetof(CopyPriv, read_strategy_str), DC_ProcedureOptionType_eString },
     { "dst_file", "set destination file path", offsetof(CopyPriv, dst_file), DC_ProcedureOptionType_eString },
     { NULL }
 };
@@ -352,7 +357,7 @@ static DC_ProcedureOption options[] = {
 DC_Procedure copy = {
     .name = "copy",
     .display_name = "Device copying",
-    .help = "Copies entire device to given destination (another device or generic file). If \"read_strategy\" = \"plain\", it just copies data sequentially. If \"read_strategy\" = \"smart\", it copies data sequentially until read error is met. Then it reads unread data from another end of disk space. When this ends with read error, too, it jumps to the middle of unread zone and reads from there. This results in having two zones of unread data. It works this way until there are only small defective zones, then it attempts to copy them sequentially. To get data from source device, it may use ATA \"READ DMA EXT\" command, or POSIX read() function, by user choice.",
+    .help = "Copies entire device to given destination (another device or generic file). If \"read_strategy\" = \"plain\", it just copies data sequentially. If \"read_strategy\" = \"smart\", it copies data sequentially until read error is met. Then it reads unread data from another end of disk space. When this ends with read error, too, it jumps to the middle of unread zone and reads from there. This results in having two zones of unread data. It works this way until there are only small defective zones, then it attempts to copy them sequentially. \"smart_noreverse\" is the same, but it does not read zones in reverse direction. To get data from source device, it may use ATA \"READ DMA EXT\" command, or POSIX read() function, by user choice.",
     .suggest_default_value = SuggestDefaultValue,
     .open = Open,
     .perform = Perform,
