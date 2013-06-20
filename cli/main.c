@@ -76,6 +76,13 @@ int main() {
             char_ret = fgets(ans, sizeof(ans), stdin);
             if (!char_ret || ans[0] != 'y')
                 continue;
+
+            if (chosen_dev->mounted) {
+                printf("This disk is mounted. Are you really sure you want to proceed? (y/n)");
+                char_ret = fgets(ans, sizeof(ans), stdin);
+                if (!char_ret || ans[0] != 'y')
+                    continue;
+            }
         }
         DC_OptionSetting *option_set = calloc(act->options_num + 1, sizeof(DC_OptionSetting));
         int i;

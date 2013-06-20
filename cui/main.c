@@ -89,6 +89,12 @@ int main() {
             free(ask);
             if (/* No */ r)
                 continue;
+            if (chosen_dev->mounted) {
+                dialog_vars.default_button = 1;  // Focus on "No"
+                r = dialog_yesno("Confirmation", "This disk is mounted. Are you really sure you want to proceed?", 0, 0);
+                if (r)
+                    continue;
+            }
         }
         DC_OptionSetting *option_set = calloc(act->options_num + 1, sizeof(DC_OptionSetting));
         int i;
