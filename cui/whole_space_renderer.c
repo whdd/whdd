@@ -165,6 +165,7 @@ static void update_blocks_info(WholeSpace *priv, blk_report_t *rep) {
 }
 
 static void render_update_stats(WholeSpace *priv) {
+#if 0
     werase(priv->access_time_stats);
     unsigned int i;
     for (i = 0; i < 6; i++)
@@ -172,6 +173,7 @@ static void render_update_stats(WholeSpace *priv) {
     for (i = 1; i < 6; i++)
         wprintw(priv->access_time_stats, "%d\n", priv->error_stats_accum[i]);
     wnoutrefresh(priv->access_time_stats);
+#endif
 
     if (priv->avg_processing_speed != 0) {
         werase(priv->avg_speed);
@@ -209,7 +211,7 @@ static int Open(DC_RendererCtx *ctx) {
     priv->access_time_stats = derwin(stdscr, 11 /* height */, LEGEND_WIDTH/2, 4, COLS-LEGEND_WIDTH/2);
     assert(priv->access_time_stats);
     wbkgd(priv->access_time_stats, COLOR_PAIR(MY_COLOR_GRAY));
-    show_legend(priv->legend);
+    //show_legend(priv->legend);
     priv->vis_height = LINES - 5;
     priv->vis_width = COLS - LEGEND_WIDTH - 1;
     int vis_cells_avail = priv->vis_height * priv->vis_width;
