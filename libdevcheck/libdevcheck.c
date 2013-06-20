@@ -147,11 +147,13 @@ static void dev_list_build(DC_DevList *dc_devlist) {
 }
 
 static void dev_modelname_fill(DC_Dev *dev);
+static void dev_mounted_fill(DC_Dev *dev);
 
 static void dev_list_fill_info(DC_DevList *list) {
     DC_Dev *dev = list->arr;
     while (dev) {
         dev_modelname_fill(dev);
+        dev_mounted_fill(dev);
         dev = dev->next;
     }
 }
@@ -175,4 +177,17 @@ static void dev_modelname_fill(DC_Dev *dev) {
     }
     dev->model_str = strdup(model);
     assert(dev->model_str);
+}
+
+static void dev_mounted_fill(DC_Dev *dev) {
+    FILE *mtab = fopen("/etc/mtab", "r");
+    if (!mtab)
+        return;
+    char line[200];
+    while (fgets(line, sizeof(line), mtab))
+        if (!strncmp(line, dev->dev_path, strlen(dev->dev_path))) {
+            dev->mounted = 1;
+            break;
+        }
+    fclose(mtab);
 }

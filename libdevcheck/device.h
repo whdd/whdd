@@ -9,6 +9,7 @@ struct dc_dev {
     char *model_str;
     uint64_t capacity;
     int64_t native_capacity;
+    int mounted;
     struct dc_dev *next;
 };
 
