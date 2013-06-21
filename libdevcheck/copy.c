@@ -57,6 +57,7 @@ typedef struct copy_priv CopyPriv;
 #define INDIVISIBLE_DEFECT_ZONE_SIZE_SECTORS 1000*1000  // 500 MB
 
 static int SuggestDefaultValue(DC_Dev *dev, DC_OptionSetting *setting) {
+    (void)dev;
     if (!strcmp(setting->name, "api")) {
         setting->value = strdup("ata");
     } else if (!strcmp(setting->name, "read_strategy")) {
@@ -306,7 +307,7 @@ static int Perform(DC_ProcedureCtx *ctx) {
         if (ctx->report.blk_status)
             error_flag = 1;
     } else {
-        if (read_ret != sectors_to_read * 512) {
+        if (read_ret != (ssize_t)sectors_to_read * 512) {
             error_flag = 1;
 
             // Updating context
@@ -319,7 +320,7 @@ static int Perform(DC_ProcedureCtx *ctx) {
         int write_ret = write(priv->dst_fd, priv->buf, sectors_to_read * 512);
 
         // Error handling
-        if (write_ret != sectors_to_read * 512) {
+        if (write_ret != (ssize_t)sectors_to_read * 512) {
             // Updating context
             ctx->report.blk_status = DC_BlockStatus_eError;
             // TODO Transmit to user info that _write phase_ has failed

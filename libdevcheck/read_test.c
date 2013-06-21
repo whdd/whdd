@@ -34,6 +34,7 @@ typedef struct read_priv ReadPriv;
 #define BLK_SIZE (SECTORS_AT_ONCE * 512) // FIXME hardcode
 
 static int SuggestDefaultValue(DC_Dev *dev, DC_OptionSetting *setting) {
+    (void)dev;
     if (!strcmp(setting->name, "api")) {
         setting->value = strdup("ata");
         // TODO Really check if ATA should work for dev in realtime

@@ -8,6 +8,7 @@
 #include "utils.h"
 
 static int proxy_handle_report(DC_ProcedureCtx *dummy, void *arg) {
+    (void)dummy;
     DC_RendererCtx *ctx = arg;
     return ctx->renderer->handle_report(ctx);
 }

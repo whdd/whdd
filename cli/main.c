@@ -117,6 +117,7 @@ int main() {
 }
 
 static int proc_render_cb(DC_ProcedureCtx *ctx, void *callback_priv) {
+    (void)callback_priv;
     if (ctx->progress.num == 1) {  // TODO eliminate such hacks
         printf("on device '%s' with block size of %"PRIu64" bytes\n",
                 ctx->dev->dev_fs_name, ctx->blk_size);

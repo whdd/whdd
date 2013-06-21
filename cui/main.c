@@ -200,8 +200,9 @@ static DC_Dev *menu_choose_device(DC_DevList *devlist) {
 }
 
 static DC_Procedure *menu_choose_procedure(DC_Dev *dev) {
+    (void)dev;
     int nb_procedures = dc_get_nb_procedures();
-    char *items[nb_procedures];
+    const char *items[nb_procedures];
     DC_Procedure *procedures[nb_procedures];
     int i = 0;
     DC_Procedure *procedure = NULL;
@@ -216,7 +217,7 @@ static DC_Procedure *menu_choose_procedure(DC_Dev *dev) {
     dialog_vars.item_help = 0;
     dialog_vars.input_result = NULL;
     dialog_vars.default_button = 0;  // Focus on "OK"
-    int ret = dialog_menu("Choose procedure", "", 0, 0, 0, nb_procedures, items);
+    int ret = dialog_menu("Choose procedure", "", 0, 0, 0, nb_procedures, (/* should be const */char**)items);
     if (ret != 0)
         return NULL;  // User quit dialog, exit
     for (i = 0; i < nb_procedures; i++)

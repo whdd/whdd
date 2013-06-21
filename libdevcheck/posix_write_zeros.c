@@ -28,6 +28,7 @@ typedef struct posix_write_zeros_priv PosixWriteZerosPriv;
 #define BLK_SIZE (SECTORS_AT_ONCE * 512) // FIXME hardcode
 
 static int SuggestDefaultValue(DC_Dev *dev, DC_OptionSetting *setting) {
+    (void)dev;
     if (!strcmp(setting->name, "start_lba")) {
         setting->value = strdup("0");
     } else {
@@ -87,7 +88,7 @@ static int Perform(DC_ProcedureCtx *ctx) {
     write_ret = write(priv->fd, priv->buf, sectors_to_write * 512);
 
     // Error handling
-    if (write_ret != sectors_to_write * 512) {
+    if (write_ret != (int)sectors_to_write * 512) {
         // fd position is undefined, set it to write to next block
         lseek(priv->fd, 512 * priv->start_lba + ctx->blk_size * priv->blk_index, SEEK_SET);
 
