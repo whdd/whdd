@@ -212,18 +212,35 @@ static DC_Procedure *menu_choose_procedure(DC_Dev *dev) {
         i++;
     }
 
-    clear_body();
-    dialog_vars.no_items = 1;
-    dialog_vars.item_help = 0;
-    dialog_vars.input_result = NULL;
-    dialog_vars.default_button = 0;  // Focus on "OK"
-    int ret = dialog_menu("Choose procedure", "", 0, 0, 0, nb_procedures, (/* should be const */char**)items);
-    if (ret != 0)
-        return NULL;  // User quit dialog, exit
-    for (i = 0; i < nb_procedures; i++)
-      if (!strcmp(items[i], dialog_vars.input_result))
-        return procedures[i];
-    assert(0);
+    while (1) {
+        clear_body();
+        dialog_vars.no_items = 1;
+        dialog_vars.item_help = 0;
+        dialog_vars.input_result = NULL;
+        dialog_vars.default_button = 0;  // Focus on "OK"
+        dialog_vars.extra_button = 1;
+        dialog_vars.extra_label = "Help";
+        int ret = dialog_menu("Choose procedure", "", 0, 0, 0, nb_procedures, (/* should be const */char**)items);
+        dialog_vars.extra_button = 0;
+        if ((ret != DLG_EXIT_OK) && (ret != DLG_EXIT_EXTRA))
+            return NULL;  // User quit dialog, exit
+
+        procedure = NULL;
+        for (i = 0; i < nb_procedures; i++)
+            if (!strcmp(items[i], dialog_vars.input_result)) {
+                procedure = procedures[i];
+                break;
+            }
+        assert(procedure);
+
+        if (ret == DLG_EXIT_EXTRA) {
+            dialog_msgbox(procedure->display_name, procedure->help ? : "No help", 0, 0, 1);
+            continue;
+        }
+        assert(ret == DLG_EXIT_OK);
+        return procedure;
+    }
+    assert(0);  // Never reached
     return NULL;
 }
 
