@@ -176,7 +176,7 @@ static int get_task(CopyPriv *priv, int64_t *lba_to_read, size_t *sectors_to_rea
             return 0;
         }
     }
-    // Only zones with both ends defective left
+    // There are only zones with defective borders (both ends, in case of ReadStrategy_eSmart)
     entry = priv->unread_zones;
     assert(entry->begin_lba_defective);
     assert((priv->read_strategy == ReadStrategy_eSmartNoReverse) || entry->end_lba_defective);
@@ -210,17 +210,21 @@ static int update_zones(CopyPriv *priv, int64_t lba_to_read, size_t sectors_to_r
         return 0;
     Zone *prev;
     Zone *entry;
-    if (priv->current_zone->begin_lba_defective && priv->current_zone->end_lba_defective) {
+    if (priv->current_zone->begin_lba_defective
+            && (priv->read_strategy == ReadStrategy_eSmartNoReverse || priv->current_zone->end_lba_defective)) {
         // We're reading straight ahead and ignoring failures
         assert(lba_to_read == priv->current_zone->begin_lba);
         assert(priv->current_zone_read_direction_reversive == 0);
         priv->current_zone->begin_lba += sectors_to_read;
     } else if (!priv->current_zone->begin_lba_defective) {
+        // Reading "ok" zone until failure
         assert(lba_to_read == priv->current_zone->begin_lba);
         assert(priv->current_zone_read_direction_reversive == 0);
         priv->current_zone->begin_lba += sectors_to_read;
         priv->current_zone->begin_lba_defective = read_failed;
     } else {
+        // Reading zone with defective beginning in reverse direction
+        assert(priv->read_strategy == ReadStrategy_eSmart);
         assert(!priv->current_zone->end_lba_defective);
         assert(lba_to_read == priv->current_zone->end_lba - sectors_to_read);
         assert(priv->current_zone_read_direction_reversive == 1);
