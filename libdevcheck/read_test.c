@@ -102,9 +102,7 @@ static int Perform(DC_ProcedureCtx *ctx) {
     int ioctl_ret;
     int ret = 0;
     ReadPriv *priv = ctx->priv;
-    struct timespec pre, post;
     size_t sectors_to_read = (priv->lba_to_process < SECTORS_AT_ONCE) ? priv->lba_to_process : SECTORS_AT_ONCE;
-    int r;
 
     // Updating context
     ctx->report.lba = priv->current_lba;
@@ -119,8 +117,7 @@ static int Perform(DC_ProcedureCtx *ctx) {
     }
 
     // Timing
-    r = clock_gettime(DC_BEST_CLOCK, &pre);
-    assert(!r);
+    _dc_proc_time_pre(ctx);
 
     // Acting
     if (priv->api == Api_eAta)
@@ -129,8 +126,7 @@ static int Perform(DC_ProcedureCtx *ctx) {
         read_ret = read(priv->fd, priv->buf, sectors_to_read * 512);
 
     // Timing
-    r = clock_gettime(DC_BEST_CLOCK, &post);
-    assert(!r);
+    _dc_proc_time_post(ctx);
 
     // Error handling
     if (priv->api == Api_eAta) {
@@ -154,8 +150,6 @@ static int Perform(DC_ProcedureCtx *ctx) {
     ctx->progress.num++;
     priv->lba_to_process -= sectors_to_read;
     priv->current_lba += sectors_to_read;
-    ctx->report.blk_access_time = (post.tv_sec - pre.tv_sec) * 1000000 +
-        (post.tv_nsec - pre.tv_nsec) / 1000;
 
     return ret;
 }

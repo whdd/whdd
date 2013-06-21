@@ -159,3 +159,14 @@ int dc_procedure_perform_loop_detached(DC_ProcedureCtx *ctx, ProcedureDetachedLo
     return 0;
 }
 
+void _dc_proc_time_pre(DC_ProcedureCtx *ctx) {
+    int r = clock_gettime(DC_BEST_CLOCK, &ctx->time_pre);
+    assert(!r);
+}
+
+void _dc_proc_time_post(DC_ProcedureCtx *ctx) {
+    int r = clock_gettime(DC_BEST_CLOCK, &ctx->time_post);
+    assert(!r);
+    ctx->report.blk_access_time = (ctx->time_post.tv_sec - ctx->time_pre.tv_sec) * 1000000 +
+        (ctx->time_post.tv_nsec - ctx->time_pre.tv_nsec) / 1000;
+}

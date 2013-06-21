@@ -73,9 +73,7 @@ fail_buf:
 static int Perform(DC_ProcedureCtx *ctx) {
     ssize_t write_ret;
     PosixWriteZerosPriv *priv = ctx->priv;
-    struct timespec pre, post;
     size_t sectors_to_write = (priv->lba_to_process < SECTORS_AT_ONCE) ? priv->lba_to_process : SECTORS_AT_ONCE;
-    int r;
 
     // Updating context
     ctx->report.lba = priv->start_lba + SECTORS_AT_ONCE * priv->blk_index;
@@ -83,8 +81,7 @@ static int Perform(DC_ProcedureCtx *ctx) {
     priv->blk_index++;
 
     // Timing
-    r = clock_gettime(DC_BEST_CLOCK, &pre);
-    assert(!r);
+    _dc_proc_time_pre(ctx);
 
     // Acting
     write_ret = write(priv->fd, priv->buf, sectors_to_write * 512);
@@ -99,14 +96,11 @@ static int Perform(DC_ProcedureCtx *ctx) {
     }
 
     // Timing
-    r = clock_gettime(DC_BEST_CLOCK, &post);
-    assert(!r);
+    _dc_proc_time_post(ctx);
 
     // Updating context
     ctx->progress.num++;
     priv->lba_to_process -= sectors_to_write;
-    ctx->report.blk_access_time = (post.tv_sec - pre.tv_sec) * 1000000 +
-        (post.tv_nsec - pre.tv_nsec) / 1000;
 
     return 0;
 }

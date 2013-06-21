@@ -85,6 +85,7 @@ struct dc_procedure_ctx {
     int finished; // if 1, then looped processing has finished
     DC_BlockReport report; // updated by procedure on .perform()
     void *user_priv;  // pointer to user interface private data
+    struct timespec time_pre, time_post;  // block processing timing
 };
 
 int dc_procedure_open(DC_Procedure *procedure, DC_Dev *dev, DC_ProcedureCtx **ctx, DC_OptionSetting options[]);
@@ -96,5 +97,9 @@ int dc_procedure_perform_loop(DC_ProcedureCtx *ctx, ProcedureDetachedLoopCB call
 int dc_procedure_perform_loop_detached(DC_ProcedureCtx *ctx, ProcedureDetachedLoopCB callback,
         void *callback_priv, pthread_t *tid
         );
+
+// Functions used internally by procedure implementations for timing
+void _dc_proc_time_pre(DC_ProcedureCtx *ctx);
+void _dc_proc_time_post(DC_ProcedureCtx *ctx);
 
 #endif // PROCEDURE_H
