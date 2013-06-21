@@ -297,6 +297,8 @@ static int Perform(DC_ProcedureCtx *ctx) {
             ret = 1;
         }
         ctx->report.blk_status = scsi_ata_check_return_status(&priv->scsi_command);
+        if (ctx->report.blk_status)
+            error_flag = 1;
     } else {
         if (read_ret != sectors_to_read * 512) {
             error_flag = 1;
