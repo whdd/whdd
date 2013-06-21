@@ -34,7 +34,11 @@ static int SuggestDefaultValue(DC_Dev *dev, DC_OptionSetting *setting) {
 
 static int Open(DC_ProcedureCtx *ctx) {
     HpaSetPriv *priv = ctx->priv;
-    dc_dev_set_max_lba(ctx->dev->dev_path, priv->max_lba);  // TODO return?
+
+    dc_dev_set_max_lba(ctx->dev->dev_path, ctx->dev->native_capacity / 512 - 1);
+    int ret = dc_dev_set_max_lba(ctx->dev->dev_path, priv->max_lba);
+    if (ret)
+        dc_log(DC_LOG_ERROR, "Command SET MAX ADDRESS EXT failed");
     return 0;
 }
 

@@ -163,7 +163,14 @@ fail:
     return 1;
 }
 
-int64_t dc_dev_get_native_capacity(char *dev_fs_path) {
+int dc_dev_get_native_capacity(char *dev_fs_path, uint64_t *capacity) {
+    int ret = dc_dev_get_native_max_lba(dev_fs_path, capacity);
+    if (!ret)
+        *capacity = (*capacity + 1) * 512;
+    return ret;
+}
+
+int dc_dev_get_native_max_lba(char *dev_fs_path, uint64_t *max_lba) {
     int ioctl_ret;
     int fd = open(dev_fs_path, O_RDWR);
     if (fd == -1)
@@ -178,18 +185,73 @@ int64_t dc_dev_get_native_capacity(char *dev_fs_path) {
         return -1;
     ScsiAtaReturnDescriptor scsi_ata_ret;
     fill_scsi_ata_return_descriptor(&scsi_ata_ret, &scsi_command);
-    return (scsi_ata_ret.lba + 1) * 512;
+    *max_lba = scsi_ata_ret.lba;
+    return 0;
 }
 
-void dc_dev_set_max_capacity(char *dev_fs_path, uint64_t capacity) {
-    dc_dev_set_max_lba(dev_fs_path, capacity / 512 - 1);
+int dc_dev_get_capacity(char *dev_fs_path, uint64_t *capacity) {
+    int ret = dc_dev_get_max_lba(dev_fs_path, capacity);
+    if (!ret)
+        *capacity = (*capacity + 1) * 512;
+    return ret;
 }
 
-void dc_dev_set_max_lba(char *dev_fs_path, uint64_t lba) {
+int dc_dev_get_max_lba(char *dev_fs_path, uint64_t *max_lba) {
     int ioctl_ret;
     int fd = open(dev_fs_path, O_RDWR);
     if (fd == -1)
-        return;
+        return -1;
+    AtaCommand ata_command;
+    ScsiCommand scsi_command;
+    uint8_t buf[512];
+    memset(&ata_command, 0, sizeof(ata_command));
+    memset(&scsi_command, 0, sizeof(scsi_command));
+    prepare_ata_command(&ata_command, WIN_IDENTIFY /* ECh */, 0, 0);
+    prepare_scsi_command_from_ata(&scsi_command, &ata_command);
+    scsi_command.io_hdr.dxfer_direction = SG_DXFER_FROM_DEV;
+    scsi_command.io_hdr.dxferp = buf;
+    scsi_command.io_hdr.dxfer_len = sizeof(buf);
+    scsi_command.scsi_cmd[1] = (4 << 1) + 1;  // PIO_IN protocol + EXTEND bit
+    scsi_command.scsi_cmd[2] = 0x2e;  // CK_COND=1 T_DIR=1 BYTE_BLOCK=1 T_LENGTH=10b
+#if 0
+    int i;
+    for (i = 0; i < sizeof(scsi_command.scsi_cmd); i++)
+        fprintf(stderr, "%02hhx", scsi_command.scsi_cmd[i]);
+    fprintf(stderr, "\n");
+#endif
+    ioctl_ret = ioctl(fd, SG_IO, &scsi_command);
+    close(fd);
+    if (ioctl_ret)
+        return -1;
+
+    // Parse response
+    ScsiAtaReturnDescriptor scsi_ata_ret;
+    fill_scsi_ata_return_descriptor(&scsi_ata_ret, &scsi_command);
+    int sense_key = get_sense_key_from_sense_buffer(scsi_command.sense_buf);
+    if (scsi_ata_ret.status.bits.err || sense_key)
+        return -1;
+
+    *max_lba = (uint64_t)buf[200]
+        | ((uint64_t)buf[201] << 8)
+        | ((uint64_t)buf[202] << 16)
+        | ((uint64_t)buf[203] << 24)
+        | ((uint64_t)buf[204] << 32)
+        | ((uint64_t)buf[205] << 40);
+    (*max_lba)--;
+    return 0;
+}
+
+int dc_dev_set_max_capacity(char *dev_fs_path, uint64_t capacity) {
+    return dc_dev_set_max_lba(dev_fs_path, capacity / 512 - 1);
+}
+
+int dc_dev_set_max_lba(char *dev_fs_path, uint64_t lba) {
+    int ioctl_ret;
+    uint64_t old_max_lba;
+    dc_dev_get_native_capacity(dev_fs_path, &old_max_lba);  // Have read from hdparm.c that this is required by standard before setting
+    int fd = open(dev_fs_path, O_RDWR);
+    if (fd == -1)
+        return -1;
     AtaCommand ata_command;
     prepare_ata_command(&ata_command, WIN_SET_MAX_EXT /* 37h */, lba, 1 /* value volatile bit */);
     ScsiCommand scsi_command;
@@ -197,8 +259,18 @@ void dc_dev_set_max_lba(char *dev_fs_path, uint64_t lba) {
     ioctl_ret = ioctl(fd, SG_IO, &scsi_command);
     close(fd);
     if (ioctl_ret)
-        return;
+        return ioctl_ret;
+
+    // Parse response
     ScsiAtaReturnDescriptor scsi_ata_ret;
     fill_scsi_ata_return_descriptor(&scsi_ata_ret, &scsi_command);
-    // TODO parse response
+    int sense_key = get_sense_key_from_sense_buffer(scsi_command.sense_buf);
+    if (scsi_ata_ret.status.bits.err || sense_key)
+        return -1;
+    return 0;
+}
+
+int dc_dev_ata_capable(char *dev_fs_path) {
+    uint64_t dummy;
+    return !dc_dev_get_max_lba(dev_fs_path, &dummy);
 }
