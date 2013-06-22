@@ -36,8 +36,10 @@ typedef struct read_priv ReadPriv;
 static int SuggestDefaultValue(DC_Dev *dev, DC_OptionSetting *setting) {
     (void)dev;
     if (!strcmp(setting->name, "api")) {
-        setting->value = strdup("ata");
-        // TODO Really check if ATA should work for dev in realtime
+        if (dev->ata_capable)
+            setting->value = strdup("ata");
+        else
+            setting->value = strdup("posix");
     } else if (!strcmp(setting->name, "start_lba")) {
         setting->value = strdup("0");
     } else {
@@ -57,6 +59,8 @@ static int Open(DC_ProcedureCtx *ctx) {
     else if (!strcmp(priv->api_str, "posix"))
         priv->api = Api_ePosix;
     else
+        return 1;
+    if (priv->api == Api_eAta && !ctx->dev->ata_capable)
         return 1;
     ctx->blk_size = BLK_SIZE;
     priv->current_lba = priv->start_lba;

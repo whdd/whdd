@@ -59,7 +59,10 @@ typedef struct copy_priv CopyPriv;
 static int SuggestDefaultValue(DC_Dev *dev, DC_OptionSetting *setting) {
     (void)dev;
     if (!strcmp(setting->name, "api")) {
-        setting->value = strdup("ata");
+        if (dev->ata_capable)
+            setting->value = strdup("ata");
+        else
+            setting->value = strdup("posix");
     } else if (!strcmp(setting->name, "read_strategy")) {
         setting->value = strdup("smart_noreverse");
     } else if (!strcmp(setting->name, "dst_file")) {
@@ -83,6 +86,9 @@ static int Open(DC_ProcedureCtx *ctx) {
     } else {
         return 1;
     }
+
+    if (priv->api == Api_eAta && !ctx->dev->ata_capable)
+        return 1;
 
     if (!strcmp(priv->read_strategy_str, "smart")) {
         priv->read_strategy = ReadStrategy_eSmart;
