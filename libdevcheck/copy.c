@@ -281,7 +281,7 @@ static int Perform(DC_ProcedureCtx *ctx) {
         priv->scsi_command.io_hdr.dxferp = priv->buf;
         priv->scsi_command.io_hdr.dxfer_len = ctx->blk_size;
         priv->scsi_command.scsi_cmd[1] = (6 << 1) + 1;  // DMA protocol + EXTEND bit
-        priv->scsi_command.scsi_cmd[2] = 0x2e;  // CK_COND=1 T_DIR=1 BYTE_BLOCK=1 T_LENGTH=10b
+        priv->scsi_command.scsi_cmd[2] = 0x0e;  // CK_COND=0 T_DIR=1 BYTE_BLOCK=1 T_LENGTH=10b
 #if 0
         int i;
         for (i = 0; i < sizeof(priv->scsi_command.scsi_cmd); i++)

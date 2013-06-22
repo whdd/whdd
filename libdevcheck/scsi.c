@@ -65,6 +65,10 @@ int get_sense_key_from_sense_buffer(uint8_t *buf) {
 }
 
 DC_BlockStatus scsi_ata_check_return_status(ScsiCommand *scsi_command) {
+    if (scsi_command->io_hdr.status == 0)
+        return DC_BlockStatus_eOk;
+    if (scsi_command->io_hdr.status != 0x02 /* CHECK_CONDITION */)
+        return DC_BlockStatus_eError;
     int sense_key = get_sense_key_from_sense_buffer(scsi_command->sense_buf);
     ScsiAtaReturnDescriptor scsi_ata_return;
 #if 0
