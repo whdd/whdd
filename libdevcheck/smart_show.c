@@ -29,4 +29,5 @@ DC_Procedure smart_show = {
     .open = Open,
     .close = Close,
     .priv_data_size = sizeof(SmartShowPriv),
+    .flags = DC_PROC_FLAG_REQUIRES_ATA,
 };

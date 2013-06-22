@@ -7,6 +7,7 @@
 #include <stddef.h>
 
 #define DC_PROC_FLAG_INVASIVE 1
+#define DC_PROC_FLAG_REQUIRES_ATA 2
 
 enum Api {
     Api_eAta,

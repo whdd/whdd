@@ -204,12 +204,14 @@ static DC_Procedure *menu_choose_procedure(DC_Dev *dev) {
     int nb_procedures = dc_get_nb_procedures();
     const char *items[nb_procedures];
     DC_Procedure *procedures[nb_procedures];
-    int i = 0;
+    int nb_items = 0;
     DC_Procedure *procedure = NULL;
     while ((procedure = dc_get_next_procedure(procedure))) {
-        items[i] = procedure->display_name;
-        procedures[i] = procedure;
-        i++;
+        if (!dev->ata_capable && (procedure->flags & DC_PROC_FLAG_REQUIRES_ATA))
+            continue;
+        items[nb_items] = procedure->display_name;
+        procedures[nb_items] = procedure;
+        nb_items++;
     }
 
     while (1) {
@@ -220,13 +222,13 @@ static DC_Procedure *menu_choose_procedure(DC_Dev *dev) {
         dialog_vars.default_button = 0;  // Focus on "OK"
         dialog_vars.extra_button = 1;
         dialog_vars.extra_label = "Help";
-        int ret = dialog_menu("Choose procedure", "", 0, 0, 0, nb_procedures, (/* should be const */char**)items);
+        int ret = dialog_menu("Choose procedure", "", 0, 0, 0, nb_items, (/* should be const */char**)items);
         dialog_vars.extra_button = 0;
         if ((ret != DLG_EXIT_OK) && (ret != DLG_EXIT_EXTRA))
             return NULL;  // User quit dialog, exit
 
         procedure = NULL;
-        for (i = 0; i < nb_procedures; i++)
+        for (int i = 0; i < nb_items; i++)
             if (!strcmp(items[i], dialog_vars.input_result)) {
                 procedure = procedures[i];
                 break;
