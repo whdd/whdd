@@ -5,7 +5,7 @@ set(INSTALL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/install")
 ExternalProject_Add(ncurses
   URL http://ftp.gnu.org/pub/gnu/ncurses/ncurses-5.9.tar.gz
   BUILD_IN_SOURCE 1
-  CONFIGURE_COMMAND ./configure --enable-widec --without-gpm --prefix=${INSTALL_DIR}
+  CONFIGURE_COMMAND ./configure --enable-widec --without-gpm --prefix=${INSTALL_DIR} --with-terminfo-dirs=/usr/share/terminfo --with-default-terminfo-dir=/usr/share/terminfo
   BUILD_COMMAND make
   INSTALL_COMMAND make install
   )
