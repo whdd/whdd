@@ -1,23 +1,11 @@
-WHDD is a diagnostic and recovery tool for block devices (near to replace MHDD for Linux).
+WHDD is HDD diagnostic and recovery tool for Linux.
 
+Project home: http://whdd.org
 License: GNU GPL
 Sources: https://github.com/krieger-od/whdd
 Author: Andrey 'Krieger' Utkin <andrey.krieger.utkin@gmail.com> http://blog.krieger.pp.ua
 Directed by: Vitaliy 'Rozik' Roziznaniy <rozik@homei.net.ua> http://rozik.od.ua
 
-Functionality:
-- List available block devices (HDD, Flash drives etc.)
-- List SMART parameters
-- Perform tests:
---- Read
---- Write zeros
-- Visualize results of tests
-- Low-level device copying (not implemented yet)
-Program is designed for adding more complex tests or recovery procedures,
-and different front-ends.
-
 To install, run:
 cmake . && make && make install
  (or ./build.sh && make install)
-
-Use whdd-curses, or whdd-cli executables.
