@@ -80,7 +80,6 @@ static int Open(DC_ProcedureCtx *ctx) {
     // Setting context
     if (!strcmp(priv->api_str, "ata")) {
         priv->api = Api_eAta;
-        dc_log(DC_LOG_WARNING, "Copying in ATA mode has been reported to write just zeros to destination file instead of data, in some installations. Please don't trust it, check procedure results by yourself.");
     } else if (!strcmp(priv->api_str, "posix")) {
         priv->api = Api_ePosix;
     } else {
