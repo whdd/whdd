@@ -232,6 +232,8 @@ static int Open(DC_RendererCtx *ctx) {
     DC_ProcedureCtx *actctx = ctx->procedure_ctx;
 
     priv->nb_blocks = actctx->dev->capacity / actctx->blk_size;
+    if (actctx->dev->capacity % actctx->blk_size)
+        priv->nb_blocks++;
     priv->unread_count = priv->nb_blocks;
     priv->sectors_per_block = actctx->blk_size / 512;
     priv->blocks_map = calloc(priv->nb_blocks, sizeof(uint8_t));
