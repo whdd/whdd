@@ -183,7 +183,14 @@ static int get_task(CopyPriv *priv, int64_t *lba_to_read, size_t *sectors_to_rea
         }
     }
     // There are only zones with defective borders (both ends, in case of ReadStrategy_eSmart)
-    entry = priv->unread_zones;
+    // Find largest unread zone
+    Zone *largest_zone = priv->unread_zones;
+    for (entry = priv->unread_zones->next; entry; entry = entry->next) {
+        if ((largest_zone->end_lba - largest_zone->begin_lba)
+                < (entry->end_lba - entry->begin_lba))
+            largest_zone = entry;
+    }
+    entry = largest_zone;
     assert(entry->begin_lba_defective);
     assert((priv->read_strategy == ReadStrategy_eSmartNoReverse) || entry->end_lba_defective);
     int64_t zone_length_sectors = entry->end_lba - entry->begin_lba;
