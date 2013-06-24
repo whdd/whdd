@@ -319,6 +319,8 @@ static int Perform(DC_ProcedureCtx *ctx) {
             ctx->report.blk_status = DC_BlockStatus_eError;
         }
     }
+    if (error_flag && priv->read_strategy == ReadStrategy_ePlain)
+        ret = 1;  // Abort plain copying on first read failure
 
     // Acting: writing; not timed
     if (!error_flag) {
