@@ -6,5 +6,5 @@ To install, type
 
 make install
 
-It will install executables whdd-cli, whdd.'
+It will install executable `whdd`.'
 

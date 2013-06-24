@@ -3,6 +3,7 @@ include(ExternalProject)
 project(whdd)
 
 option(STATIC "Build static binaries" OFF)
+option(CLI "Build whdd-cli" OFF)
 
 set(CMAKE_C_FLAGS "-std=gnu99 -pthread -Wall -Wextra -Wno-missing-field-initializers ${CFLAGS}")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS}")
@@ -53,20 +54,22 @@ set_source_files_properties(version.h PROPERTIES GENERATED true HEADER_FILE_ONLY
 add_custom_target(version ALL)
 add_custom_command(TARGET version COMMAND ./version.sh . version.h)
 
+if (${CLI})
 add_executable(whdd-cli
 	${CLI_SRCS}
 	${LIBDEVCHECK_SRCS}
 )
+add_dependencies(whdd-cli version)
+target_link_libraries(whdd-cli rt pthread)
+install(TARGETS whdd-cli DESTINATION sbin)
+endif(${CLI})
 
 add_executable(whdd
 	${CUI_SRCS}
 	${LIBDEVCHECK_SRCS}
 )
 
-add_dependencies(whdd-cli version)
 add_dependencies(whdd version)
-
-target_link_libraries(whdd-cli rt pthread)
 target_link_libraries(whdd rt pthread)
 
 if (${STATIC})
@@ -110,7 +113,7 @@ else (${STATIC})
   else()
     message(FATAL_ERROR "Dialog or menuw library not found!")
   endif(DIALOG_FOUND AND MENUW_LIBRARY AND NCURSESW_LIBRARY)
-  install(TARGETS whdd-cli whdd DESTINATION sbin)
+  install(TARGETS whdd DESTINATION sbin)
 
 # Packaging stuff
 # 'make package_source' to make tarball
