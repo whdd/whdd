@@ -18,6 +18,7 @@ typedef struct blk_report {
 
 typedef struct {
     WINDOW *legend; // not for updating, just to free afterwards
+    WINDOW *w_stats;
     int vis_height;
     int vis_width;
     WINDOW *vis; // window to print vis-char for each block
@@ -37,6 +38,9 @@ typedef struct {
     uint64_t avg_processing_speed;
     uint64_t eta_time; // estimated time
     uint64_t cur_lba;
+    uint64_t errors_count;  // This one is used, error_stats_accum is currently not
+    uint64_t unread_count;
+    uint64_t read_ok_count;
 
     pthread_t render_thread;
     int order_hangup; // if interrupted or completed, render remainings and end render thread
@@ -147,6 +151,7 @@ static void update_blocks_info(WholeSpace *priv, blk_report_t *rep) {
     {
         priv->error_stats_accum[rep->report.blk_status]++;
         *map_pointer = 2;  // block processed with failure result
+        priv->errors_count++;
     }
     else
     {
@@ -159,7 +164,9 @@ static void update_blocks_info(WholeSpace *priv, blk_report_t *rep) {
             }
         if (i == 5)
             priv->access_time_stats_accum[5]++; // of exceed
+        priv->read_ok_count++;
     }
+    priv->unread_count--;
     wnoutrefresh(priv->vis);
 }
 
@@ -184,6 +191,21 @@ static void render_update_stats(WholeSpace *priv) {
     comma_lba_p = commaprint(priv->cur_lba, comma_lba_buf, sizeof(comma_lba_buf));
     wprintw(priv->w_cur_lba, "LBA: %14s", comma_lba_p);
     wnoutrefresh(priv->w_cur_lba);
+
+    werase(priv->w_stats);
+    print_vis(priv->w_stats, bs_vis[0]);
+    wattrset(priv->w_stats, A_NORMAL);
+    wprintw(priv->w_stats, " %"PRIu64"\n", priv->unread_count);
+
+    print_vis(priv->w_stats, bs_vis[3]);
+    wattrset(priv->w_stats, A_NORMAL);
+    wprintw(priv->w_stats, " %"PRIu64"\n", priv->read_ok_count);
+
+    print_vis(priv->w_stats, error_vis[3]);
+    wattrset(priv->w_stats, A_NORMAL);
+    wprintw(priv->w_stats, " %"PRIu64"\n", priv->errors_count);
+
+    wnoutrefresh(priv->w_stats);
 }
 
 void whole_space_show_legend(WINDOW *win) {
@@ -207,13 +229,18 @@ static int Open(DC_RendererCtx *ctx) {
     DC_ProcedureCtx *actctx = ctx->procedure_ctx;
 
     priv->nb_blocks = actctx->dev->capacity / actctx->blk_size;
+    priv->unread_count = priv->nb_blocks;
     priv->sectors_per_block = actctx->blk_size / 512;
     priv->blocks_map = calloc(priv->nb_blocks, sizeof(uint8_t));
     assert(priv->blocks_map);
-    priv->legend = derwin(stdscr, 11 /* legend win height */, LEGEND_WIDTH, 4, COLS-LEGEND_WIDTH); // leave 1st and last lines untouched
+    priv->legend = derwin(stdscr, 7 /* legend win height */, LEGEND_WIDTH, 4, COLS-LEGEND_WIDTH); // leave 1st and last lines untouched
     assert(priv->legend);
     wbkgd(priv->legend, COLOR_PAIR(MY_COLOR_GRAY));
     whole_space_show_legend(priv->legend);
+
+    priv->w_stats = derwin(stdscr, 3, LEGEND_WIDTH, 4+7, COLS-LEGEND_WIDTH);
+    assert(priv->w_stats);
+
     priv->vis_height = LINES - 5;
     priv->vis_width = COLS - LEGEND_WIDTH - 1;
     int vis_cells_avail = priv->vis_height * priv->vis_width;
