@@ -232,7 +232,7 @@ static int update_zones(CopyPriv *priv, int64_t lba_to_read, size_t sectors_to_r
         // Reading zone with defective beginning in reverse direction
         assert(priv->read_strategy == ReadStrategy_eSmart);
         assert(!priv->current_zone->end_lba_defective);
-        assert(lba_to_read == priv->current_zone->end_lba - sectors_to_read);
+        assert(lba_to_read == (int64_t)(priv->current_zone->end_lba - sectors_to_read));
         assert(priv->current_zone_read_direction_reversive == 1);
         priv->current_zone->end_lba -= sectors_to_read;
         priv->current_zone->end_lba_defective = read_failed;
