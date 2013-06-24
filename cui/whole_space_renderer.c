@@ -21,7 +21,6 @@ typedef struct {
     int vis_height;
     int vis_width;
     WINDOW *vis; // window to print vis-char for each block
-    WINDOW *access_time_stats;
     WINDOW *avg_speed;
     //WINDOW *cur_speed;
     WINDOW *eta;
@@ -110,7 +109,7 @@ static void render_map(WholeSpace *priv) {
                 this_cell_fully_processed = 0;
         }
         if (errors_in_this_cell)
-            print_vis(priv->vis, error_vis[1]);
+            print_vis(priv->vis, error_vis[3]);
         else if (!this_cell_fully_processed)
             print_vis(priv->vis, bs_vis[0]);  // gray light shade
         else
@@ -165,16 +164,6 @@ static void update_blocks_info(WholeSpace *priv, blk_report_t *rep) {
 }
 
 static void render_update_stats(WholeSpace *priv) {
-#if 0
-    werase(priv->access_time_stats);
-    unsigned int i;
-    for (i = 0; i < 6; i++)
-        wprintw(priv->access_time_stats, "%d\n", priv->access_time_stats_accum[i]);
-    for (i = 1; i < 6; i++)
-        wprintw(priv->access_time_stats, "%d\n", priv->error_stats_accum[i]);
-    wnoutrefresh(priv->access_time_stats);
-#endif
-
     if (priv->avg_processing_speed != 0) {
         werase(priv->avg_speed);
         wprintw(priv->avg_speed, "SPEED %7"PRIu64" kb/s", priv->avg_processing_speed / 1024);
@@ -197,6 +186,22 @@ static void render_update_stats(WholeSpace *priv) {
     wnoutrefresh(priv->w_cur_lba);
 }
 
+void whole_space_show_legend(WINDOW *win) {
+    print_vis(win, bs_vis[0]);
+    wattrset(win, A_NORMAL);
+    wprintw(win, " unread space\n\n");
+
+    print_vis(win, bs_vis[3]);
+    wattrset(win, A_NORMAL);
+    wprintw(win, " copied space,\n  no read errors\n");
+
+    print_vis(win, error_vis[3]);
+    wattrset(win, A_NORMAL);
+    wprintw(win, " read errors\n  occured\n");
+
+    wrefresh(win);
+}
+
 static int Open(DC_RendererCtx *ctx) {
     WholeSpace *priv = ctx->priv;
     DC_ProcedureCtx *actctx = ctx->procedure_ctx;
@@ -205,13 +210,10 @@ static int Open(DC_RendererCtx *ctx) {
     priv->sectors_per_block = actctx->blk_size / 512;
     priv->blocks_map = calloc(priv->nb_blocks, sizeof(uint8_t));
     assert(priv->blocks_map);
-    priv->legend = derwin(stdscr, 11 /* legend win height */, LEGEND_WIDTH/2, 4, COLS-LEGEND_WIDTH); // leave 1st and last lines untouched
+    priv->legend = derwin(stdscr, 11 /* legend win height */, LEGEND_WIDTH, 4, COLS-LEGEND_WIDTH); // leave 1st and last lines untouched
     assert(priv->legend);
     wbkgd(priv->legend, COLOR_PAIR(MY_COLOR_GRAY));
-    priv->access_time_stats = derwin(stdscr, 11 /* height */, LEGEND_WIDTH/2, 4, COLS-LEGEND_WIDTH/2);
-    assert(priv->access_time_stats);
-    wbkgd(priv->access_time_stats, COLOR_PAIR(MY_COLOR_GRAY));
-    //show_legend(priv->legend);
+    whole_space_show_legend(priv->legend);
     priv->vis_height = LINES - 5;
     priv->vis_width = COLS - LEGEND_WIDTH - 1;
     int vis_cells_avail = priv->vis_height * priv->vis_width;
@@ -318,7 +320,6 @@ static void Close(DC_RendererCtx *ctx) {
     beep();
     getch();
     delwin(priv->legend);
-    delwin(priv->access_time_stats);
     delwin(priv->vis);
     delwin(priv->avg_speed);
     delwin(priv->eta);
