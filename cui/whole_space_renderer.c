@@ -102,19 +102,19 @@ static void render_map(WholeSpace *priv) {
         int this_cell_fully_processed = 1;
         int errors_in_this_cell = 0;
         for (j = i; j < end_blk_index; j++) {
-            if (!priv->blocks_map[j]) {
-                this_cell_fully_processed = 0;
+            if (priv->blocks_map[j] == 2) {
+                errors_in_this_cell = 1;
                 break;
             }
-            if (priv->blocks_map[j] == 2)
-                errors_in_this_cell++;
+            if (!priv->blocks_map[j])
+                this_cell_fully_processed = 0;
         }
-        if (!this_cell_fully_processed)
-            print_vis(priv->vis, bs_vis[0]);  // gray light shade
-        else if (!errors_in_this_cell)
-            print_vis(priv->vis, bs_vis[3]);  // green shade
-        else
+        if (errors_in_this_cell)
             print_vis(priv->vis, error_vis[1]);
+        else if (!this_cell_fully_processed)
+            print_vis(priv->vis, bs_vis[0]);  // gray light shade
+        else
+            print_vis(priv->vis, bs_vis[3]);  // green shade
     }
     wnoutrefresh(priv->vis);
 }
