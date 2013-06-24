@@ -208,9 +208,10 @@ static int Open(DC_RendererCtx *ctx) {
     wprintw(priv->w_end_lba, "/ %s", comma_lba_p);
     wnoutrefresh(priv->w_end_lba);
     wprintw(priv->summary,
-            "%s %s bs=%d\n"
+            "%s %s\n"
+            "Block = %d bytes\n"
             "Ctrl+C to abort\n",
-            actctx->procedure->name, actctx->dev->dev_path, actctx->blk_size);
+            actctx->procedure->display_name, actctx->dev->dev_path, actctx->blk_size);
     wrefresh(priv->summary);
     int r = pthread_create(&priv->render_thread, NULL, render_thread_proc, priv);
     if (r)
