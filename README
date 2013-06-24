@@ -4,7 +4,7 @@ Project home: http://whdd.org
 License: GNU GPL
 Sources: https://github.com/krieger-od/whdd
 Author: Andrey 'Krieger' Utkin <andrey.krieger.utkin@gmail.com> http://blog.krieger.pp.ua
-Directed by: Vitaliy 'Rozik' Roziznaniy <rozik@homei.net.ua> http://rozik.od.ua
+Directed by: Vitaliy 'Rozik' Roziznany <rozik@homei.net.ua> http://rozik.od.ua
 
 To install, run:
 cmake . && make && make install
