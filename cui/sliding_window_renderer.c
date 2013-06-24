@@ -222,7 +222,7 @@ static int HandleReport(DC_RendererCtx *ctx) {
     SlidingWindow *priv = ctx->priv;
     DC_ProcedureCtx *actctx = ctx->procedure_ctx;
 
-    uint64_t bytes_processed = actctx->report.lba * 512;
+    uint64_t bytes_processed = actctx->progress.num * actctx->blk_size;
     if (bytes_processed > actctx->dev->capacity)
         bytes_processed = actctx->dev->capacity;
     priv->cur_lba = actctx->report.lba;
