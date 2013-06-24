@@ -365,7 +365,17 @@ static DC_ProcedureOption options[] = {
 DC_Procedure copy = {
     .name = "copy",
     .display_name = "Device copying",
-    .help = "Copies entire device to given destination (another device or generic file). If \"read_strategy\" = \"plain\", it just copies data sequentially. If \"read_strategy\" = \"smart\", it copies data sequentially until read error is met. Then it reads unread data from another end of disk space. When this ends with read error, too, it jumps to the middle of unread zone and reads from there. This results in having two zones of unread data. It works this way until there are only small defective zones, then it attempts to copy them sequentially. \"smart_noreverse\" is the same, but it does not read zones in reverse direction. To get data from source device, it may use ATA \"READ DMA EXT\" command, or POSIX read() function, by user choice.",
+    .help = "Copies entire device to given destination (another device or generic file).\n"
+        "Parameters:\n"
+        "api: choose API used to read data from source device.\n"
+        "    ata: use ATA \"READ DMA EXT\" command.\n"
+        "    posix: use POSIX read() in direct mode.\n"
+        "\n"
+        "read_strategy: choose read strategy. All strategies are designed to make least possible harm to defective source device.\n"
+        "    plain: read sequentially, abort on first read fail.\n"
+        "    smart: read sequentially until read error is met. Then it reads from another end of disk space. When this ends with read error, too, it jumps to the middle of unread zone and reads forward from there. This results in having two zones of unread data. This way it jumps into middle of unread zones until there are < 1000 of them in table, and they are > 500 MB. When it cannot further jump into zones, it just reads sequentially remaining unread zones. Thus reading near failure points is delayed.\n"
+        "    smart_noreverse: same as \"smart\", but reverse reading is prohibited; jump into middle of zone is considered on forward read failure.\n"
+        "",
     .suggest_default_value = SuggestDefaultValue,
     .open = Open,
     .perform = Perform,
