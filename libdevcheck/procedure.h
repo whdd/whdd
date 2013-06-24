@@ -69,7 +69,8 @@ typedef enum {
 } DC_BlockStatus;
 
 typedef struct dc_block_report {
-    uint64_t lba;
+    uint64_t lba;  // block start lba
+    uint64_t sectors_processed;
     uint64_t blk_access_time; // in mcs
     DC_BlockStatus blk_status;
 } DC_BlockReport;

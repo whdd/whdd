@@ -78,6 +78,7 @@ static int Perform(DC_ProcedureCtx *ctx) {
 
     // Updating context
     ctx->report.lba = priv->start_lba + SECTORS_AT_ONCE * priv->blk_index;
+    ctx->report.sectors_processed = sectors_to_write;
     ctx->report.blk_status = DC_BlockStatus_eOk;
     priv->blk_index++;
 

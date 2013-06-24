@@ -269,10 +269,8 @@ static int HandleReport(DC_RendererCtx *ctx) {
     WholeSpace *priv = ctx->priv;
     DC_ProcedureCtx *actctx = ctx->procedure_ctx;
 
-    priv->bytes_processed += actctx->blk_size;
-    if (priv->bytes_processed > actctx->dev->capacity)
-        priv->bytes_processed = actctx->dev->capacity;
-    priv->cur_lba = actctx->report.lba;
+    priv->bytes_processed += actctx->report.sectors_processed * 512;
+    priv->cur_lba = actctx->report.lba + actctx->report.sectors_processed;
 
     if (actctx->progress.num == 1) {  // TODO fix priv hack
         r = clock_gettime(DC_BEST_CLOCK, &priv->start_time);

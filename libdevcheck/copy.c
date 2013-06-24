@@ -267,6 +267,7 @@ static int Perform(DC_ProcedureCtx *ctx) {
     lseek(priv->src_fd, 512 * lba_to_read, SEEK_SET);
     lseek(priv->dst_fd, 512 * lba_to_read, SEEK_SET);
     ctx->report.lba = lba_to_read;
+    ctx->report.sectors_processed = sectors_to_read;
     ctx->report.blk_status = DC_BlockStatus_eOk;
     priv->blk_index++;
 

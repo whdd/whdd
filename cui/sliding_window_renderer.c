@@ -32,6 +32,7 @@ typedef struct {
     struct timespec start_time;
     uint64_t access_time_stats_accum[6];
     uint64_t error_stats_accum[6]; // 0th is unused, the rest are as in DC_BlockStatus enum
+    uint64_t bytes_processed;
     uint64_t avg_processing_speed;
     uint64_t eta_time; // estimated time
     uint64_t cur_lba;
@@ -222,10 +223,8 @@ static int HandleReport(DC_RendererCtx *ctx) {
     SlidingWindow *priv = ctx->priv;
     DC_ProcedureCtx *actctx = ctx->procedure_ctx;
 
-    uint64_t bytes_processed = actctx->progress.num * actctx->blk_size;
-    if (bytes_processed > actctx->dev->capacity)
-        bytes_processed = actctx->dev->capacity;
-    priv->cur_lba = actctx->report.lba;
+    priv->bytes_processed += actctx->report.sectors_processed * 512;
+    priv->cur_lba = actctx->report.lba + actctx->report.sectors_processed;
 
     if (actctx->progress.num == 1) {  // TODO fix priv hack
         r = clock_gettime(DC_BEST_CLOCK, &priv->start_time);
@@ -238,7 +237,7 @@ static int HandleReport(DC_RendererCtx *ctx) {
             uint64_t time_elapsed_ms = now.tv_sec * 1000 + now.tv_nsec / (1000*1000)
                 - priv->start_time.tv_sec * 1000 - priv->start_time.tv_nsec / (1000*1000);
             if (time_elapsed_ms > 0) {
-                priv->avg_processing_speed = bytes_processed * 1000 / time_elapsed_ms; // Byte/s
+                priv->avg_processing_speed = priv->bytes_processed * 1000 / time_elapsed_ms; // Byte/s
                 // capacity / speed = total_time
                 // total_time = elapsed + eta
                 // eta = total_time - elapsed
