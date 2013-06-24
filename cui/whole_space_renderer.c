@@ -208,7 +208,8 @@ static void render_update_stats(WholeSpace *priv) {
     wnoutrefresh(priv->w_stats);
 }
 
-void whole_space_show_legend(WINDOW *win) {
+void whole_space_show_legend(WholeSpace *priv) {
+    WINDOW *win = priv->legend;
     print_vis(win, bs_vis[0]);
     wattrset(win, A_NORMAL);
     wprintw(win, " unread space\n\n");
@@ -221,6 +222,8 @@ void whole_space_show_legend(WINDOW *win) {
     wattrset(win, A_NORMAL);
     wprintw(win, " read errors\n  occured\n");
 
+    wprintw(win, "Display block is %"PRId64" blocks by %d sectors\n",
+            priv->blocks_per_vis, priv->sectors_per_block);
     wrefresh(win);
 }
 
@@ -233,12 +236,11 @@ static int Open(DC_RendererCtx *ctx) {
     priv->sectors_per_block = actctx->blk_size / 512;
     priv->blocks_map = calloc(priv->nb_blocks, sizeof(uint8_t));
     assert(priv->blocks_map);
-    priv->legend = derwin(stdscr, 7 /* legend win height */, LEGEND_WIDTH, 4, COLS-LEGEND_WIDTH); // leave 1st and last lines untouched
+    priv->legend = derwin(stdscr, 9 /* legend win height */, LEGEND_WIDTH, 4, COLS-LEGEND_WIDTH); // leave 1st and last lines untouched
     assert(priv->legend);
     wbkgd(priv->legend, COLOR_PAIR(MY_COLOR_GRAY));
-    whole_space_show_legend(priv->legend);
 
-    priv->w_stats = derwin(stdscr, 3, LEGEND_WIDTH, 4+7, COLS-LEGEND_WIDTH);
+    priv->w_stats = derwin(stdscr, 3, LEGEND_WIDTH, 4+9, COLS-LEGEND_WIDTH);
     assert(priv->w_stats);
 
     priv->vis_height = LINES - 5;
@@ -250,6 +252,8 @@ static int Open(DC_RendererCtx *ctx) {
     priv->vis = derwin(stdscr, priv->vis_height, priv->vis_width, 2, 0); // leave 1st and last lines untouched
     assert(priv->vis);
     wrefresh(priv->vis);
+
+    whole_space_show_legend(priv);
 
     priv->avg_speed = derwin(stdscr, 1, LEGEND_WIDTH, 2, COLS-LEGEND_WIDTH);
     assert(priv->avg_speed);
