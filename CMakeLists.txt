@@ -47,12 +47,11 @@ include_directories(
 
 include(CheckSymbolExists)
 check_symbol_exists(CLOCK_MONOTONIC_RAW "time.h" HAVE_CLOCK_MONOTONIC_RAW)
-configure_file(libdevcheck/config.h.in
-	./config.h)
+configure_file(libdevcheck/config.h.in ${CMAKE_SOURCE_DIR}/config.h)
 
 set_source_files_properties(version.h PROPERTIES GENERATED true HEADER_FILE_ONLY TRUE)
 add_custom_target(version ALL)
-add_custom_command(TARGET version COMMAND ./version.sh . version.h)
+add_custom_command(TARGET version COMMAND ${CMAKE_SOURCE_DIR}/version.sh ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/version.h)
 
 if (${CLI})
 add_executable(whdd-cli
