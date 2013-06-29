@@ -127,7 +127,7 @@ static int Open(DC_ProcedureCtx *ctx) {
       dc_log(DC_LOG_WARNING, "Disabling block device readahead setting failed\n");
 
     // We use no O_DIRECT to allow output to generic file etc.
-    priv->dst_fd = open(priv->dst_file, O_WRONLY | O_LARGEFILE | O_NOATIME | O_CREAT | O_TRUNC);
+    priv->dst_fd = open(priv->dst_file, O_WRONLY | O_LARGEFILE | O_NOATIME | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
     if (priv->dst_fd == -1) {
         assert(0);
         dc_log(DC_LOG_FATAL, "open %s fail\n", priv->dst_file);
