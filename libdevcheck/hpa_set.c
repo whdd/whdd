@@ -53,7 +53,7 @@ static DC_ProcedureOption options[] = {
 
 DC_Procedure hpa_set = {
     .name = "hpa_set",
-    .display_name = "Setup Hidden Protected Area",
+    .display_name = "Setup Host Protected Area",
     .help = "Sets maximum reachable LBA",
     .flags = DC_PROC_FLAG_INVASIVE | DC_PROC_FLAG_REQUIRES_ATA,
     .suggest_default_value = SuggestDefaultValue,
