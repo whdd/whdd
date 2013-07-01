@@ -87,9 +87,6 @@ DC_BlockStatus scsi_ata_check_return_status(ScsiCommand *scsi_command) {
     fprintf(stderr, "sense key is %d", sense_key);
 #endif
 
-    if (scsi_command->io_hdr.duration >= scsi_command->io_hdr.timeout)
-        return DC_BlockStatus_eTimeout;
-
     fill_scsi_ata_return_descriptor(&scsi_ata_return, scsi_command);
     if (scsi_ata_return.status.bits.err) {
         if (scsi_ata_return.error.bits.unc)
@@ -107,6 +104,9 @@ DC_BlockStatus scsi_ata_check_return_status(ScsiCommand *scsi_command) {
             return DC_BlockStatus_eAbrt;
         else
             return DC_BlockStatus_eError;
+    } else if (scsi_command->io_hdr.duration >= scsi_command->io_hdr.timeout) {
+        return DC_BlockStatus_eTimeout;
     }
+
     return DC_BlockStatus_eOk;
 }
