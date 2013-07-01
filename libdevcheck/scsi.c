@@ -95,6 +95,8 @@ DC_BlockStatus scsi_ata_check_return_status(ScsiCommand *scsi_command) {
             return DC_BlockStatus_eIdnf;
         else if (scsi_ata_return.error.bits.abrt)
             return DC_BlockStatus_eAbrt;
+        else if (scsi_ata_return.error.bits.amnf)
+            return DC_BlockStatus_eAmnf;
         else
             return DC_BlockStatus_eError;
     } else if (scsi_ata_return.status.bits.df) {

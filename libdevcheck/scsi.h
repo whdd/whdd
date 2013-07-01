@@ -18,7 +18,7 @@ typedef struct scsi_ata_return_descriptor {
     union {
         uint8_t value;
         struct {
-            unsigned obs:  1;
+            unsigned amnf: 1;
             unsigned nm:   1;
             unsigned abrt: 1;
             unsigned mcr:  1;

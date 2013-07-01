@@ -65,7 +65,7 @@ typedef enum {
     DC_BlockStatus_eUnc,
     DC_BlockStatus_eIdnf,
     DC_BlockStatus_eAbrt,
-    // More to come with details from low-level drive commands
+    DC_BlockStatus_eAmnf,
 } DC_BlockStatus;
 
 typedef struct dc_block_report {
