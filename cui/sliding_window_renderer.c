@@ -30,8 +30,8 @@ typedef struct {
     WINDOW *w_log;
 
     struct timespec start_time;
-    uint64_t access_time_stats_accum[6];
-    uint64_t error_stats_accum[6]; // 0th is unused, the rest are as in DC_BlockStatus enum
+    uint64_t access_time_stats_accum[7];
+    uint64_t error_stats_accum[7]; // 0th is unused, the rest are as in DC_BlockStatus enum
     uint64_t bytes_processed;
     uint64_t avg_processing_speed;
     uint64_t eta_time; // estimated time
@@ -134,7 +134,7 @@ static void render_update_stats(SlidingWindow *priv) {
     unsigned int i;
     for (i = 0; i < 6; i++)
         wprintw(priv->access_time_stats, "%d\n", priv->access_time_stats_accum[i]);
-    for (i = 1; i < 6; i++)
+    for (i = 1; i < 7; i++)
         wprintw(priv->access_time_stats, "%d\n", priv->error_stats_accum[i]);
     wnoutrefresh(priv->access_time_stats);
 
@@ -164,10 +164,10 @@ static int Open(DC_RendererCtx *ctx) {
     SlidingWindow *priv = ctx->priv;
     DC_ProcedureCtx *actctx = ctx->procedure_ctx;
 
-    priv->legend = derwin(stdscr, 11 /* legend win height */, LEGEND_WIDTH/2, 4, COLS-LEGEND_WIDTH); // leave 1st and last lines untouched
+    priv->legend = derwin(stdscr, 12 /* legend win height */, LEGEND_WIDTH/2, 4, COLS-LEGEND_WIDTH); // leave 1st and last lines untouched
     assert(priv->legend);
     wbkgd(priv->legend, COLOR_PAIR(MY_COLOR_GRAY));
-    priv->access_time_stats = derwin(stdscr, 11 /* height */, LEGEND_WIDTH/2, 4, COLS-LEGEND_WIDTH/2);
+    priv->access_time_stats = derwin(stdscr, 12 /* height */, LEGEND_WIDTH/2, 4, COLS-LEGEND_WIDTH/2);
     assert(priv->access_time_stats);
     wbkgd(priv->access_time_stats, COLOR_PAIR(MY_COLOR_GRAY));
     show_legend(priv->legend);
@@ -184,7 +184,7 @@ static int Open(DC_RendererCtx *ctx) {
     assert(priv->eta);
     wbkgd(priv->eta, COLOR_PAIR(MY_COLOR_GRAY));
 
-    priv->summary = derwin(stdscr, 10, LEGEND_WIDTH, 16, COLS-LEGEND_WIDTH);
+    priv->summary = derwin(stdscr, 10, LEGEND_WIDTH, 17, COLS-LEGEND_WIDTH);
     assert(priv->summary);
     wbkgd(priv->summary, COLOR_PAIR(MY_COLOR_GRAY));
 

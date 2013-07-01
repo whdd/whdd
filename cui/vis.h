@@ -10,6 +10,7 @@
 #define MY_COLOR_GREEN 42
 #define MY_COLOR_RED 43
 #define MY_COLOR_WHITE_ON_BLUE 44
+#define MY_COLOR_ORANGE 45
 
 #define LEGEND_WIDTH 20
 

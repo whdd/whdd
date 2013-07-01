@@ -16,12 +16,14 @@ vis_t error_vis[]= {
                     { 0,      L'x',      1, MY_COLOR_RED }, // eUnc
                     { 0,      L'S',      1, MY_COLOR_GREEN }, // eIdnf
                     { 0,      L'!',      1, MY_COLOR_RED }, // eAbrt
+                    { 0,      L'A',      0, MY_COLOR_ORANGE }, // eAmnf
 };
 void init_my_colors(void) {
     init_pair(MY_COLOR_GRAY, COLOR_WHITE, COLOR_BLACK);
     init_pair(MY_COLOR_GREEN, COLOR_GREEN, COLOR_BLACK);
     init_pair(MY_COLOR_RED, COLOR_RED, COLOR_BLACK);
     init_pair(MY_COLOR_WHITE_ON_BLUE, COLOR_WHITE, COLOR_BLUE);
+    init_pair(MY_COLOR_ORANGE, COLOR_YELLOW, COLOR_BLACK);
 }
 
 vis_t choose_vis(uint64_t access_time) {
@@ -72,6 +74,10 @@ void show_legend(WINDOW *win) {
     print_vis(win, error_vis[5]);
     wattrset(win, A_NORMAL);
     wprintw(win, " ABRT\n");
+
+    print_vis(win, error_vis[6]);
+    wattrset(win, A_NORMAL);
+    wprintw(win, " AMNF\n");
 
     wrefresh(win);
 }
