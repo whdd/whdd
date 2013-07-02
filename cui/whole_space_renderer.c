@@ -10,6 +10,7 @@
 #include "ncurses_convenience.h"
 #include "procedure.h"
 #include "vis.h"
+#include "copy.h"
 
 typedef struct blk_report {
     uint64_t seqno;
@@ -37,6 +38,7 @@ typedef struct {
     uint64_t bytes_processed;
     uint64_t avg_processing_speed;
     uint64_t eta_time; // estimated time
+    uint64_t reports_handled;
     uint64_t cur_lba;
     uint64_t errors_count;  // This one is used, error_stats_accum is currently not
     uint64_t unread_count;
@@ -151,7 +153,7 @@ static void update_blocks_info(WholeSpace *priv, blk_report_t *rep) {
     {
         priv->error_stats_accum[rep->report.blk_status]++;
         *map_pointer = 2;  // block processed with failure result
-        priv->errors_count++;
+        priv->errors_count += rep->report.sectors_processed;
     }
     else
     {
@@ -164,9 +166,9 @@ static void update_blocks_info(WholeSpace *priv, blk_report_t *rep) {
             }
         if (i == 5)
             priv->access_time_stats_accum[5]++; // of exceed
-        priv->read_ok_count++;
+        priv->read_ok_count += rep->report.sectors_processed;
     }
-    priv->unread_count--;
+    priv->unread_count -= rep->report.sectors_processed;
     wnoutrefresh(priv->vis);
 }
 
@@ -234,10 +236,14 @@ static int Open(DC_RendererCtx *ctx) {
     priv->nb_blocks = actctx->dev->capacity / actctx->blk_size;
     if (actctx->dev->capacity % actctx->blk_size)
         priv->nb_blocks++;
-    priv->unread_count = priv->nb_blocks;
+    priv->unread_count = actctx->progress.den;
     priv->sectors_per_block = actctx->blk_size / 512;
     priv->blocks_map = calloc(priv->nb_blocks, sizeof(uint8_t));
     assert(priv->blocks_map);
+    uint8_t *journal = ((CopyPriv*)actctx->priv)->journal_file_mmapped;
+    if (journal)
+        for (int64_t i = 0; i < priv->nb_blocks; i++)
+            priv->blocks_map[i] = journal[i * priv->sectors_per_block];
     priv->legend = derwin(stdscr, 9 /* legend win height */, LEGEND_WIDTH, 4, COLS-LEGEND_WIDTH); // leave 1st and last lines untouched
     assert(priv->legend);
     wbkgd(priv->legend, COLOR_PAIR(MY_COLOR_GRAY));
@@ -307,11 +313,12 @@ static int HandleReport(DC_RendererCtx *ctx) {
     priv->bytes_processed += actctx->report.sectors_processed * 512;
     priv->cur_lba = actctx->report.lba + actctx->report.sectors_processed;
 
-    if (actctx->progress.num == 1) {  // TODO fix priv hack
+    priv->reports_handled++;
+    if (priv->reports_handled == 1) {  // TODO fix priv hack
         r = clock_gettime(DC_BEST_CLOCK, &priv->start_time);
         assert(!r);
     } else {
-        if ((actctx->progress.num % 10) == 0) {
+        if ((priv->reports_handled % 10) == 0) {
             struct timespec now;
             r = clock_gettime(DC_BEST_CLOCK, &now);
             assert(!r);

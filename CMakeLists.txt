@@ -33,6 +33,7 @@ set(LIBDEVCHECK_SRCS
 	libdevcheck/ata.c
 	libdevcheck/scsi.c
 	libdevcheck/copy.c
+	libdevcheck/copy_read_strategies.c
     libdevcheck/render.c
     libdevcheck/hpa_set.c
     libdevcheck/smart_show.c
