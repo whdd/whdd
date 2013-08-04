@@ -112,7 +112,18 @@ int main() {
         }
         if (r)
             continue;
-        dialog_msgbox("Info", "Please wait while procedure starts", 0, 0, 0 /* non-pausing */);
+        // Show relaxing banner when copying with journal. Copy journal processing takes some time.
+        if (!strcmp(act->name, "copy")) {
+            int uses_journal = 0;
+            for (i = 0; i < act->options_num; i++) {
+                if (!strcmp(option_set[i].name, "use_journal")) {
+                    uses_journal = 1;
+                    break;
+                }
+            }
+            if (uses_journal)
+                dialog_msgbox("Info", "Please wait while operation journal is processed", 0, 0, 0 /* non-pausing */);
+        }
         DC_ProcedureCtx *actctx;
         r = dc_procedure_open(act, chosen_dev, &actctx, option_set);
         if (r) {
