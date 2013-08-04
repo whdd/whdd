@@ -241,9 +241,24 @@ static int Open(DC_RendererCtx *ctx) {
     priv->blocks_map = calloc(priv->nb_blocks, sizeof(uint8_t));
     assert(priv->blocks_map);
     uint8_t *journal = ((CopyPriv*)actctx->priv)->journal_file_mmapped;
-    if (journal)
-        for (int64_t i = 0; i < priv->nb_blocks; i++)
+    if (journal) {
+        priv->unread_count = 0;
+        for (int64_t i = 0; i < priv->nb_blocks; i++) {
             priv->blocks_map[i] = journal[i * priv->sectors_per_block];
+            switch ((enum SectorStatus)(journal[i * priv->sectors_per_block])) {
+                case SectorStatus_eUnread:
+                    priv->unread_count += SECTORS_AT_ONCE;
+                    break;
+                case SectorStatus_eReadOk:
+                    priv->read_ok_count += SECTORS_AT_ONCE;
+                    break;
+                case SectorStatus_eBlockReadError:
+                case SectorStatus_eSectorReadError:
+                    priv->errors_count += SECTORS_AT_ONCE;
+                    break;
+            }
+        }
+    }
     priv->legend = derwin(stdscr, 9 /* legend win height */, LEGEND_WIDTH, 4, COLS-LEGEND_WIDTH); // leave 1st and last lines untouched
     assert(priv->legend);
     wbkgd(priv->legend, COLOR_PAIR(MY_COLOR_GRAY));
