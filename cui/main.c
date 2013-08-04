@@ -112,6 +112,7 @@ int main() {
         }
         if (r)
             continue;
+        dialog_msgbox("Info", "Please wait while procedure starts", 0, 0, 0 /* non-pausing */);
         DC_ProcedureCtx *actctx;
         r = dc_procedure_open(act, chosen_dev, &actctx, option_set);
         if (r) {
