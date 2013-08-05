@@ -109,7 +109,6 @@ static int Open(DC_ProcedureCtx *ctx) {
         dc_log(DC_LOG_FATAL, "open %s fail\n", ctx->dev->dev_path);
         goto fail_open;
     }
-    lseek(priv->src_fd, 512 * priv->start_lba, SEEK_SET);
     r = ioctl(priv->src_fd, BLKFLSBUF, NULL);
     if (r == -1)
       dc_log(DC_LOG_WARNING, "Flushing block device buffers failed\n");
@@ -266,7 +265,8 @@ static int Perform(DC_ProcedureCtx *ctx) {
     r = priv->read_strategy_impl->get_task(priv, &lba_to_read, &sectors_to_read);
     if (r)
       return r;
-    lseek(priv->src_fd, 512 * lba_to_read, SEEK_SET);
+    if (priv->api == Api_ePosix)
+        lseek(priv->src_fd, 512 * lba_to_read, SEEK_SET);
     lseek(priv->dst_fd, 512 * lba_to_read, SEEK_SET);
     ctx->report.lba = lba_to_read;
     ctx->report.sectors_processed = sectors_to_read;
