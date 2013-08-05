@@ -245,16 +245,19 @@ static int Open(DC_RendererCtx *ctx) {
         priv->unread_count = 0;
         for (int64_t i = 0; i < priv->nb_blocks; i++) {
             priv->blocks_map[i] = journal[i * priv->sectors_per_block];
+            int sectors_in_block = priv->sectors_per_block;
+            if (i == priv->nb_blocks - 1)  // Last block may be smaller
+                sectors_in_block = (actctx->dev->capacity % actctx->blk_size) / 512;
             switch ((enum SectorStatus)(journal[i * priv->sectors_per_block])) {
                 case SectorStatus_eUnread:
-                    priv->unread_count += SECTORS_AT_ONCE;
+                    priv->unread_count += sectors_in_block;
                     break;
                 case SectorStatus_eReadOk:
-                    priv->read_ok_count += SECTORS_AT_ONCE;
+                    priv->read_ok_count += sectors_in_block;
                     break;
                 case SectorStatus_eBlockReadError:
                 case SectorStatus_eSectorReadError:
-                    priv->errors_count += SECTORS_AT_ONCE;
+                    priv->errors_count += sectors_in_block;
                     break;
             }
         }
