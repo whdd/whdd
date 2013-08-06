@@ -25,10 +25,27 @@ static DC_Dev *menu_choose_device(DC_DevList *devlist);
 static DC_Procedure *menu_choose_procedure(DC_Dev *dev);
 void log_cb(void *priv, enum DC_LogLevel level, const char* fmt, va_list vl);
 
-static int ask_option_value(DC_OptionSetting *setting, DC_ProcedureOption *option) {
+static int ask_option_value(DC_Procedure *act, DC_OptionSetting *setting, DC_ProcedureOption *option) {
     char *suggested_value = setting->value;
     char entered_value[200];
     const char *param_type_str;
+    char *config_supplied_value;
+    char *config_suggested_value;
+    char config_search_command[200];
+    snprintf(config_search_command, sizeof(config_search_command),
+            "grep ^%s.%s= ~/.whddrc 2>/dev/null | awk -F= '{print $2}' | tr -d '\\n'", act->name, option->name);
+    config_supplied_value = cmd_output(config_search_command);
+    if (config_supplied_value) {
+        setting->value = config_supplied_value;
+        return 0;
+    }
+
+    snprintf(config_search_command, sizeof(config_search_command),
+            "grep ^%s.%s.suggest= ~/.whddrc 2>/dev/null | awk -F= '{print $2}' | tr -d '\\n'", act->name, option->name);
+    config_suggested_value = cmd_output(config_search_command);
+    if (config_suggested_value)
+        suggested_value = config_suggested_value;
+
     switch (option->type) {
         case DC_ProcedureOptionType_eInt64:
             param_type_str = "numeric";
@@ -106,7 +123,7 @@ int main() {
                 dc_log(DC_LOG_ERROR, "Failed to get default value suggestion on '%s'", option_set[i].name);
                 break;
             }
-            r = ask_option_value(&option_set[i], &act->options[i]);
+            r = ask_option_value(act, &option_set[i], &act->options[i]);
             if (r)
                 break;
         }
