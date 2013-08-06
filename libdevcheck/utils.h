@@ -38,5 +38,7 @@ int dc_dev_set_max_capacity(char *dev_fs_path, uint64_t capacity);
 int dc_dev_set_max_lba(char *dev_fs_path, uint64_t lba);
 
 int dc_dev_ata_capable(char *dev_fs_path);
+int dc_dev_ata_identify(char *dev_fs_path, uint8_t identify[512]);
 
+void dc_ata_ascii_to_c_string(uint8_t *ata_ascii_string, unsigned int ata_length_in_words, char *dst);
 #endif // LIBDEVCHECK_UTILS_H

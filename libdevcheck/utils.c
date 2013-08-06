@@ -197,40 +197,11 @@ int dc_dev_get_capacity(char *dev_fs_path, uint64_t *capacity) {
 }
 
 int dc_dev_get_max_lba(char *dev_fs_path, uint64_t *max_lba) {
-    int ioctl_ret;
-    int fd = open(dev_fs_path, O_RDWR);
-    if (fd == -1)
-        return -1;
-    AtaCommand ata_command;
-    ScsiCommand scsi_command;
+    int ret;
     uint8_t buf[512];
-    memset(&ata_command, 0, sizeof(ata_command));
-    memset(&scsi_command, 0, sizeof(scsi_command));
-    prepare_ata_command(&ata_command, WIN_IDENTIFY /* ECh */, 0, 0);
-    prepare_scsi_command_from_ata(&scsi_command, &ata_command);
-    scsi_command.io_hdr.dxfer_direction = SG_DXFER_FROM_DEV;
-    scsi_command.io_hdr.dxferp = buf;
-    scsi_command.io_hdr.dxfer_len = sizeof(buf);
-    scsi_command.scsi_cmd[1] = (4 << 1) + 1;  // PIO_IN protocol + EXTEND bit
-    scsi_command.scsi_cmd[2] = 0x2e;  // CK_COND=1 T_DIR=1 BYTE_BLOCK=1 T_LENGTH=10b
-#if 0
-    int i;
-    for (i = 0; i < sizeof(scsi_command.scsi_cmd); i++)
-        fprintf(stderr, "%02hhx", scsi_command.scsi_cmd[i]);
-    fprintf(stderr, "\n");
-#endif
-    ioctl_ret = ioctl(fd, SG_IO, &scsi_command);
-    close(fd);
-    if (ioctl_ret)
-        return -1;
-
-    // Parse response
-    ScsiAtaReturnDescriptor scsi_ata_ret;
-    fill_scsi_ata_return_descriptor(&scsi_ata_ret, &scsi_command);
-    int sense_key = get_sense_key_from_sense_buffer(scsi_command.sense_buf);
-    if (scsi_ata_ret.status.bits.err || sense_key)
-        return -1;
-
+    ret = dc_dev_ata_identify(dev_fs_path, buf);
+    if (ret)
+        return ret;
     *max_lba = (uint64_t)buf[200]
         | ((uint64_t)buf[201] << 8)
         | ((uint64_t)buf[202] << 16)
@@ -273,4 +244,78 @@ int dc_dev_set_max_lba(char *dev_fs_path, uint64_t lba) {
 int dc_dev_ata_capable(char *dev_fs_path) {
     uint64_t dummy;
     return !dc_dev_get_max_lba(dev_fs_path, &dummy);
+}
+
+int dc_dev_ata_identify(char *dev_fs_path, uint8_t identify[512]) {
+    int ioctl_ret;
+    int fd = open(dev_fs_path, O_RDWR);
+    if (fd == -1)
+        return -1;
+    AtaCommand ata_command;
+    ScsiCommand scsi_command;
+    uint8_t buf[512];
+    memset(&ata_command, 0, sizeof(ata_command));
+    memset(&scsi_command, 0, sizeof(scsi_command));
+    prepare_ata_command(&ata_command, WIN_IDENTIFY /* ECh */, 0, 0);
+    prepare_scsi_command_from_ata(&scsi_command, &ata_command);
+    scsi_command.io_hdr.dxfer_direction = SG_DXFER_FROM_DEV;
+    scsi_command.io_hdr.dxferp = identify;
+    scsi_command.io_hdr.dxfer_len = sizeof(buf);
+    scsi_command.scsi_cmd[1] = (4 << 1) + 1;  // PIO_IN protocol + EXTEND bit
+    scsi_command.scsi_cmd[2] = 0x2e;  // CK_COND=1 T_DIR=1 BYTE_BLOCK=1 T_LENGTH=10b
+#if 0
+    int i;
+    for (i = 0; i < sizeof(scsi_command.scsi_cmd); i++)
+        fprintf(stderr, "%02hhx", scsi_command.scsi_cmd[i]);
+    fprintf(stderr, "\n");
+#endif
+    ioctl_ret = ioctl(fd, SG_IO, &scsi_command);
+    close(fd);
+    if (ioctl_ret)
+        return -1;
+
+    // Parse response
+    ScsiAtaReturnDescriptor scsi_ata_ret;
+    fill_scsi_ata_return_descriptor(&scsi_ata_ret, &scsi_command);
+    int sense_key = get_sense_key_from_sense_buffer(scsi_command.sense_buf);
+    if (scsi_ata_ret.status.bits.err || sense_key)
+        return -1;
+    return 0;
+}
+
+void dc_ata_ascii_to_c_string(uint8_t *ata_ascii_string, unsigned int ata_length_in_words, char *dst) {
+    uint16_t *p = (uint16_t*)ata_ascii_string;
+    int length = ata_length_in_words;
+    uint8_t ii;
+    char cl;
+
+    /* find first non-space & print it */
+    for (ii = 0; ii< length; ii++) {
+        if(((char) 0x00ff&((*p)>>8)) != ' ') break;
+        if((cl = (char) 0x00ff&(*p)) != ' ') {
+            if(cl != '\0') *dst++ = cl;
+            p++; ii++;
+            break;
+        }
+        p++;
+    }
+    /* print the rest */
+    for (; ii < length; ii++) {
+        uint8_t c;
+        /* some older devices have NULLs */
+        c = (*p) >> 8;
+        if (c) *dst++ = c;
+        c = (*p);
+        if (c) *dst++ = c;
+        p++;
+    }
+    *dst = '\0';
+
+    // Erase trailing spaces
+    while (1) {
+        dst--;
+        if (*dst != ' ')
+            break;
+        *dst = '\0';
+    }
 }

@@ -136,11 +136,6 @@ static void dev_list_build(DC_DevList *dc_devlist) {
             asprintf(&dc_dev->dev_path, "/dev/%s", ptname);
             assert(dc_dev->dev_path);
             dc_dev->capacity = sz * 1024;
-            dc_dev->ata_capable = dc_dev_ata_capable(dc_dev->dev_path);
-            if (dc_dev->ata_capable) {
-                dc_dev_get_capacity(dc_dev->dev_path, &dc_dev->capacity);
-                dc_dev_get_native_capacity(dc_dev->dev_path, &dc_dev->native_capacity);
-            }
             dc_dev->next = dc_devlist->arr;
             dc_devlist->arr = dc_dev;
             dc_devlist->arr_size++;
@@ -155,6 +150,16 @@ static void dev_mounted_fill(DC_Dev *dev);
 static void dev_list_fill_info(DC_DevList *list) {
     DC_Dev *dev = list->arr;
     while (dev) {
+        memset(dev->identify, 0, sizeof(dev->identify));
+        dev->ata_capable = !dc_dev_ata_identify(dev->dev_path, dev->identify);
+        if (dev->ata_capable) {
+            dc_dev_get_capacity(dev->dev_path, &dev->capacity);
+            dc_dev_get_native_capacity(dev->dev_path, &dev->native_capacity);
+            dev->serial_no = calloc(1, 21);
+            dc_ata_ascii_to_c_string(dev->identify + 20, 10, dev->serial_no);
+            // for (int i = 0; i < 512; i++)
+            //     fprintf(stderr, "%c", dev->identify[i]);
+        }
         dev_modelname_fill(dev);
         dev_mounted_fill(dev);
         dev = dev->next;

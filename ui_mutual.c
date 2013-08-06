@@ -11,7 +11,7 @@ void ui_dev_descr_format(char *buf, int bufsize, DC_Dev *dev) {
     native_cap_print = commaprint(dev->native_capacity, native_cap_buf, sizeof(native_cap_buf));
 
     if (!dev->ata_capable) {
-        snprintf(buf, bufsize, "%s %s bytes; ATA capabilities unavailable", dev->model_str, cap_print);
+        snprintf(buf, bufsize, "%s %s bytes; non-ATA", dev->model_str, cap_print);
         return;
     }
     char warning[50] = "; no HPA";
@@ -20,5 +20,5 @@ void ui_dev_descr_format(char *buf, int bufsize, DC_Dev *dev) {
         if (dev->native_capacity != dev->capacity)
             snprintf(warning, sizeof(warning), " !!! HPA enabled %s bytes", cap_print);
     }
-    snprintf(buf, bufsize, "%s %s bytes%s", dev->model_str, primary_cap_print, warning);
+    snprintf(buf, bufsize, "%s %s %s bytes%s", dev->model_str, dev->serial_no, primary_cap_print, warning);
 }
