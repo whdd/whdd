@@ -157,10 +157,13 @@ static void dev_list_fill_info(DC_DevList *list) {
             dc_dev_get_native_capacity(dev->dev_path, &dev->native_capacity);
             dev->serial_no = calloc(1, 21);
             dc_ata_ascii_to_c_string(dev->identify + 20, 10, dev->serial_no);
+            dev->model_str = calloc(1, 41);
+            dc_ata_ascii_to_c_string(dev->identify + 54, 20, dev->model_str);
             // for (int i = 0; i < 512; i++)
             //     fprintf(stderr, "%c", dev->identify[i]);
         }
-        dev_modelname_fill(dev);
+        if (!dev->model_str)
+            dev_modelname_fill(dev);
         dev_mounted_fill(dev);
         dev = dev->next;
     }
