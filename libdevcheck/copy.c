@@ -135,7 +135,7 @@ static int Open(DC_ProcedureCtx *ctx) {
 
     if (priv->use_journal) {
         char journal_file_name[100];
-	snprintf(journal_file_name, sizeof(journal_file_name), "whdd_copy_journal_%s", ctx->dev->dev_fs_name);  // TODO Include Model name and Serial Number
+        snprintf(journal_file_name, sizeof(journal_file_name), "whdd_copy_journal__%s__%s", ctx->dev->model_str, ctx->dev->serial_no);
         struct stat journal_file_stat;
         int journal_file_exists = 1;
         r = stat(journal_file_name, &journal_file_stat);
