@@ -39,6 +39,7 @@ struct copy_priv {
     int64_t lba_to_process;
     int src_fd;
     int dst_fd;
+    int64_t dst_file_end_lba;
     void *buf;
     AtaCommand ata_command;
     ScsiCommand scsi_command;

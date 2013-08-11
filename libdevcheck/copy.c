@@ -120,12 +120,19 @@ static int Open(DC_ProcedureCtx *ctx) {
       dc_log(DC_LOG_WARNING, "Disabling block device readahead setting failed\n");
 
     // We use no O_DIRECT to allow output to generic file etc.
-    priv->dst_fd = open(priv->dst_file, O_WRONLY | O_LARGEFILE | O_NOATIME | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+    priv->dst_fd = open(priv->dst_file, O_WRONLY | O_LARGEFILE | O_NOATIME | O_CREAT, S_IRUSR | S_IWUSR);
     if (priv->dst_fd == -1) {
         assert(0);
         dc_log(DC_LOG_FATAL, "open %s fail\n", priv->dst_file);
         goto fail_dst_open;
     }
+
+    off_t dst_size = lseek(priv->dst_fd, 0, SEEK_END);
+    if (dst_size == -1)
+        goto fail_dst_open;
+    priv->dst_file_end_lba = dst_size / 512;
+    if (priv->dst_file_end_lba && (priv->dst_file_end_lba < priv->end_lba))
+        dc_log(DC_LOG_WARNING, "Size of destination file (%"PRId64" bytes) is less than of source disk (%"PRId64" bytes). Operation will stop with error when exceeding space will be reached.", priv->dst_file_end_lba * 512, priv->end_lba * 512);
 
     priv->nb_zones = 1;
     priv->unread_zones = calloc(1, sizeof(Zone));
@@ -263,6 +270,8 @@ static int Perform(DC_ProcedureCtx *ctx) {
     r = priv->read_strategy_impl->get_task(priv, &lba_to_read, &sectors_to_read);
     if (r)
       return r;
+    if (priv->dst_file_end_lba && ((int64_t)(lba_to_read + sectors_to_read) > priv->dst_file_end_lba))
+        return 1;
     if (priv->api == Api_ePosix)
         lseek(priv->src_fd, 512 * lba_to_read, SEEK_SET);
     lseek(priv->dst_fd, 512 * lba_to_read, SEEK_SET);
