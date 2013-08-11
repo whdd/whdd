@@ -166,16 +166,19 @@ static int Open(DC_ProcedureCtx *ctx) {
             priv->unread_zones = NULL;
             ctx->progress.den = 0;
 
-            priv->journal_file_mmapped = mmap(NULL, journal_file_stat.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, priv->journal_fd, 0);
-            if (priv->journal_file_mmapped == MAP_FAILED) {
-                dc_log(DC_LOG_ERROR, "mmap() failed with errno %d (%s)", errno, strerror(errno));
-                goto fail_mmap_journal;
-            }
             // Parse it to zones structure
             Zone *current_zone = NULL;
             char prev_sector_status;
+            uint8_t journal_chunk[1*1024*1024];
             for (int64_t i = 0; i < priv->end_lba; i++) {
-                char sector_status = priv->journal_file_mmapped[i];
+                char sector_status;
+                if (i % sizeof(journal_chunk) == 0) {
+                    int chunklen = (priv->end_lba - i) < (int64_t)sizeof(journal_chunk) ? (priv->end_lba - i) : (int64_t)sizeof(journal_chunk);
+                    int ret = read(priv->journal_fd, journal_chunk, chunklen);
+                    if (ret != chunklen)
+                        goto fail_journal_read;
+                }
+                sector_status = journal_chunk[i % sizeof(journal_chunk)];
                 switch ((SectorStatus)sector_status) {
                     case SectorStatus_eUnread:
                         if (!current_zone) {
@@ -223,11 +226,6 @@ static int Open(DC_ProcedureCtx *ctx) {
                 i += blocksize;
             }
             fdatasync(priv->journal_fd);
-            priv->journal_file_mmapped = mmap(NULL, priv->end_lba, PROT_READ | PROT_WRITE, MAP_SHARED, priv->journal_fd, 0);
-            if (priv->journal_file_mmapped == MAP_FAILED) {
-                dc_log(DC_LOG_ERROR, "mmap() failed with errno %d (%s)", errno, strerror(errno));
-                goto fail_mmap_journal;
-            }
         }
     }
 
@@ -236,7 +234,7 @@ static int Open(DC_ProcedureCtx *ctx) {
     //    fprintf(stderr, "begin_lba %"PRId64", end_lba %"PRId64"; begin defective: %d, end defective: %d\n", iter->begin_lba, iter->end_lba, iter->begin_lba_defective, iter->end_lba_defective);
     //}
     return 0;
-fail_mmap_journal:
+fail_journal_read:
     close(priv->journal_fd);
 fail_journal_open:
     close(priv->dst_fd);
@@ -347,10 +345,11 @@ static int Perform(DC_ProcedureCtx *ctx) {
             sector_status = SectorStatus_eReadOk;
         }
         assert(r != -1);
-        for (int64_t i = 0; i < (int64_t)sectors_to_read; i++)
-            priv->journal_file_mmapped[lba_to_read + i] = sector_status;
-        r = msync(priv->journal_file_mmapped, priv->end_lba, MS_ASYNC);
-        assert(!r);
+        uint8_t journal_write[sectors_to_read];
+        memset(journal_write, sector_status, sectors_to_read);
+        lseek(priv->journal_fd, lba_to_read, SEEK_SET);
+        r = write(priv->journal_fd, journal_write, sectors_to_read);
+        assert(r == (int)sectors_to_read);
     }
     r = priv->read_strategy_impl->use_results(priv, lba_to_read, sectors_to_read, &ctx->report);
     if (r)
@@ -372,7 +371,6 @@ static void Close(DC_ProcedureCtx *ctx) {
     close(priv->src_fd);
     close(priv->dst_fd);
     if (priv->use_journal) {
-        munmap(priv->journal_file_mmapped, priv->end_lba);
         close(priv->journal_fd);
     }
     priv->read_strategy_impl->close(priv);

@@ -50,7 +50,6 @@ struct copy_priv {
     int current_zone_read_direction_reversive;
     void *read_strategy_priv;
     int journal_fd;
-    uint8_t *journal_file_mmapped;
 };
 typedef struct copy_priv CopyPriv;
 

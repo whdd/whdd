@@ -240,15 +240,27 @@ static int Open(DC_RendererCtx *ctx) {
     priv->sectors_per_block = actctx->blk_size / 512;
     priv->blocks_map = calloc(priv->nb_blocks, sizeof(uint8_t));
     assert(priv->blocks_map);
-    uint8_t *journal = ((CopyPriv*)actctx->priv)->journal_file_mmapped;
-    if (journal) {
+    int journal_fd = ((CopyPriv*)actctx->priv)->journal_fd;
+    lseek(journal_fd, 0, SEEK_SET);
+    if (((CopyPriv*)actctx->priv)->use_journal) {
         priv->unread_count = 0;
+        uint8_t journal_chunk[1*1024*1024];
+        int64_t chunklen;
+        int64_t end_lba = ((CopyPriv*)actctx->priv)->end_lba;
         for (int64_t i = 0; i < priv->nb_blocks; i++) {
-            priv->blocks_map[i] = journal[i * priv->sectors_per_block];
+            int64_t lba = i * priv->sectors_per_block;
+            if (lba % sizeof(journal_chunk) == 0) {
+                chunklen = (end_lba - lba) < (int64_t)sizeof(journal_chunk) ? (end_lba - lba) : (int64_t)sizeof(journal_chunk);
+                int ret = read(journal_fd, journal_chunk, chunklen);
+                if (ret != chunklen)
+                    return 1;
+            }
+            char sector_status = journal_chunk[lba % sizeof(journal_chunk)];
+            priv->blocks_map[i] = sector_status;
             int sectors_in_block = priv->sectors_per_block;
             if (i == priv->nb_blocks - 1)  // Last block may be smaller
                 sectors_in_block = (actctx->dev->capacity % actctx->blk_size) / 512;
-            switch ((enum SectorStatus)(journal[i * priv->sectors_per_block])) {
+            switch ((enum SectorStatus)sector_status) {
                 case SectorStatus_eUnread:
                     priv->unread_count += sectors_in_block;
                     break;
