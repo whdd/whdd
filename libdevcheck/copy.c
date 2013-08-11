@@ -214,8 +214,8 @@ static int Open(DC_ProcedureCtx *ctx) {
             // Fill appropriately
             char filler[1*1024*1024];
             memset(filler, 0, sizeof(filler));
-            for (int i = 0; i < priv->end_lba;) {
-                int blocksize = priv->end_lba - i;
+            for (int64_t i = 0; i < priv->end_lba;) {
+                int64_t blocksize = priv->end_lba - i;
                 if (blocksize > (int)sizeof(filler))
                     blocksize = sizeof(filler);
                 r = write(priv->journal_fd, &filler, blocksize);
