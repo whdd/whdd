@@ -47,6 +47,7 @@ char *cmd_output(char *command_line) {
 
     if (all_len == 0) {
         free(all);
+        pclose(pipe);
         return NULL;
     }
 
@@ -57,10 +58,12 @@ char *cmd_output(char *command_line) {
     all = new_all;
     all[all_len] = '\0';
 
+    pclose(pipe);
     return all;
 
 fail_buf_form:
     free(all);
+    pclose(pipe);
     return NULL;
 }
 
