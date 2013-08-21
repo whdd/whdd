@@ -40,8 +40,8 @@ void prepare_scsi_command_from_ata(ScsiCommand *scsi_cmd, AtaCommand *ata_cmd) {
 void fill_scsi_ata_return_descriptor(ScsiAtaReturnDescriptor *scsi_ata_ret, ScsiCommand *scsi_cmd) {
     uint8_t *descr = &scsi_cmd->sense_buf[8];
     memcpy(scsi_ata_ret->descriptor, descr, sizeof(scsi_ata_ret->descriptor));
-    scsi_ata_ret->error.value = descr[3];
-    scsi_ata_ret->status.value = descr[13];
+    scsi_ata_ret->error = descr[3];
+    scsi_ata_ret->status = descr[13];
     scsi_ata_ret->lba  = 0;
     scsi_ata_ret->lba |= (uint64_t)descr[7];
     scsi_ata_ret->lba |= (uint64_t)descr[9]  <<  8;
@@ -88,18 +88,18 @@ DC_BlockStatus scsi_ata_check_return_status(ScsiCommand *scsi_command) {
 #endif
 
     fill_scsi_ata_return_descriptor(&scsi_ata_return, scsi_command);
-    if (scsi_ata_return.status.bits.err) {
-        if (scsi_ata_return.error.bits.unc)
+    if (scsi_ata_return.status & STATUS_BIT_ERR) {
+        if (scsi_ata_return.error & ERROR_BIT_UNC)
             return DC_BlockStatus_eUnc;
-        else if (scsi_ata_return.error.bits.idnf)
+        else if (scsi_ata_return.error & ERROR_BIT_IDNF)
             return DC_BlockStatus_eIdnf;
-        else if (scsi_ata_return.error.bits.abrt)
+        else if (scsi_ata_return.error & ERROR_BIT_ABRT)
             return DC_BlockStatus_eAbrt;
-        else if (scsi_ata_return.error.bits.amnf)
+        else if (scsi_ata_return.error & ERROR_BIT_AMNF)
             return DC_BlockStatus_eAmnf;
         else
             return DC_BlockStatus_eError;
-    } else if (scsi_ata_return.status.bits.df) {
+    } else if (scsi_ata_return.status & STATUS_BIT_DF) {
         return DC_BlockStatus_eError;
     } else if (sense_key) {
         if (sense_key == 0x0b)

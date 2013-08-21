@@ -239,7 +239,7 @@ int dc_dev_set_max_lba(char *dev_fs_path, uint64_t lba) {
     ScsiAtaReturnDescriptor scsi_ata_ret;
     fill_scsi_ata_return_descriptor(&scsi_ata_ret, &scsi_command);
     int sense_key = get_sense_key_from_sense_buffer(scsi_command.sense_buf);
-    if (scsi_ata_ret.status.bits.err || sense_key)
+    if (scsi_ata_ret.status & STATUS_BIT_ERR || sense_key)
         return -1;
     return 0;
 }
@@ -281,7 +281,7 @@ int dc_dev_ata_identify(char *dev_fs_path, uint8_t identify[512]) {
     ScsiAtaReturnDescriptor scsi_ata_ret;
     fill_scsi_ata_return_descriptor(&scsi_ata_ret, &scsi_command);
     int sense_key = get_sense_key_from_sense_buffer(scsi_command.sense_buf);
-    if (scsi_ata_ret.status.bits.err || sense_key)
+    if (scsi_ata_ret.status & STATUS_BIT_ERR || sense_key)
         return -1;
     return 0;
 }

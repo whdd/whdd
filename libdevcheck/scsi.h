@@ -13,34 +13,28 @@ typedef struct scsi_command {
     uint8_t sense_buf[32];  // Output diagnostic info from device
 } ScsiCommand;
 
+#define ERROR_BIT_AMNF ((uint8_t)(1 << 0))
+#define ERROR_BIT_NM   ((uint8_t)(1 << 1))
+#define ERROR_BIT_ABRT ((uint8_t)(1 << 2))
+#define ERROR_BIT_MCR  ((uint8_t)(1 << 3))
+#define ERROR_BIT_IDNF ((uint8_t)(1 << 4))
+#define ERROR_BIT_MC   ((uint8_t)(1 << 5))
+#define ERROR_BIT_UNC  ((uint8_t)(1 << 6))
+#define ERROR_BIT_NA1  ((uint8_t)(1 << 7))
+
+#define STATUS_BIT_ERR  ((uint8_t)(1 << 0))
+#define STATUS_BIT_NA3  ((uint8_t)(1 << 1))
+#define STATUS_BIT_NA2  ((uint8_t)(1 << 2))
+#define STATUS_BIT_DRQ  ((uint8_t)(1 << 3))
+#define STATUS_BIT_NA1  ((uint8_t)(1 << 4))
+#define STATUS_BIT_DF   ((uint8_t)(1 << 5))
+#define STATUS_BIT_DRDY ((uint8_t)(1 << 6))
+#define STATUS_BIT_BSY  ((uint8_t)(1 << 7))
+
 typedef struct scsi_ata_return_descriptor {
     uint8_t descriptor[14];
-    union {
-        uint8_t value;
-        struct {
-            unsigned amnf: 1;
-            unsigned nm:   1;
-            unsigned abrt: 1;
-            unsigned mcr:  1;
-            unsigned idnf: 1;
-            unsigned mc:   1;
-            unsigned unc:  1;
-            unsigned na1:  1;
-        } bits;
-    } error;
-    union {
-        uint8_t value;
-        struct {
-            unsigned err:  1;
-            unsigned na3:  1;
-            unsigned na2:  1;
-            unsigned drq:  1;
-            unsigned na1:  1;
-            unsigned df:   1;
-            unsigned drdy: 1;
-            unsigned bsy:  1;
-        } bits;
-    } status;
+    uint8_t error;
+    uint8_t status;
     uint64_t lba;
 } ScsiAtaReturnDescriptor;
 
