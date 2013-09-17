@@ -54,13 +54,13 @@ struct copy_priv {
 };
 typedef struct copy_priv CopyPriv;
 
-typedef struct ReadStrategyImpl {
+struct ReadStrategyImpl {
     const char *name;
     int (*init)(CopyPriv *copy_ctx);
     int (*get_task)(CopyPriv *copy_ctx, int64_t *lba_to_read, size_t *sectors_to_read);
     int (*use_results)(CopyPriv *copy_ctx, int64_t lba_to_read, size_t sectors_to_read, DC_BlockReport *report);
     void (*close)(CopyPriv *copy_ctx);
-} ReadStrategyImpl;
+};
 
 #define SECTORS_AT_ONCE 256
 #define BLK_SIZE (SECTORS_AT_ONCE * 512) // FIXME hardcode
