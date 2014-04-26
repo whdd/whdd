@@ -141,6 +141,9 @@ int main() {
             if (uses_journal)
                 dialog_msgbox("Info", "Please wait while operation journal is processed", 0, 0, 0 /* non-pausing */);
         }
+
+        clear_body();
+
         DC_ProcedureCtx *actctx;
         r = dc_procedure_open(act, chosen_dev, &actctx, option_set);
         if (r) {

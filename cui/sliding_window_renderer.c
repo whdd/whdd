@@ -27,7 +27,6 @@ typedef struct {
     WINDOW *summary;
     WINDOW *w_end_lba;
     WINDOW *w_cur_lba;
-    WINDOW *w_log;
 
     struct timespec start_time;
     uint64_t access_time_stats_accum[7];
@@ -160,46 +159,86 @@ static void render_update_stats(SlidingWindow *priv) {
     wnoutrefresh(priv->w_cur_lba);
 }
 
+/*
+25x80
+
+                                                             <--LEGEND_WIDTH=20->
++--------------------------------------------------------------------------------+
+|                   LBA:       xxx,xxx / xxx,xxx,xxx         ETA           xx:xx |
+|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx SPEED    xxxxx kb/s |
+|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                     |
+|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx x <3ms     xxxx     |^
+|xxxxxxxxxxxxxxxxxxxxxxxxx                                   x <10ms    xxx      ||
+|                                                            x <50ms    xx       ||
+|                                                            x <150ms   x        ||
+|                                                            x <500ms   x        ||
+|                                                            x >500ms   x        || LEGEND_HEIGHT=12
+|                                                            x ERR      x        ||
+|                                                            ? TIME     x        ||
+|                                                            x UNC      x        ||
+|                                                            S IDNF     x        ||
+|                                                            ! ABRT     x        ||
+|                                                            A AMNF     x        |v
+|                                                                                |
+|                                                            Read test /dev/XXX  |
+|                                                            Block = 131072 bytes|
+|                                                                                |
+|                                                            Ctrl+C to abort     |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+| WHDD rev. X.X-X-gXXXXXXX                                                       |
++--------------------------------------------------------------------------------+
+*/
 static int Open(DC_RendererCtx *ctx) {
     SlidingWindow *priv = ctx->priv;
     DC_ProcedureCtx *actctx = ctx->procedure_ctx;
 
-    priv->legend = derwin(stdscr, 12 /* legend win height */, LEGEND_WIDTH/2, 4, COLS-LEGEND_WIDTH); // leave 1st and last lines untouched
-    assert(priv->legend);
-    wbkgd(priv->legend, COLOR_PAIR(MY_COLOR_GRAY));
-    priv->access_time_stats = derwin(stdscr, 12 /* height */, LEGEND_WIDTH/2, 4, COLS-LEGEND_WIDTH/2);
-    assert(priv->access_time_stats);
-    wbkgd(priv->access_time_stats, COLOR_PAIR(MY_COLOR_GRAY));
-    show_legend(priv->legend);
-    priv->vis = derwin(stdscr, LINES-5, COLS-LEGEND_WIDTH-1, 2, 0); // leave 1st and last lines untouched
-    assert(priv->vis);
-    scrollok(priv->vis, TRUE);
-    wrefresh(priv->vis);
+    // TODO Raise error message
+    if (LINES < 25 || COLS < 80)
+        return -1;
 
-    priv->avg_speed = derwin(stdscr, 1, LEGEND_WIDTH, 2, COLS-LEGEND_WIDTH);
-    assert(priv->avg_speed);
-    wbkgd(priv->avg_speed, COLOR_PAIR(MY_COLOR_GRAY));
+#define LBA_WIDTH 20
+#define LEGEND_WIDTH 20
+#define LEGEND_HEIGHT 12
+#define LEGEND_VERT_OFFSET 3 /* ETA & SPEED are above, 1 for spacing */
 
-    priv->eta = derwin(stdscr, 1, LEGEND_WIDTH, 1, COLS-LEGEND_WIDTH);
-    assert(priv->eta);
-    wbkgd(priv->eta, COLOR_PAIR(MY_COLOR_GRAY));
-
-    priv->summary = derwin(stdscr, 10, LEGEND_WIDTH, 17, COLS-LEGEND_WIDTH);
-    assert(priv->summary);
-    wbkgd(priv->summary, COLOR_PAIR(MY_COLOR_GRAY));
-
-    priv->w_end_lba = derwin(stdscr, 1, 20, 1, COLS-41);
-    assert(priv->w_end_lba);
-    wbkgd(priv->w_end_lba, COLOR_PAIR(MY_COLOR_GRAY));
-
-    priv->w_cur_lba = derwin(stdscr, 1, 20, 1, COLS-61);
+    priv->w_cur_lba = derwin(stdscr, 1, LBA_WIDTH, 0 /* at the top */, COLS - LEGEND_WIDTH - 1 - (LBA_WIDTH * 2) );
     assert(priv->w_cur_lba);
     wbkgd(priv->w_cur_lba, COLOR_PAIR(MY_COLOR_GRAY));
 
-    priv->w_log = derwin(stdscr, 2, COLS, LINES-3, 0);
-    assert(priv->w_log);
-    scrollok(priv->w_log, TRUE);
-    wbkgd(priv->w_log, COLOR_PAIR(MY_COLOR_GRAY));
+    priv->w_end_lba = derwin(stdscr, 1, LBA_WIDTH, 0 /* at the top */, COLS - LEGEND_WIDTH - 1 - LBA_WIDTH);
+    assert(priv->w_end_lba);
+    wbkgd(priv->w_end_lba, COLOR_PAIR(MY_COLOR_GRAY));
+
+    priv->eta = derwin(stdscr, 1, LEGEND_WIDTH, 0 /* at the top */, COLS-LEGEND_WIDTH);
+    assert(priv->eta);
+    wbkgd(priv->eta, COLOR_PAIR(MY_COLOR_GRAY));
+
+    priv->avg_speed = derwin(stdscr, 1, LEGEND_WIDTH, 1 /* ETA is above */, COLS-LEGEND_WIDTH);
+    assert(priv->avg_speed);
+    wbkgd(priv->avg_speed, COLOR_PAIR(MY_COLOR_GRAY));
+
+    priv->legend = derwin(stdscr, LEGEND_HEIGHT, LEGEND_WIDTH/2, LEGEND_VERT_OFFSET, COLS-LEGEND_WIDTH);
+    assert(priv->legend);
+    wbkgd(priv->legend, COLOR_PAIR(MY_COLOR_GRAY));
+
+    priv->access_time_stats = derwin(stdscr, LEGEND_HEIGHT, LEGEND_WIDTH/2, LEGEND_VERT_OFFSET, COLS-LEGEND_WIDTH/2);
+    assert(priv->access_time_stats);
+    wbkgd(priv->access_time_stats, COLOR_PAIR(MY_COLOR_GRAY));
+    show_legend(priv->legend);
+
+#define SUMMARY_VERT_OFFSET ( 1 /* ETA */ + 1 + /* SPEED */ + 1 /* spacing */ + LEGEND_HEIGHT + 1 /* spacing */ )
+#define SUMMARY_HEIGHT ( LINES - SUMMARY_VERT_OFFSET - 1 /* don't touch bottom line */ )
+    priv->summary = derwin(stdscr, SUMMARY_HEIGHT, LEGEND_WIDTH, SUMMARY_VERT_OFFSET, COLS-LEGEND_WIDTH);
+    assert(priv->summary);
+    wbkgd(priv->summary, COLOR_PAIR(MY_COLOR_GRAY));
+
+    priv->vis = derwin(stdscr, LINES-2 /* version is below, LBA is above */, COLS-LEGEND_WIDTH-1, 1 /* LBA is above */, 0);
+    assert(priv->vis);
+    scrollok(priv->vis, TRUE);
+    wrefresh(priv->vis);
 
     priv->reports[0].seqno = 1; // anything but zero
 
@@ -280,7 +319,6 @@ static void Close(DC_RendererCtx *ctx) {
     delwin(priv->summary);
     delwin(priv->w_end_lba);
     delwin(priv->w_cur_lba);
-    delwin(priv->w_log);
     clear_body();
 }
 

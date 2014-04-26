@@ -12,8 +12,6 @@
 #define MY_COLOR_WHITE_ON_BLUE 44
 #define MY_COLOR_ORANGE 45
 
-#define LEGEND_WIDTH 20
-
 typedef struct vis_t {
     uint64_t access_time; // in mcs
     wchar_t vis; // visual representation

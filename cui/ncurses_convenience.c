@@ -4,7 +4,7 @@
 #include "libdevcheck.h"
 
 void clear_body(void) {
-    WINDOW *body = derwin(stdscr, LINES-2, COLS, 1, 0); // leave 1st and last lines untouched
+    WINDOW *body = derwin(stdscr, LINES, COLS, 0, 0);
     wclear(body);
     wrefresh(body);
     delwin(body);

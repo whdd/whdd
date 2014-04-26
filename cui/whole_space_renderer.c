@@ -12,6 +12,8 @@
 #include "vis.h"
 #include "copy.h"
 
+#define LEGEND_WIDTH 20
+
 typedef struct blk_report {
     uint64_t seqno;
     DC_BlockReport report;
@@ -30,7 +32,6 @@ typedef struct {
     WINDOW *summary;
     WINDOW *w_end_lba;
     WINDOW *w_cur_lba;
-    WINDOW *w_log;
 
     struct timespec start_time;
     uint64_t access_time_stats_accum[6];
@@ -229,9 +230,45 @@ void whole_space_show_legend(WholeSpace *priv) {
     wrefresh(win);
 }
 
+/*
+25x80
+
+                                                             <--LEGEND_WIDTH=20->
++--------------------------------------------------------------------------------+
+|                   LBA:       xxx,xxx / xxx,xxx,xxx         ETA           xx:xx |
+|ZZZZZZZZZZZZZZZxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx SPEED    xxxxx kb/s |
+|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                     |
+|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx x unread space      |^
+|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                     ||
+|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx x copied space,     ||
+|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx   no read errors    ||
+|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx x read errors       ||
+|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx   occured           || LEGEND_HEIGHT=9
+|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx Display block is XXX||
+|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx XXX blocks by 256 se||
+|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx ctors               |v
+|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx x NNNNNNNNNN        |^
+|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx x NNNNNNNNNN        || W_STATS_HEIGHT=3
+|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx x NNNNNNNNNN        |v
+|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                     |
+|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx Device copying /dev/|^
+|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx XXX                 ||
+|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx Ctrl+C to abort     ||
+|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                     || SUMMARY
+|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                     ||
+|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                     ||
+|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                     ||
+|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                               |v
+| WHDD rev. X.X-X-gXXXXXXX                                                       |
++--------------------------------------------------------------------------------+
+*/
 static int Open(DC_RendererCtx *ctx) {
     WholeSpace *priv = ctx->priv;
     DC_ProcedureCtx *actctx = ctx->procedure_ctx;
+
+    // TODO Raise error message
+    if (LINES < 25 || COLS < 80)
+        return -1;
 
     priv->nb_blocks = actctx->dev->capacity / actctx->blk_size;
     if (actctx->dev->capacity % actctx->blk_size)
@@ -274,49 +311,54 @@ static int Open(DC_RendererCtx *ctx) {
             }
         }
     }
-    priv->legend = derwin(stdscr, 9 /* legend win height */, LEGEND_WIDTH, 4, COLS-LEGEND_WIDTH); // leave 1st and last lines untouched
+
+#define LBA_WIDTH 20
+#define LEGEND_WIDTH 20
+#define LEGEND_HEIGHT 9
+#define LEGEND_VERT_OFFSET 3 /* ETA & SPEED are above, 1 for spacing */
+
+    priv->w_cur_lba = derwin(stdscr, 1, LBA_WIDTH, 0 /* at the top */, COLS - LEGEND_WIDTH - 1 - (LBA_WIDTH * 2) );
+    assert(priv->w_cur_lba);
+    wbkgd(priv->w_cur_lba, COLOR_PAIR(MY_COLOR_GRAY));
+
+    priv->w_end_lba = derwin(stdscr, 1, LBA_WIDTH, 0 /* at the top */, COLS - LEGEND_WIDTH - 1 - LBA_WIDTH);
+    assert(priv->w_end_lba);
+    wbkgd(priv->w_end_lba, COLOR_PAIR(MY_COLOR_GRAY));
+
+    priv->eta = derwin(stdscr, 1, LEGEND_WIDTH, 0 /* at the top */, COLS-LEGEND_WIDTH);
+    assert(priv->eta);
+    wbkgd(priv->eta, COLOR_PAIR(MY_COLOR_GRAY));
+
+    priv->avg_speed = derwin(stdscr, 1, LEGEND_WIDTH, 1 /* ETA is above */, COLS-LEGEND_WIDTH);
+    assert(priv->avg_speed);
+    wbkgd(priv->avg_speed, COLOR_PAIR(MY_COLOR_GRAY));
+
+    priv->legend = derwin(stdscr, LEGEND_HEIGHT, LEGEND_WIDTH, LEGEND_VERT_OFFSET, COLS-LEGEND_WIDTH);
     assert(priv->legend);
     wbkgd(priv->legend, COLOR_PAIR(MY_COLOR_GRAY));
 
-    priv->w_stats = derwin(stdscr, 3, LEGEND_WIDTH, 4+9, COLS-LEGEND_WIDTH);
+#define W_STATS_HEIGHT 3
+#define W_STATS_VERT_OFFSET ( LEGEND_VERT_OFFSET + LEGEND_HEIGHT + 1 /* spacing */ )
+    priv->w_stats = derwin(stdscr, W_STATS_HEIGHT, LEGEND_WIDTH, W_STATS_VERT_OFFSET, COLS-LEGEND_WIDTH);
     assert(priv->w_stats);
 
-    priv->vis_height = LINES - 5;
+#define SUMMARY_VERT_OFFSET ( W_STATS_VERT_OFFSET + W_STATS_HEIGHT + 1 /* spacing */ )
+#define SUMMARY_HEIGHT ( LINES - SUMMARY_VERT_OFFSET - 1 /* don't touch bottom line */ )
+    priv->summary = derwin(stdscr, SUMMARY_HEIGHT, LEGEND_WIDTH, SUMMARY_VERT_OFFSET, COLS-LEGEND_WIDTH);
+    assert(priv->summary);
+    wbkgd(priv->summary, COLOR_PAIR(MY_COLOR_GRAY));
+
+    priv->vis_height = LINES - 2; /* LBA is above, version is below */
     priv->vis_width = COLS - LEGEND_WIDTH - 1;
     int vis_cells_avail = priv->vis_height * priv->vis_width;
     priv->blocks_per_vis = priv->nb_blocks / vis_cells_avail;
     if (priv->nb_blocks % vis_cells_avail)
         priv->blocks_per_vis++;
-    priv->vis = derwin(stdscr, priv->vis_height, priv->vis_width, 2, 0); // leave 1st and last lines untouched
+    priv->vis = derwin(stdscr, priv->vis_height, priv->vis_width, 1 /* LBA is above */, 0);
     assert(priv->vis);
     wrefresh(priv->vis);
 
     whole_space_show_legend(priv);
-
-    priv->avg_speed = derwin(stdscr, 1, LEGEND_WIDTH, 2, COLS-LEGEND_WIDTH);
-    assert(priv->avg_speed);
-    wbkgd(priv->avg_speed, COLOR_PAIR(MY_COLOR_GRAY));
-
-    priv->eta = derwin(stdscr, 1, LEGEND_WIDTH, 1, COLS-LEGEND_WIDTH);
-    assert(priv->eta);
-    wbkgd(priv->eta, COLOR_PAIR(MY_COLOR_GRAY));
-
-    priv->summary = derwin(stdscr, 10, LEGEND_WIDTH, 16, COLS-LEGEND_WIDTH);
-    assert(priv->summary);
-    wbkgd(priv->summary, COLOR_PAIR(MY_COLOR_GRAY));
-
-    priv->w_end_lba = derwin(stdscr, 1, 20, 1, COLS-41);
-    assert(priv->w_end_lba);
-    wbkgd(priv->w_end_lba, COLOR_PAIR(MY_COLOR_GRAY));
-
-    priv->w_cur_lba = derwin(stdscr, 1, 20, 1, COLS-61);
-    assert(priv->w_cur_lba);
-    wbkgd(priv->w_cur_lba, COLOR_PAIR(MY_COLOR_GRAY));
-
-    priv->w_log = derwin(stdscr, 2, COLS, LINES-3, 0);
-    assert(priv->w_log);
-    scrollok(priv->w_log, TRUE);
-    wbkgd(priv->w_log, COLOR_PAIR(MY_COLOR_GRAY));
 
     priv->reports[0].seqno = 1; // anything but zero
 
@@ -396,7 +438,6 @@ static void Close(DC_RendererCtx *ctx) {
     delwin(priv->summary);
     delwin(priv->w_end_lba);
     delwin(priv->w_cur_lba);
-    delwin(priv->w_log);
     clear_body();
     free(priv->blocks_map);
 }
