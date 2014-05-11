@@ -101,7 +101,7 @@ DC_BlockStatus scsi_ata_check_return_status(ScsiCommand *scsi_command) {
             return DC_BlockStatus_eError;
     } else if (scsi_ata_return.status & STATUS_BIT_DF) {
         return DC_BlockStatus_eError;
-    } else if (sense_key) {
+    } else if (sense_key > 0x01) {
         if (sense_key == 0x0b)
             return DC_BlockStatus_eAbrt;
         else
