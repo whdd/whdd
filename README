@@ -9,3 +9,8 @@ Directed by: Vitaliy 'Rozik' Roziznany <rozik@homei.net.ua> http://rozik.od.ua
 To install, run:
 cmake . && make && make install
  (or ./build.sh && make install)
+
+In case of compilation troubles, use static build with internally-built libdialog and ncurses:
+./build_static.sh && make install
+
+Minimal supported version of dialog is 1.2-20121230.
