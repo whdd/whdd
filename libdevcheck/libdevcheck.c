@@ -25,9 +25,9 @@ int dc_init(void) {
     dc_log_set_callback(dc_log_default_func, NULL);
     dc_log_set_level(DC_LOG_INFO);
 
+    struct timespec dummy;
 #ifdef HAVE_CLOCK_MONOTONIC_RAW
     /* determine best available clock */
-    struct timespec dummy;
     DC_BEST_CLOCK = CLOCK_MONOTONIC_RAW;
     r = clock_gettime(DC_BEST_CLOCK, &dummy);
     if (r) {
