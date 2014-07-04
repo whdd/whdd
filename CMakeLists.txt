@@ -109,15 +109,19 @@ else (${STATIC})
   set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
   include_directories(${DIALOG_INCLUDE_DIRS})
   find_package(DIALOG REQUIRED)
+  if (NOT DIALOG_FOUND)
+	message(FATAL_ERROR "Dialog library not found")
+  endif(NOT DIALOG_FOUND)
+
   find_library(MENUW_LIBRARY menuw)
   find_library(TINFO_LIBRARY tinfo)
   find_library(NCURSESW_LIBRARY ncursesw)
-  if(DIALOG_FOUND AND TINFO_LIBRARY AND MENUW_LIBRARY AND NCURSESW_LIBRARY)
-    target_link_libraries(whdd
-      ${DIALOG_LIBRARIES} ${MENUW_LIBRARY} ${NCURSESW_LIBRARY} ${TINFO_LIBRARY} rt pthread)
-  else()
-    message(FATAL_ERROR "Dialog or menuw library not found!")
-  endif(DIALOG_FOUND AND TINFO_LIBRARY AND MENUW_LIBRARY AND NCURSESW_LIBRARY)
+  if (NOT (TINFO_LIBRARY AND MENUW_LIBRARY AND NCURSESW_LIBRARY))
+	message(FATAL_ERROR "Ncurses libraries (ncursesw, tinfo, menuw) not found")
+  endif(NOT (TINFO_LIBRARY AND MENUW_LIBRARY AND NCURSESW_LIBRARY))
+
+  target_link_libraries(whdd
+    ${DIALOG_LIBRARIES} ${MENUW_LIBRARY} ${NCURSESW_LIBRARY} ${TINFO_LIBRARY} rt pthread)
   install(TARGETS whdd DESTINATION sbin)
 
 # Packaging stuff
