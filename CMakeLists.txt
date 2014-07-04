@@ -80,6 +80,7 @@ if (${STATIC})
 
 # Set include paths
   include_directories(BEFORE SYSTEM
+    ${NCURSES_DIR}/include
     ${NCURSES_DIR}/include/ncursesw
     ${DIALOG_DIR}
   )
@@ -91,12 +92,15 @@ if (${STATIC})
   set_property(TARGET ncurses_lib PROPERTY IMPORTED_LOCATION "${NCURSES_DIR}/lib/libncursesw.a")
   add_library(menu_lib STATIC IMPORTED)
   set_property(TARGET menu_lib PROPERTY IMPORTED_LOCATION "${NCURSES_DIR}/lib/libmenuw.a")
+  add_library(tinfo_lib STATIC IMPORTED)
+  set_property(TARGET tinfo_lib PROPERTY IMPORTED_LOCATION "${NCURSES_DIR}/lib/libtinfow.a")
   add_library(dialog_lib STATIC IMPORTED)
   set_property(TARGET dialog_lib PROPERTY IMPORTED_LOCATION "${DIALOG_DIR}/libdialog.a")
 
   target_link_libraries(whdd dialog_lib)
   target_link_libraries(whdd menu_lib)
   target_link_libraries(whdd ncurses_lib)
+  target_link_libraries(whdd tinfo_lib)
   target_link_libraries(whdd dl)
   target_link_libraries(whdd m)
 
@@ -106,13 +110,14 @@ else (${STATIC})
   include_directories(${DIALOG_INCLUDE_DIRS})
   find_package(DIALOG REQUIRED)
   find_library(MENUW_LIBRARY menuw)
+  find_library(TINFO_LIBRARY tinfo)
   find_library(NCURSESW_LIBRARY ncursesw)
-  if(DIALOG_FOUND AND MENUW_LIBRARY AND NCURSESW_LIBRARY)
+  if(DIALOG_FOUND AND TINFO_LIBRARY AND MENUW_LIBRARY AND NCURSESW_LIBRARY)
     target_link_libraries(whdd
-      ${DIALOG_LIBRARIES} ${MENUW_LIBRARY} ${NCURSESW_LIBRARY} rt pthread)
+      ${DIALOG_LIBRARIES} ${MENUW_LIBRARY} ${NCURSESW_LIBRARY} ${TINFO_LIBRARY} rt pthread)
   else()
     message(FATAL_ERROR "Dialog or menuw library not found!")
-  endif(DIALOG_FOUND AND MENUW_LIBRARY AND NCURSESW_LIBRARY)
+  endif(DIALOG_FOUND AND TINFO_LIBRARY AND MENUW_LIBRARY AND NCURSESW_LIBRARY)
   install(TARGETS whdd DESTINATION sbin)
 
 # Packaging stuff
