@@ -7,6 +7,6 @@ ExternalProject_Add(dialog
   DEPENDS ncurses
   URL ftp://invisible-island.net/dialog/dialog-1.2-20140219.tgz
   BUILD_IN_SOURCE 1
-  CONFIGURE_COMMAND ./configure --with-curses-dir=${CURSES_DIR} --with-ncursesw --enable-widec --disable-rc-file
+  CONFIGURE_COMMAND bash -c "LD_LIBRARY_PATH=${CURSES_DIR}/lib LDFLAGS=\"-ltinfo -L${CURSES_DIR}/lib\" ./configure --with-curses-dir=${CURSES_DIR} --with-ncursesw --enable-widec --disable-rc-file"
   INSTALL_COMMAND echo Fake install
 )
