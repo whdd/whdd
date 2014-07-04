@@ -110,21 +110,48 @@ char *commaprint(uint64_t n, char *retbuf, size_t bufsize) {
     return p;
 }
 
+static volatile sig_atomic_t termination_signal_caught = 0;
+
+static void signal_handling_unset() {
+    signal(SIGQUIT, SIG_DFL);
+    signal(SIGTERM, SIG_DFL);
+    signal(SIGINT, SIG_DFL);
+    signal(SIGHUP, SIG_DFL);
+}
+
+static void signal_handler(int signo) {
+    switch (signo) {
+        case SIGQUIT:
+        case SIGTERM:
+        case SIGINT:
+        case SIGHUP:
+            termination_signal_caught = 1;
+            // Second signal should terminate the application immediately
+            signal_handling_unset();
+            break;
+    }
+}
+
+static int signal_handling_setup() {
+    int ret;
+    struct sigaction act;
+    memset(&act, 0, sizeof(act));
+    act.sa_handler = signal_handler;
+    ret  = sigaction(SIGQUIT, &act, NULL);
+    ret |= sigaction(SIGTERM, &act, NULL);
+    ret |= sigaction(SIGINT, &act, NULL);
+    ret |= sigaction(SIGHUP, &act, NULL);
+    return ret;
+}
+
 int procedure_perform_until_interrupt(DC_ProcedureCtx *actctx,
         ProcedureDetachedLoopCB callback, void *callback_priv) {
     int r;
-    siginfo_t siginfo;
-    sigset_t set;
     pthread_t tid;
 
-    sigemptyset(&set);
-    sigaddset(&set, SIGQUIT);
-    sigaddset(&set, SIGINT);
-    sigaddset(&set, SIGHUP);
-    sigaddset(&set, SIGTERM);
-    r = sigprocmask(SIG_BLOCK, &set, NULL);
+    r = signal_handling_setup();
     if (r) {
-        printf("sigprocmask failed: %d\n", r);
+        printf("failed to setup signal handling\n");
         goto fail;
     }
 
@@ -134,29 +161,18 @@ int procedure_perform_until_interrupt(DC_ProcedureCtx *actctx,
         goto fail;
     }
 
-    struct timespec finish_check_interval = { .tv_sec = 1, .tv_nsec = 0 };
     while (!actctx->finished) {
-        r = sigtimedwait(&set, &siginfo, &finish_check_interval);
-        if (r > 0) { // got signal `r`
+        if (termination_signal_caught) {
             actctx->interrupt = 1;
             break;
-        } else { // "fail"
-            if ((errno == EAGAIN) || // timed out
-                    (errno == EINTR)) // interrupted by non-catched signal
-                continue;
-            else
-                printf("sigtimedwait fail, errno %d\n", errno);
         }
+        usleep(100000);
     }
+
+    signal_handling_unset();
 
     r = pthread_join(tid, NULL);
     assert(!r);
-
-    r = sigprocmask(SIG_UNBLOCK, &set, NULL);
-    if (r) {
-        printf("sigprocmask failed: %d\n", r);
-        goto fail;
-    }
 
     dc_procedure_close(actctx);
     return 0;
