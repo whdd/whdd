@@ -107,11 +107,11 @@ if (${STATIC})
 else (${STATIC})
 
     set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
-    include_directories(${DIALOG_INCLUDE_DIRS})
     find_package(DIALOG REQUIRED)
     if (NOT DIALOG_FOUND)
         message(FATAL_ERROR "Dialog library not found")
     endif(NOT DIALOG_FOUND)
+    include_directories(${DIALOG_INCLUDE_DIRS})
 
     find_library(MENUW_LIBRARY menuw)
     find_library(TINFO_LIBRARY tinfo)
