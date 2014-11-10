@@ -1,0 +1,25 @@
+---
+layout: post
+title: whdd 2.2
+date: 2014-08-03 21:12:13.000000000 +03:00
+categories: []
+tags: []
+status: publish
+type: post
+published: true
+meta:
+  _edit_last: '1'
+author:
+  login: krieger
+  email: andrey.krieger.utkin@gmail.com
+  display_name: krieger
+  first_name: ''
+  last_name: ''
+---
+<p>Changes since 2.1:<br />
+* Fix problems with small displays like 80x25<br />
+* Fix ATA compliance recognition (see <a href="https://github.com/krieger-od/whdd/issues/57">bug #57</a>)<br />
+* Replace "Press any key" with "Press 'm' for menu"<br />
+* Rework signal handling during procedure for stability<br />
+* Improve build system</p>
+<p>Sorry, but WHDD still doesn't compile on stock Ubuntu 14 (except you use ./build_static.sh), because Ubuntu contains way too old `dialog` package - the one from 2011! What a shame.</p>

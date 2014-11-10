@@ -1,0 +1,45 @@
+---
+layout: post
+title: '[HUMOR] whdd implemented in bash'
+date: 2013-06-26 21:28:16.000000000 +03:00
+categories: []
+tags: []
+status: publish
+type: post
+published: true
+meta:
+  _edit_last: '1'
+author:
+  login: krieger
+  email: andrey.krieger.utkin@gmail.com
+  display_name: krieger
+  first_name: ''
+  last_name: ''
+---
+<p>Made up in ten minutes just for fun.<br />
+Makes timing of consequential block reading by dd, and visualizes the same way whdd does for read test.</p>
+<pre>
+#!/bin/bash
+DEV=/dev/sda
+BLOCK_BEGIN_INDEX=0
+BLOCK_END_INDEX=1000000
+export TIMEFORMAT="%3R"
+BLOCK_INDEX=$BLOCK_BEGIN_INDEX
+while [[ $BLOCK_INDEX -lt $BLOCK_END_INDEX ]]; do
+    TIME=$( { time bash -c "dd if=$DEV of=/dev/null bs=131072 count=1 skip=$BLOCK_INDEX &>/dev/null" ; } 2>&1 )
+    BLOCK_INDEX=$(( BLOCK_INDEX + 1 ))
+    if [[ `echo "$TIME < 0.003" | bc` == '1' ]]; then
+        echo -en "\e[0m\u2591"
+    elif [[ `echo "$TIME < 0.010" | bc` == '1' ]]; then
+        echo -en "\e[0m\u2593"
+    elif [[ `echo "$TIME < 0.050" | bc` == '1' ]]; then
+        echo -en "\e[0m\u2588"
+    elif [[ `echo "$TIME < 0.150" | bc` == '1' ]]; then
+        echo -en "\e[32m\u2588"
+    elif [[ `echo "$TIME < 0.500" | bc` == '1' ]]; then
+        echo -en "\e[31m\u2588"
+    else
+        echo -en "\e[1;31m\u2588"
+    fi
+done
+</pre>

@@ -1,0 +1,33 @@
+---
+layout: post
+title: whdd 2.1
+date: 2013-08-21 20:15:21.000000000 +03:00
+categories: []
+tags: []
+status: publish
+type: post
+published: true
+meta:
+  _edit_last: '1'
+author:
+  login: krieger
+  email: andrey.krieger.utkin@gmail.com
+  display_name: krieger
+  first_name: ''
+  last_name: ''
+---
+<p>Changes since 2.0.1:</p>
+<ul>
+<li>Enhanced smart, smart_noreverse copying strategies;</li>
+<li>Introduced new copying strategies skipfail, skipfail_noreverse;</li>
+<li>Introduce journaling of copying and automatic resuming of interrupted copying;</li>
+<li>Support procedure parameters overriding by ~/.whddrc config file;</li>
+<li>Several bug fixes.</li>
+</ul>
+<p>Having no time and willpower to document thoroughly all new features...<br />
+What about ~/.whddrc config file: add a line<br />
+<code>procedure_name.parameter_name=value</code><br />
+to omit dialog, or<br />
+<code>procedure_name.parameter_name<strong>.suggest</strong>=value</code><br />
+to override default suggestion in dialog.<br />
+Spaces are not allowed currently. Line is matched from the beginning. So any character, like #, at the line beginning makes it a comment.</p>

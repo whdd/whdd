@@ -1,0 +1,24 @@
+---
+layout: post
+title: whdd 2.0rc2
+date: 2013-06-25 22:04:48.000000000 +03:00
+categories: []
+tags: []
+status: publish
+type: post
+published: true
+meta:
+  _edit_last: '1'
+author:
+  login: krieger
+  email: andrey.krieger.utkin@gmail.com
+  display_name: krieger
+  first_name: ''
+  last_name: ''
+---
+<p>Second release candidate for 2.0 is published.<br />
+It is not much more than just git tag pointing to commit which was done yesterday. It just shows that i am not aware of any critical bug or missing function to consider application currently unusable.<br />
+The code is still somewhat "childish" at some places - for example, SCSI and ATA related internal functions are not as generic as needed. Internal design polishing surely will follow, but for now application seems to work correctly in all modes, and people can already use it.<br />
+Still, there is a curious problem with HPA setting - me and Rozik get weird behaviour with both WHDD and <tt>hdparm -N pXXXXXXX</tt>, on different PCs and kernel versions. But as long as our HPA-setting code works the same way as in hdparm, i consider the feature generally working, with hope to figure out reason of our problems a bit later. There is a suspicion that Linux kernel issues volatile SET MAX ADDRESS ATA command during boot, and this causes problem for consequential SET MAX ADDRESS commands.</p>
+<p>Oh, what a long text. I would like to write just:<br />
+<strong>Enjoy!</strong></p>
