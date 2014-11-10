@@ -1,1 +1,0 @@
-#cmakedefine HAVE_CLOCK_MONOTONIC_RAW
