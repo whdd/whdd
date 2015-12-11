@@ -5,10 +5,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <sched.h>
+#include <time.h>
 
 #include "libdevcheck.h"
 #include "procedure.h"
-#include "config.h"
 #include "utils.h"
 
 clockid_t DC_BEST_CLOCK;
@@ -26,7 +26,7 @@ int dc_init(void) {
     dc_log_set_level(DC_LOG_INFO);
 
     struct timespec dummy;
-#ifdef HAVE_CLOCK_MONOTONIC_RAW
+#ifdef CLOCK_MONOTONIC_RAW
     /* determine best available clock */
     DC_BEST_CLOCK = CLOCK_MONOTONIC_RAW;
     r = clock_gettime(DC_BEST_CLOCK, &dummy);
