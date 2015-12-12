@@ -117,6 +117,7 @@ static void dev_list_build(DC_DevList *dc_devlist) {
 	char line[128], ptname[128];
 	int ma, mi;
 	unsigned long long sz;
+	int ret;
 
 	procpt = fopen("/proc/partitions", "r");
 	if (procpt == NULL) {
@@ -133,8 +134,8 @@ static void dev_list_build(DC_DevList *dc_devlist) {
             assert(dc_dev);
             dc_dev->dev_fs_name = strdup(ptname);
             assert(dc_dev->dev_fs_name);
-            asprintf(&dc_dev->dev_path, "/dev/%s", ptname);
-            assert(dc_dev->dev_path);
+            ret = asprintf(&dc_dev->dev_path, "/dev/%s", ptname);
+            assert(ret != -1 && dc_dev->dev_path);
             dc_dev->capacity = sz * 1024;
             dc_dev->next = dc_devlist->arr;
             dc_devlist->arr = dc_dev;
@@ -172,8 +173,9 @@ static void dev_list_fill_info(DC_DevList *list) {
 static void dev_modelname_fill(DC_Dev *dev) {
     // fill model name, if exists
     char *model_file_name;
-    asprintf(&model_file_name, "/sys/block/%s/device/model", dev->dev_fs_name);
-    assert(model_file_name);
+    int ret;
+    ret = asprintf(&model_file_name, "/sys/block/%s/device/model", dev->dev_fs_name);
+    assert(ret != -1 && model_file_name);
 
     FILE *model_file = fopen(model_file_name, "r");
     free(model_file_name);
