@@ -2,15 +2,9 @@ WHDD is HDD diagnostic and recovery tool for Linux.
 
 Project home: http://whdd.org
 License: GNU GPL
-Sources: https://github.com/krieger-od/whdd
-Author: Andrey 'Krieger' Utkin <andrey.krieger.utkin@gmail.com> http://blog.krieger.pp.ua
-Directed by: Vitaliy 'Rozik' Roziznany <rozik@homei.net.ua> http://rozik.od.ua
+Sources: https://github.com/whdd/whdd
+Author: Andrey Utkin <andrey.od.utkin@gmail.com>  https://andrey-utkin.github.io
+Inspired and directed by: Vitaliy 'Rozik' Roziznany <rozik@homei.net.ua>  http://rozik.od.ua
 
 To install, run:
-cmake . && make && make install
- (or ./build.sh && make install)
-
-In case of compilation troubles, use static build with internally-built libdialog and ncurses:
-./build_static.sh && make install
-
-Minimal supported version of dialog is 1.2-20121230.
+./build.sh && make install

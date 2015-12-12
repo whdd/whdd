@@ -132,7 +132,7 @@ else (${STATIC})
     # Packaging stuff
     # 'make package_source' to make tarball
     set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "WHDD is a diagnostic and recovery tool for block devices.")
-    set(CPACK_PACKAGE_VENDOR "Andrey 'Krieger' Utkin <andrey.krieger.utkin@gmail.com>")
+    set(CPACK_PACKAGE_VENDOR "Andrey Utkin <andrey.od.utkin@gmail.com>")
     set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README")
     set(CPACK_PACKAGE_VERSION ${WHDD_VERSION})
     #set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/COPYING")
