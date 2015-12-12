@@ -1,6 +1,8 @@
 #!/bin/sh
 set -e
-cmake . && make
+`basename $0`/build_depends.sh
+make
+
 echo '
 To install, type
 
