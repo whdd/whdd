@@ -6,7 +6,7 @@ DESTDIR ?= /usr/local
 
 source_files := $(wildcard *.c) $(wildcard cui/*.c) $(wildcard libdevcheck/*.c)
 
-whdd: version.h
+whdd: version.h $(source_files) Makefile
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(source_files) $(LDLIBS)
 
 version.h: FORCE
