@@ -129,31 +129,33 @@ int dc_procedure_perform_loop(DC_ProcedureCtx *ctx, ProcedureDetachedLoopCB call
     return ret;
 }
 
+struct dc_procedure_thread_args_pack {
+    DC_ProcedureCtx *ctx;
+    ProcedureDetachedLoopCB callback;
+    void *callback_priv;
+};
+
+void *dc_procedure_thread_proc(void *packed_args) {
+    struct dc_procedure_thread_args_pack *args = packed_args;
+    dc_realtime_scheduling_enable_with_prio(1);
+    dc_procedure_perform_loop(args->ctx, args->callback, args->callback_priv);
+    free(args);
+    return NULL;
+}
+
 int dc_procedure_perform_loop_detached(DC_ProcedureCtx *ctx, ProcedureDetachedLoopCB callback,
         void *callback_priv, pthread_t *tid
         ) {
-    struct args_pack {
-        DC_ProcedureCtx *ctx;
-        ProcedureDetachedLoopCB callback;
-        void *callback_priv;
-    };
-    void *thread_proc(void *packed_args) {
-        struct args_pack *args = packed_args;
-        dc_realtime_scheduling_enable_with_prio(1);
-        dc_procedure_perform_loop(args->ctx, args->callback, args->callback_priv);
-        free(args);
-        return NULL;
-    }
-
     int r;
-    struct args_pack *args = calloc(1, sizeof(*args));
+    struct dc_procedure_thread_args_pack *args = calloc(1, sizeof(*args));
+
     if (!args)
         return 1;
     args->ctx = ctx;
     args->callback = callback;
     args->callback_priv = callback_priv;
 
-    r = pthread_create(tid, NULL, thread_proc, args);
+    r = pthread_create(tid, NULL, dc_procedure_thread_proc, args);
     if (r)
         return r;
     return 0;
