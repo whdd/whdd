@@ -1,6 +1,6 @@
 LDLIBS := $(LDLIBS) -ldialog -lmenuw -lncursesw -lm -lrt
 LDFLAGS := $(LDFLAGS) -pthread
-CFLAGS := $(CFLAGS) -std=gnu99 -pthread -I./ -I./cui/ -I./libdevcheck/ -isystem /usr/include/dialog $(shell pkg-config --cflags-only-I ncurses)
+CFLAGS := $(CFLAGS) -std=gnu99 -pthread -I./ -I./cui/ -I./libdevcheck/ $(shell pkg-config --cflags dialog) $(shell pkg-config --cflags ncurses)
 INSTALL ?= install
 DESTDIR ?= /usr/local
 
