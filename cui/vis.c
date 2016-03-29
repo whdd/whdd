@@ -11,7 +11,7 @@ vis_t bs_vis[]   = {
 vis_t exceed_vis =  { 0,      L'\u2588', 1, MY_COLOR_RED }; // bold red full block
 vis_t error_vis[]= {
                     { 0,      L' ',      1, MY_COLOR_RED }, // unused
-                    { 0,      L'\u0436', 1, MY_COLOR_RED }, // eError
+                    { 0,      L'*',      1, MY_COLOR_RED }, // eError
                     { 0,      L'?',      1, MY_COLOR_GRAY }, // eTimeout
                     { 0,      L'x',      1, MY_COLOR_RED }, // eUnc
                     { 0,      L'S',      1, MY_COLOR_GREEN }, // eIdnf
