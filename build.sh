@@ -1,6 +1,6 @@
 #!/bin/sh
 set -e
-`basename $0`/build_depends.sh
+`dirname $0`/build_depends.sh
 make
 
 echo '
