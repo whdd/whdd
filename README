@@ -7,4 +7,4 @@ Author: Andrey Utkin <andrey.od.utkin@gmail.com>  https://andrey-utkin.github.io
 Inspired and directed by: Vitaliy 'Rozik' Roziznany <rozik@homei.net.ua>  http://rozik.od.ua
 
 To install, run:
-./build.sh && make install
+./build.sh && sudo make install
