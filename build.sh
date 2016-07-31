@@ -6,7 +6,7 @@ make
 echo '
 To install, type
 
-make install
+sudo make install
 
 It will install executable `whdd`.'
 
