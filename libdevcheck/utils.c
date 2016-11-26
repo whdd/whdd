@@ -162,6 +162,7 @@ int procedure_perform_until_interrupt(DC_ProcedureCtx *actctx,
 
     while (!actctx->finished) {
         if (termination_signal_caught) {
+            termination_signal_caught = 0;
             actctx->interrupt = 1;
             break;
         }
