@@ -106,6 +106,11 @@ DC_Dev *dc_dev_list_get_entry(DC_DevList *list, int index) {
 static void dev_list_build(DC_DevList *dc_devlist) {
 
     int is_whole_disk(const char *name) {
+        // SD cards have "mmcblkN" for whole devices,
+        // and "mmcblkNpM" for partitions
+        if (!strncmp(name, "mmcblk", 6)) {
+            return !strchr(name + 6, 'p');
+        }
         // taken from util-linux-2.19.1/lib/wholedisk.c
         while (*name)
             name++;
