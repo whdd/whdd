@@ -99,24 +99,23 @@ DC_Dev *dc_dev_list_get_entry(DC_DevList *list, int index) {
 }
 
 
+static int is_whole_disk(const char *name) {
+    // SD cards have "mmcblkN" for whole devices,
+    // and "mmcblkNpM" for partitions
+    if (!strncmp(name, "mmcblk", 6)) {
+        return !strchr(name + 6, 'p');
+    }
+    // taken from util-linux-2.19.1/lib/wholedisk.c
+    while (*name)
+        name++;
+    return !isdigit(name[-1]);
+}
+
 /*
  * try all things in /proc/partitions that look like a full disk
  * Taken from util-linux-2.19.1/fdisk/fdisk.c tryprocpt()
  */
 static void dev_list_build(DC_DevList *dc_devlist) {
-
-    int is_whole_disk(const char *name) {
-        // SD cards have "mmcblkN" for whole devices,
-        // and "mmcblkNpM" for partitions
-        if (!strncmp(name, "mmcblk", 6)) {
-            return !strchr(name + 6, 'p');
-        }
-        // taken from util-linux-2.19.1/lib/wholedisk.c
-        while (*name)
-            name++;
-        return !isdigit(name[-1]);
-    }
-
 	FILE *procpt;
 	char line[128], ptname[128];
 	int ma, mi;
