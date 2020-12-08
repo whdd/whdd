@@ -1,10 +1,8 @@
 WHDD is HDD diagnostic and recovery tool for Linux.
 
 Project home: http://whdd.org
-License: GNU GPL
+License: GNU GPL v3
 Sources: https://github.com/whdd/whdd
-Author: Andrey Utkin <andrey.od.utkin@gmail.com>  https://andrey-utkin.github.io
-Inspired and directed by: Vitaliy 'Rozik' Roziznany <rozik@homei.net.ua>  http://rozik.od.ua
 
 To install, run:
 ./build.sh && sudo make install
