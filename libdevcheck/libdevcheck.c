@@ -105,6 +105,11 @@ static int is_whole_disk(const char *name) {
     if (!strncmp(name, "mmcblk", 6)) {
         return !strchr(name + 6, 'p');
     }
+    // NVMe SSD have "nvme0nN" for whole devices,
+    // and "nvme0nNpM" for partitions
+    if (!strncmp(name, "nvme", 4)) {
+        return !strchr(name + 6, 'p');
+    }
     // taken from util-linux-2.19.1/lib/wholedisk.c
     while (*name)
         name++;
