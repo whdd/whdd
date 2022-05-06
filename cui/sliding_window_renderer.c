@@ -131,9 +131,9 @@ static void render_update_stats(SlidingWindow *priv) {
     werase(priv->access_time_stats);
     unsigned int i;
     for (i = 0; i < 6; i++)
-        wprintw(priv->access_time_stats, "%d\n", priv->access_time_stats_accum[i]);
+        wprintw(priv->access_time_stats, "%ld\n", priv->access_time_stats_accum[i]);
     for (i = 1; i < 7; i++)
-        wprintw(priv->access_time_stats, "%d\n", priv->error_stats_accum[i]);
+        wprintw(priv->access_time_stats, "%ld\n", priv->error_stats_accum[i]);
     wnoutrefresh(priv->access_time_stats);
 
     if (priv->avg_processing_speed != 0) {
@@ -247,7 +247,7 @@ static int Open(DC_RendererCtx *ctx) {
     wnoutrefresh(priv->w_end_lba);
     wprintw(priv->summary,
             "%s %s\n"
-            "Block = %d bytes\n"
+            "Block = %ld bytes\n"
             "Ctrl+C to abort\n",
             actctx->procedure->display_name, actctx->dev->dev_path, actctx->blk_size);
     wrefresh(priv->summary);
