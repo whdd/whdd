@@ -5,7 +5,7 @@ project(whdd)
 option(STATIC "Build static binaries" OFF)
 option(CLI "Build whdd-cli" OFF)
 
-set(CMAKE_C_FLAGS "-std=gnu99 -pthread -Wall -Wextra -Wno-missing-field-initializers ${CFLAGS}")
+set(CMAKE_C_FLAGS "-std=gnu99 -D_GNU_SOURCE -pthread -Wall -Wextra -Wno-missing-field-initializers ${CFLAGS}")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS}")
 set(CMAKE_C_FLAGS_DEBUG "-O0 -g -ggdb ${CMAKE_C_FLAGS}")
 
