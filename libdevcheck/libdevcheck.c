@@ -134,7 +134,7 @@ static void dev_list_build(DC_DevList *dc_devlist) {
 	}
 
 	while (fgets(line, sizeof(line), procpt)) {
-		if (sscanf (line, " %d %d %llu %128[^\n ]",
+		if (sscanf (line, " %d %d %llu %127[^\n ]",
 			    &ma, &mi, &sz, ptname) != 4)
 			continue;
 		if (is_whole_disk(ptname)) {
@@ -191,7 +191,7 @@ static void dev_modelname_fill(DC_Dev *dev) {
         return;
     char model[256];
     int r;
-    r = fscanf(model_file, "%256[^\n]", model);
+    r = fscanf(model_file, "%255[^\n]", model);
     if (r != 1) {
         dc_log(DC_LOG_ERROR, "Outrageous error at scanning model name\n");
         return;
