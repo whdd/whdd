@@ -2,9 +2,9 @@
 #include "vis.h"
 
 vis_t bs_vis[]   = {
-                    { 3000,   L'\u2591', 0, MY_COLOR_GRAY }, // gray light shade
-                    { 10000,  L'\u2593', 0, MY_COLOR_GRAY }, // gray medium shade
-                    { 50000,  L'\u2588', 0, MY_COLOR_GRAY }, // gray dark shade
+                    { 3000,   L'\u2588', 0, MY_COLOR_BLUE }, // blue block
+                    { 10000,  L'\u2588', 1, MY_COLOR_YELLOW }, // yellow block
+                    { 50000,  L'\u2591', 1, MY_COLOR_GREEN }, // green dark shade
                     { 150000, L'\u2588', 0, MY_COLOR_GREEN }, // green full block
                     { 500000, L'\u2588', 0, MY_COLOR_RED }, // red full block
 };
@@ -24,6 +24,8 @@ void init_my_colors(void) {
     init_pair(MY_COLOR_RED, COLOR_RED, COLOR_BLACK);
     init_pair(MY_COLOR_WHITE_ON_BLUE, COLOR_WHITE, COLOR_BLUE);
     init_pair(MY_COLOR_ORANGE, COLOR_YELLOW, COLOR_BLACK);
+    init_pair(MY_COLOR_BLUE, COLOR_BLUE, COLOR_BLACK);
+    init_pair(MY_COLOR_YELLOW, COLOR_YELLOW, COLOR_BLACK);
 }
 
 vis_t choose_vis(uint64_t access_time) {

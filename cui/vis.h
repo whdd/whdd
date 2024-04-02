@@ -11,6 +11,8 @@
 #define MY_COLOR_RED 43
 #define MY_COLOR_WHITE_ON_BLUE 44
 #define MY_COLOR_ORANGE 45
+#define MY_COLOR_BLUE 46
+#define MY_COLOR_YELLOW 47
 
 typedef struct vis_t {
     uint64_t access_time; // in mcs

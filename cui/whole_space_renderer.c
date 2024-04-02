@@ -117,9 +117,9 @@ static void render_map(WholeSpace *priv) {
         if (errors_in_this_cell)
             print_vis(priv->vis, error_vis[3]);
         else if (!this_cell_fully_processed)
-            print_vis(priv->vis, bs_vis[0]);  // gray light shade
+            print_vis(priv->vis, bs_vis[0]);
         else
-            print_vis(priv->vis, bs_vis[3]);  // green shade
+            print_vis(priv->vis, bs_vis[1]);
     }
     wnoutrefresh(priv->vis);
 }
@@ -199,7 +199,7 @@ static void render_update_stats(WholeSpace *priv) {
     wattrset(priv->w_stats, A_NORMAL);
     wprintw(priv->w_stats, " %"PRIu64"\n", priv->unread_count);
 
-    print_vis(priv->w_stats, bs_vis[3]);
+    print_vis(priv->w_stats, bs_vis[1]);
     wattrset(priv->w_stats, A_NORMAL);
     wprintw(priv->w_stats, " %"PRIu64"\n", priv->read_ok_count);
 
@@ -216,7 +216,7 @@ void whole_space_show_legend(WholeSpace *priv) {
     wattrset(win, A_NORMAL);
     wprintw(win, " unread space\n\n");
 
-    print_vis(win, bs_vis[3]);
+    print_vis(win, bs_vis[1]);
     wattrset(win, A_NORMAL);
     wprintw(win, " copied space,\n  no read errors\n");
 
