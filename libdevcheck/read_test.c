@@ -168,8 +168,9 @@ static void Close(DC_ProcedureCtx *ctx) {
     close(priv->fd);
 }
 
+static const char * const api_choices[] = {"ata", "posix", NULL};
 static DC_ProcedureOption options[] = {
-    { "api", "select operation API: \"posix\" for POSIX read(), \"ata\" for ATA \"READ VERIFY EXT\" command", offsetof(ReadPriv, api_str), DC_ProcedureOptionType_eString },
+    { "api", "select operation API: \"posix\" for POSIX read(), \"ata\" for ATA \"READ VERIFY EXT\" command", offsetof(ReadPriv, api_str), DC_ProcedureOptionType_eString, api_choices },
     { "start_lba", "set LBA address to begin from", offsetof(ReadPriv, start_lba), DC_ProcedureOptionType_eInt64 },
     { NULL }
 };

@@ -24,6 +24,7 @@ typedef struct dc_procedure_option {
     const char *help;
     int offset;
     DC_ProcedureOptionType type;
+    const char * const *choices;
 } DC_ProcedureOption;
 
 typedef struct dc_option_setting {

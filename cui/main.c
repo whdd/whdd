@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
@@ -25,6 +27,7 @@ static DC_Procedure *menu_choose_procedure(DC_Dev *dev);
 void log_cb(void *priv, enum DC_LogLevel level, const char* fmt, va_list vl);
 
 static int ask_option_value(DC_Procedure *act, DC_OptionSetting *setting, DC_ProcedureOption *option) {
+    int r;
     char *suggested_value = setting->value;
     char entered_value[200];
     const char *param_type_str;
@@ -59,7 +62,26 @@ static int ask_option_value(DC_Procedure *act, DC_OptionSetting *setting, DC_Pro
 
     dialog_vars.default_button = -1;  // Workaround for surprisingly unfocused input field on old libdialog
     dialog_vars.input_result = NULL;
-    int r = dialog_inputbox("Input box", prompt, 0, 0, suggested_value, 0);
+
+    if (option->choices) {
+        int nb_choices = 0;
+        // A quasi-table form which dialog(3) accepts:
+        // dialog_checklist... items: is an array of strings which is viewed... as a list of rows `tag` `item` `status`
+        const char **choices_for_dialog = NULL;
+        //for (const char * choice = option->choices[0]; choice; choice++) {
+        const char * choice;
+        int items_table_cols = 2;
+        assert(dialog_vars.no_items == true); // otherwise one more quasi-column "item"
+        assert(dialog_vars.item_help == false); // otherwise one more quasi-column "help" which goes last
+        for (nb_choices = 0; choice = option->choices[nb_choices]; nb_choices++) {
+            choices_for_dialog = reallocarray(choices_for_dialog, items_table_cols * (nb_choices + 1), sizeof(char*));
+            choices_for_dialog[items_table_cols * nb_choices + 0] = choice;
+            choices_for_dialog[items_table_cols * nb_choices + 1] = !strcmp(choice, suggested_value)  ? "on" : "off";
+        }
+        r = dialog_checklist("Input box", prompt, /*height*/0, /*width*/0, /*list_height*/0, nb_choices, /*char **items*/choices_for_dialog, /*flag*/FLAG_RADIO);
+    } else {
+        r = dialog_inputbox("Input box", prompt, 0, 0, suggested_value, 0);
+    }
     if (r != 0) {
         dialog_msgbox("Info", "Action cancelled", 0, 0, 1);
         return 1;

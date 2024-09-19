@@ -384,11 +384,14 @@ static void Close(DC_ProcedureCtx *ctx) {
     priv->read_strategy_impl->close(priv);
 }
 
+static const char * const api_choices[] = {"ata", "posix", NULL};
+static const char * const strategy_choices[] = {"plain", "smart", "smart_noreverse", "skipfail", "skipfail_noreverse", NULL};
+static const char * const yesno_choices[] = {"yes", "no", NULL};
 static DC_ProcedureOption options[] = {
-    { "api", "select read operation API: \"posix\" for POSIX read(), \"ata\" for ATA \"READ DMA EXT\" command", offsetof(CopyPriv, api_str), DC_ProcedureOptionType_eString },
-    { "read_strategy", "select from options: plain, smart, smart_noreverse, skipfail, skipfail_noreverse. See help on copy procedure for details.", offsetof(CopyPriv, read_strategy_str), DC_ProcedureOptionType_eString },
+    { "api", "select read operation API: \"posix\" for POSIX read(), \"ata\" for ATA \"READ DMA EXT\" command", offsetof(CopyPriv, api_str), DC_ProcedureOptionType_eString, api_choices },
+    { "read_strategy", "select from options: plain, smart, smart_noreverse, skipfail, skipfail_noreverse. See help on copy procedure for details.", offsetof(CopyPriv, read_strategy_str), DC_ProcedureOptionType_eString, strategy_choices },
     { "dst_file", "set destination file path", offsetof(CopyPriv, dst_file), DC_ProcedureOptionType_eString },
-    { "use_journal", "set whether to generate and use journal for operation resume possibility (yes/no)", offsetof(CopyPriv, use_journal_str), DC_ProcedureOptionType_eString },
+    { "use_journal", "set whether to generate and use journal for operation resume possibility (yes/no)", offsetof(CopyPriv, use_journal_str), DC_ProcedureOptionType_eString, yesno_choices },
     { "skip_blocks", "set jump size in blocks of 256*512 bytes, when read error is met (for skipfail* strategies)", offsetof(CopyPriv, skip_blocks), DC_ProcedureOptionType_eInt64 },
     { NULL }
 };
