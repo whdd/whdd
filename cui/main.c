@@ -78,7 +78,7 @@ static int ask_option_value(DC_Procedure *act, DC_OptionSetting *setting, DC_Pro
             choices_for_dialog[items_table_cols * nb_choices + 0] = choice;
             choices_for_dialog[items_table_cols * nb_choices + 1] = !strcmp(choice, suggested_value)  ? "on" : "off";
         }
-        r = dialog_checklist("Input box", prompt, /*height*/0, /*width*/0, /*list_height*/0, nb_choices, /*char **items*/choices_for_dialog, /*flag*/FLAG_RADIO);
+        r = dialog_checklist("Input box", prompt, /*height*/0, /*width*/0, /*list_height*/0, nb_choices, /*char **items*/(char **)choices_for_dialog, /*flag*/FLAG_RADIO);
     } else {
         r = dialog_inputbox("Input box", prompt, 0, 0, suggested_value, 0);
     }
