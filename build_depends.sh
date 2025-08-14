@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PACKAGES="dialog libncursesw5 libncursesw5-dev"
+PACKAGES="dialog libncursesw5 libncursesw5-dev pkgconf"
 
 if [[ -x `which apt-get` ]]
 then
