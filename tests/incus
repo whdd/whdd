@@ -1,0 +1,21 @@
+#!/bin/bash
+set -euo pipefail
+set -x
+
+INCUS_HOST=local
+INCUS_INSTANCE_NAME=whdd-test
+
+incus rm -f "$INCUS_HOST:$INCUS_INSTANCE_NAME" || true
+incus launch --vm images:debian/12 "$INCUS_HOST:$INCUS_INSTANCE_NAME"
+
+# Wait for ipv4 IP
+IFNAME=enp5s0 # dependent on distro and vm-vs-container
+while ! incus list --format json "$INCUS_HOST:$INCUS_INSTANCE_NAME" | jq --raw-output .[0].state.network."$IFNAME".addresses[0].address | grep -F . >/dev/null; do echo -n .; sleep 1; done
+
+incus exec "$INCUS_HOST:$INCUS_INSTANCE_NAME" -- bash -l -euo pipefail <<EOF
+apt install -y git
+git clone https://github.com/whdd/whdd
+cd whdd
+./build.sh
+[[ -x ./whdd ]]
+EOF
