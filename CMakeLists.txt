@@ -73,7 +73,9 @@ add_dependencies(whdd version)
 target_link_libraries(whdd rt pthread)
 
 if (${STATIC})
-
+    # full static build
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -static -no-pie")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static -no-pie")
     # Set vars containing to deps builds
     set(NCURSES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/ncurses/install/")
     set(DIALOG_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/dialog/dialog-prefix/src/dialog/")
