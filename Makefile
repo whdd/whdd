@@ -20,3 +20,7 @@ install: whdd
 	$(INSTALL) -D whdd $(DESTDIR)/bin/whdd
 
 FORCE:
+
+.PHONY: test
+test:
+	./tests/run-read-addressing.sh .

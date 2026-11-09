@@ -3,6 +3,26 @@
 
 #include "ata.h"
 
+int ata_identify_has_lba48(const uint8_t identify[512]) {
+    uint16_t word83 = identify[166] | ((uint16_t)identify[167] << 8);
+    return (word83 & 0xc000) == 0x4000 && (word83 & (1 << 10));
+}
+
+uint64_t ata_identify_sector_count(const uint8_t identify[512]) {
+    uint64_t sectors = 0;
+    unsigned i;
+
+    if (ata_identify_has_lba48(identify)) {
+        for (i = 0; i < 8; i++)
+            sectors |= (uint64_t)identify[200 + i] << (8 * i);
+    }
+    if (!sectors) {
+        for (i = 0; i < 4; i++)
+            sectors |= (uint64_t)identify[120 + i] << (8 * i);
+    }
+    return sectors;
+}
+
 void prepare_ata_command(AtaCommand *cmd_buffer, int cmd, uint64_t lba, int size_in_sectors) {
     // TODO Optimize lba splitting to bytes
     uint64_t lba_be = htobe64(lba);

@@ -8,3 +8,6 @@ Sources, bugreports: https://github.com/whdd/whdd
 
 To install, run:
 `./build.sh && sudo make install`
+
+Run the device-mocked ATA geometry and read-test regression tests with `make test`.
+They require a C compiler and GNU-compatible linker; no disk devices are accessed.

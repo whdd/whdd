@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#include <linux/fs.h>
 
 #include "utils.h"
 #include "log.h"
@@ -209,10 +210,30 @@ int dc_dev_get_native_max_lba(char *dev_fs_path, uint64_t *max_lba) {
 }
 
 int dc_dev_get_capacity(char *dev_fs_path, uint64_t *capacity) {
-    int ret = dc_dev_get_max_lba(dev_fs_path, capacity);
-    if (!ret)
-        *capacity = (*capacity + 1) * 512;
-    return ret;
+    uint64_t bytes;
+    uint64_t max_lba;
+    int fd = open(dev_fs_path, O_RDONLY);
+    int ret;
+
+    /* Use the capacity of the block device as exposed by the kernel. */
+    if (fd >= 0) {
+        ret = ioctl(fd, BLKGETSIZE64, &bytes);
+        close(fd);
+        if (!ret && bytes) {
+            *capacity = bytes;
+            return 0;
+        }
+    }
+
+    ret = dc_dev_get_max_lba(dev_fs_path, &max_lba);
+    if (ret)
+        return ret;
+    if (max_lba >= UINT64_MAX / 512) {
+        errno = EOVERFLOW;
+        return -1;
+    }
+    *capacity = (max_lba + 1) * 512;
+    return 0;
 }
 
 int dc_dev_get_max_lba(char *dev_fs_path, uint64_t *max_lba) {
@@ -221,13 +242,12 @@ int dc_dev_get_max_lba(char *dev_fs_path, uint64_t *max_lba) {
     ret = dc_dev_ata_identify(dev_fs_path, buf);
     if (ret)
         return ret;
-    *max_lba = (uint64_t)buf[200]
-        | ((uint64_t)buf[201] << 8)
-        | ((uint64_t)buf[202] << 16)
-        | ((uint64_t)buf[203] << 24)
-        | ((uint64_t)buf[204] << 32)
-        | ((uint64_t)buf[205] << 40);
-    (*max_lba)--;
+    uint64_t sectors = ata_identify_sector_count(buf);
+    if (!sectors) {
+        errno = EINVAL;
+        return -1;
+    }
+    *max_lba = sectors - 1;
     return 0;
 }
 
