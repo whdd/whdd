@@ -24,7 +24,9 @@ struct read_priv {
     void *buf;
     AtaCommand ata_command;
     ScsiCommand scsi_command;
-    int old_readahead;
+    long old_readahead;
+    int readahead_valid;
+    int use_lba48;
     uint64_t current_lba;
 };
 typedef struct read_priv ReadPriv;
@@ -57,53 +59,75 @@ static int Open(DC_ProcedureCtx *ctx) {
         priv->api = Api_eAta;
     else if (!strcmp(priv->api_str, "posix"))
         priv->api = Api_ePosix;
-    else
+    else {
+        dc_log(DC_LOG_FATAL, "Unknown read API: %s\n", priv->api_str);
         return 1;
-    if (priv->api == Api_eAta && !ctx->dev->ata_capable)
+    }
+    if (priv->api == Api_eAta && !ctx->dev->ata_capable) {
+        dc_log(DC_LOG_FATAL, "ATA access is unavailable; select the posix API\n");
         return 1;
+    }
     ctx->blk_size = BLK_SIZE;
     priv->current_lba = priv->start_lba;
     priv->end_lba = ctx->dev->capacity / 512;
-    priv->lba_to_process = priv->end_lba - priv->start_lba;
-    if (priv->lba_to_process <= 0)
+    if (priv->start_lba < 0 || priv->start_lba >= priv->end_lba) {
+        dc_log(DC_LOG_FATAL, "Invalid read range: start LBA=%"PRId64", capacity=%"PRIu64" bytes\n",
+                priv->start_lba, ctx->dev->capacity);
         return 1;
+    }
+    priv->lba_to_process = priv->end_lba - priv->start_lba;
     ctx->progress.den = priv->lba_to_process / SECTORS_AT_ONCE;
     if (priv->lba_to_process % SECTORS_AT_ONCE)
         ctx->progress.den++;
 
     if (priv->api == Api_eAta) {
+        priv->use_lba48 = ata_identify_has_lba48(ctx->dev->identify);
+        if (!priv->use_lba48 && priv->end_lba > (1LL << 28)) {
+            dc_log(DC_LOG_FATAL, "Device capacity exceeds the 28-bit ATA address range\n");
+            return 1;
+        }
         open_flags = O_RDWR;
     } else {
         r = posix_memalign(&priv->buf, sysconf(_SC_PAGESIZE), ctx->blk_size);
-        if (r)
+        if (r) {
+            dc_log(DC_LOG_FATAL, "Read buffer allocation failed: %s\n", strerror(r));
             return 1;
+        }
 
         open_flags = O_RDONLY | O_DIRECT | O_LARGEFILE | O_NOATIME;
     }
 
     priv->fd = open(ctx->dev->dev_path, open_flags);
     if (priv->fd == -1) {
-        dc_log(DC_LOG_FATAL, "open %s fail\n", ctx->dev->dev_path);
+        dc_log(DC_LOG_FATAL, "Cannot open %s: %s\n", ctx->dev->dev_path, strerror(errno));
+        free(priv->buf);
+        priv->buf = NULL;
         return 1;
     }
 
-    lseek(priv->fd, 512 * priv->start_lba, SEEK_SET);
+    if (lseek(priv->fd, 512 * priv->start_lba, SEEK_SET) == (off_t)-1) {
+        dc_log(DC_LOG_FATAL, "Cannot seek %s: %s\n", ctx->dev->dev_path, strerror(errno));
+        free(priv->buf);
+        priv->buf = NULL;
+        close(priv->fd);
+        return 1;
+    }
     r = ioctl(priv->fd, BLKFLSBUF, NULL);
     if (r == -1)
       dc_log(DC_LOG_WARNING, "Flushing block device buffers failed\n");
     r = ioctl(priv->fd, BLKRAGET, &priv->old_readahead);
-    if (r == -1)
+    priv->readahead_valid = r != -1;
+    if (!priv->readahead_valid)
       dc_log(DC_LOG_WARNING, "Getting block device readahead setting failed\n");
-    r = ioctl(priv->fd, BLKRASET, 0);
-    if (r == -1)
+    else if (ioctl(priv->fd, BLKRASET, 0) == -1)
       dc_log(DC_LOG_WARNING, "Disabling block device readahead setting failed\n");
 
     return 0;
 }
 
 static int Perform(DC_ProcedureCtx *ctx) {
-    ssize_t read_ret;
-    int ioctl_ret;
+    ssize_t read_ret = -1;
+    int ioctl_ret = -1;
     int ret = 0;
     ReadPriv *priv = ctx->priv;
     size_t sectors_to_read = (priv->lba_to_process < SECTORS_AT_ONCE) ? priv->lba_to_process : SECTORS_AT_ONCE;
@@ -117,7 +141,8 @@ static int Perform(DC_ProcedureCtx *ctx) {
     if (priv->api == Api_eAta) {
         memset(&priv->ata_command, 0, sizeof(priv->ata_command));
         memset(&priv->scsi_command, 0, sizeof(priv->scsi_command));
-        prepare_ata_command(&priv->ata_command, WIN_VERIFY_EXT /* 42h */, priv->current_lba, sectors_to_read);
+        int command = priv->use_lba48 ? WIN_VERIFY_EXT : WIN_VERIFY;
+        prepare_ata_command(&priv->ata_command, command, priv->current_lba, sectors_to_read);
         prepare_scsi_command_from_ata(&priv->scsi_command, &priv->ata_command);
     }
 
@@ -140,7 +165,8 @@ static int Perform(DC_ProcedureCtx *ctx) {
             ctx->report.blk_status = DC_BlockStatus_eError;
             ret = 1;
         }
-        ctx->report.blk_status = scsi_ata_check_return_status(&priv->scsi_command);
+        else
+            ctx->report.blk_status = scsi_ata_check_return_status(&priv->scsi_command);
     } else {
         if ((int)read_ret != (int)sectors_to_read * 512) {
             // Position of fd is undefined. Set fd position to read next block
@@ -161,8 +187,7 @@ static int Perform(DC_ProcedureCtx *ctx) {
 
 static void Close(DC_ProcedureCtx *ctx) {
     ReadPriv *priv = ctx->priv;
-    int r = ioctl(priv->fd, BLKRASET, priv->old_readahead);
-    if (r == -1)
+    if (priv->readahead_valid && ioctl(priv->fd, BLKRASET, priv->old_readahead) == -1)
       dc_log(DC_LOG_WARNING, "Restoring block device readahead setting failed\n");
     free(priv->buf);
     close(priv->fd);

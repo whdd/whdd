@@ -35,6 +35,17 @@ void prepare_scsi_command_from_ata(ScsiCommand *scsi_cmd, AtaCommand *ata_cmd) {
     scsi_cmd->scsi_cmd[12] = ata_cmd->task.io_ports[5];
     scsi_cmd->scsi_cmd[13] = ata_cmd->task.io_ports[6];  // device
     scsi_cmd->scsi_cmd[14] = ata_cmd->task.io_ports[7];  // command
+
+    if (ata_cmd->task.io_ports[7] == WIN_VERIFY) {
+        /* READ VERIFY uses the 28-bit taskfile, not the EXTEND registers. */
+        scsi_cmd->scsi_cmd[1] &= ~1;
+        scsi_cmd->scsi_cmd[3] = 0;
+        scsi_cmd->scsi_cmd[5] = 0;
+        scsi_cmd->scsi_cmd[7] = 0;
+        scsi_cmd->scsi_cmd[9] = 0;
+        scsi_cmd->scsi_cmd[11] = 0;
+        scsi_cmd->scsi_cmd[13] = 0xe0 | (ata_cmd->task.hob_ports[3] & 0x0f);
+    }
 }
 
 void fill_scsi_ata_return_descriptor(ScsiAtaReturnDescriptor *scsi_ata_ret, ScsiCommand *scsi_cmd) {
